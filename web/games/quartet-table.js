@@ -52,13 +52,20 @@
         </div>`;
     }
 
-    function playerRow(player, me, end) {
+    function removePlayerButton(player, pending) {
+      if (!player.canRemove) return '';
+      return `<button type="button" class="qt-remove-player" data-action="remove-offline-player" data-player-id="${esc(player.playerId)}"
+        aria-label="Удалить игрока ${esc(player.name)}" ${pending ? 'disabled' : ''}>Удалить</button>`;
+    }
+
+    function playerRow(player, me, end, pending) {
       return `<li class="qt-seat">
         <span class="qt-avatar" aria-hidden="true">${esc(player.name[0]?.toUpperCase() || '?')}</span>
         <span class="qt-seat-name">${esc(player.name)}${player.playerId === me?.playerId ? ' <small>вы</small>' : ''}</span>
-        ${end
+        <span class="qt-seat-actions">${end
           ? `<span class="qt-seat-score">${player.quartetsCount} ★</span>`
           : `<span class="qt-seat-tag">${player.isHost ? 'Ведущий' : player.connected ? 'В комнате' : 'Нет связи'}</span>`}
+        ${removePlayerButton(player, pending)}</span>
       </li>`;
     }
 
@@ -106,7 +113,7 @@
           </section>
           <section class="qt-paper">
             <div class="qt-section-title"><h3>Игроки</h3><span>${players.length} / ${state.playerLimit ?? playerLimit}</span></div>
-            <ul class="qt-seats">${players.map((player) => playerRow(player, state.me, false)).join('')}</ul>
+            <ul class="qt-seats">${players.map((player) => playerRow(player, state.me, false, pending)).join('')}</ul>
           </section>
           <section class="qt-paper">
             ${deckPicker(state, players.length, pending)}
@@ -190,12 +197,14 @@
       table.opponentEmpty.hidden = found || !query;
     }
 
-    function playerCard(player, turnId, practice) {
+    function playerCard(player, turnId, practice, pending) {
       return `<div class="qt-player ${player.playerId === turnId ? 'is-current' : ''}"
         data-player-id="${esc(player.playerId)}" data-search-name="${esc(filterName(player.name))}" title="${esc(player.name)}">
         <span class="qt-avatar" aria-hidden="true">${esc(player.name[0]?.toUpperCase() || '?')}</span>
         <strong>${esc(player.name)}${practice ? ' <span class="qt-bot-label">бот</span>' : ''}</strong>
         <small>${player.cardsCount} <span aria-label="карт">▤</span> · ${player.quartetsCount} <span aria-label="квартетов">★</span></small>
+        ${!practice && !player.connected ? '<small class="qt-player-offline">Нет связи</small>' : ''}
+        ${removePlayerButton(player, pending)}
       </div>`;
     }
 
@@ -326,7 +335,7 @@
 
       table.opponentSearch.hidden = opponents.length < 7;
       if (table.opponentSearch.hidden && table.opponentQuery.value) table.opponentQuery.value = '';
-      patch(table.opponents, opponents.map((player) => playerCard(player, state.turnPlayerId, state.practice)).join(''));
+      patch(table.opponents, opponents.map((player) => playerCard(player, state.turnPlayerId, state.practice, pending || !connected)).join(''));
       filterOpponents();
       const groupsChanged = patch(table.groups, myGroups.map(({ quartet, ownedCount }) =>
         `<button type="button" class="qt-group" data-action="table-group" data-group-id="${esc(quartet.id)}">
@@ -429,7 +438,7 @@
           </section>
           <section class="qt-paper">
             <div class="qt-section-title"><h3>Итог партии</h3><span>${state.totalQuartets} в колоде</span></div>
-            <ol class="qt-seats">${state.score.map((player) => playerRow(player, state.me, true)).join('')}</ol>
+            <ol class="qt-seats">${state.score.map((player) => playerRow(player, state.me, true, pending)).join('')}</ol>
           </section>
           ${state.me?.isHost && canRestart ? `<section class="qt-paper">
             ${deckPicker(state, active, pending)}

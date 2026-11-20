@@ -38,6 +38,9 @@ export function createRoomState(roomId, player, now = Date.now()) {
 }
 
 export function joinRoom(state, player, now = Date.now()) {
+  if (state.removedPlayerIds?.includes(player.playerId)) {
+    throw gameError('Ведущий удалил вас из комнаты', 'REMOVED_FROM_ROOM');
+  }
   const existing = state.players.find((item) => item.playerId === player.playerId);
   const roomFull = state.status !== 'playing' && activePlayers(state).length >= ROOM_LIMIT;
   if (roomFull && (!existing || existing.isActive === false)) {
@@ -227,15 +230,18 @@ export function passTimedOutTurn(state, now = Date.now()) {
   return true;
 }
 
-export function leaveRoom(state, actorId, now = Date.now()) {
+export function leaveRoom(state, actorId, now = Date.now(), { removedByHost = false } = {}) {
   const player = getActivePlayer(state, actorId);
   if (!player) return { deleted: false, changed: false };
 
+  if (removedByHost) (state.removedPlayerIds ??= []).push(actorId);
+  const removalLog = `Ведущий удалил игрока «${player.name}»`;
   if (state.status === 'lobby') {
     state.players = state.players.filter((item) => item.playerId !== actorId);
-    state.log.push(`${player.name} вышел из комнаты`);
+    state.log.push(removedByHost ? removalLog : `${player.name} вышел из комнаты`);
   } else if (state.status === 'finished') {
     player.isActive = false;
+    if (removedByHost) state.log.push(removalLog);
   } else {
     player.isActive = false;
     const remaining = activePlayers(state);
@@ -248,7 +254,9 @@ export function leaveRoom(state, actorId, now = Date.now()) {
         cursor += 1;
       }
       for (const recipient of remaining) collectCompletedQuartets(recipient);
-      state.log.push(`${player.name} вышел · его карты перераспределены`);
+      state.log.push(removedByHost
+        ? `${removalLog} · его карты перераспределены`
+        : `${player.name} вышел · его карты перераспределены`);
       if (remaining.length === 1) {
         state.status = 'finished';
         state.turnPlayerId = null;
@@ -280,7 +288,9 @@ export function leaveRoom(state, actorId, now = Date.now()) {
     state.turnDeadlineMs = state.turnPlayerId ? now + TURN_TIMEOUT_MS : 0;
   }
 
-  if (state.status !== 'finished') state.lastEvent = makeEvent('player_left', { playerId: actorId, playerName: player.name }, now);
+  if (state.status !== 'finished') {
+    state.lastEvent = makeEvent(removedByHost ? 'player_removed' : 'player_left', { playerId: actorId, playerName: player.name }, now);
+  }
   trimLog(state);
   touch(state, now);
   checkFinished(state, now);

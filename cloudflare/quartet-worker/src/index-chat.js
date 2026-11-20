@@ -24,6 +24,7 @@ const ROOM_IDLE_TTL_MS = 12 * 60 * 60 * 1000;
 // на потерю связи и возвращение; после него держать комнату не для кого.
 const EMPTY_ROOM_TTL_MS = 30 * 60 * 1000;
 const POLL_PRESENCE_TTL_MS = 8_000;
+const OFFLINE_REMOVAL_MS = 3 * 60 * 1000;
 const MAX_CHAT_MESSAGES = 80;
 
 export default {
@@ -116,12 +117,15 @@ export class QuartetRoom extends DurableObject {
     this.pollingPresence = new Map();
     this.pollingRateLimits = new Map();
     this.pollingActionIds = new Map();
+    this.offlineSince = new Map();
     // Отметка «здесь никого нет с этого момента». Переживает выгрузку объекта:
     // без неё отсчёт начинался бы заново после каждой перезагрузки комнаты.
     this.emptySince = 0;
     this.ctx.blockConcurrencyWhile(async () => {
       this.room = (await this.ctx.storage.get('room')) || null;
       this.emptySince = Number(await this.ctx.storage.get('emptySince')) || 0;
+      const offline = await this.ctx.storage.get('offlineSince');
+      if (Array.isArray(offline)) this.offlineSince = new Map(offline);
       if (this.room) ensureChat(this.room);
     });
   }
@@ -134,8 +138,7 @@ export class QuartetRoom extends DurableObject {
       if (this.room) {
         if (normalizedRequestId && this.room.createRequestId === normalizedRequestId && this.room.hostPlayerId === player?.playerId) {
           ensureChat(this.room);
-          const state = buildView(this.room, player.playerId, this.connectedPlayerIds());
-          state.chat = this.room.chat.map((entry) => ({ ...entry }));
+          const state = this.buildClientView(player.playerId);
           return json({ ok: true, replayed: true, state });
         }
         return json({ ok: false, error: 'Room exists' }, 409);
@@ -144,8 +147,7 @@ export class QuartetRoom extends DurableObject {
       this.room.createRequestId = normalizedRequestId || null;
       ensureChat(this.room);
       await this.persistAndBroadcast();
-      const state = buildView(this.room, player.playerId, this.connectedPlayerIds());
-      state.chat = this.room.chat.map((entry) => ({ ...entry }));
+      const state = this.buildClientView(player.playerId);
       return json({ ok: true, replayed: false, state }, 201);
     }
     if (request.method === 'POST' && url.pathname === '/join') {
@@ -154,9 +156,12 @@ export class QuartetRoom extends DurableObject {
       const { player } = await readJson(request);
       try {
         joinRoom(this.room, player);
+        if (this.offlineSince.has(player.playerId)) {
+          this.offlineSince.set(player.playerId, Date.now());
+          await this.ctx.storage.put('offlineSince', [...this.offlineSince]);
+        }
         await this.persistAndBroadcast();
-        const state = buildView(this.room, player.playerId, this.connectedPlayerIds());
-        state.chat = this.room.chat.map((entry) => ({ ...entry }));
+        const state = this.buildClientView(player.playerId);
         return json({ ok: true, state });
       } catch (error) {
         return json({ ok: false, error: error.message, code: error.code }, 409);
@@ -201,8 +206,7 @@ export class QuartetRoom extends DurableObject {
           await this.broadcastState();
         }
         if (!this.room) return json({ ok: true, closed: true, transport: 'https' });
-        const view = buildView(this.room, playerId, this.connectedPlayerIds());
-        view.chat = this.room.chat.map((entry) => ({ ...entry }));
+        const view = this.buildClientView(playerId);
         return json({ ok: true, transport: 'https', state: view });
       } catch (error) {
         return json({ ok: false, error: String(error?.message || error), code: error?.code || 'ACTION_ERROR' }, 409);
@@ -252,6 +256,9 @@ export class QuartetRoom extends DurableObject {
   async applyAction(playerId, action, data, now) {
     if (!this.room) throw Object.assign(new Error('Сессия комнаты недоступна'), { code: 'NO_SESSION' });
     ensureChat(this.room);
+    if (!this.room.players.some((player) => player.playerId === playerId && player.isActive !== false)) {
+      throw gameError('Игрок не найден в комнате', 'PLAYER_NOT_FOUND');
+    }
     if (action === 'startGame') startGame(this.room, playerId, now);
     else if (action === 'restartGame') restartGame(this.room, playerId, now);
     else if (action === 'setDeckSize') setDeckSize(this.room, playerId, data.count, now);
@@ -263,6 +270,18 @@ export class QuartetRoom extends DurableObject {
       askCard(this.room, playerId, String(data.targetId || ''), String(data.cardId || ''), now);
     }
     else if (action === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
+    else if (action === 'removeOfflinePlayer') {
+      if (playerId !== this.room.hostPlayerId) throw gameError('Удалить игрока может только ведущий', 'HOST_ONLY');
+      const targetId = String(data.targetId || '');
+      const player = this.room.players.find((item) => item.playerId === targetId && item.isActive !== false);
+      if (!player || targetId === playerId) throw gameError('Игрок не найден в комнате', 'PLAYER_NOT_FOUND');
+      if (!this.canRemoveOfflinePlayer(targetId, this.connectedPlayerIds(), now)) {
+        throw gameError('Игрока можно удалить после трёх минут без связи', 'PLAYER_NOT_OFFLINE_LONG_ENOUGH');
+      }
+      leaveRoom(this.room, targetId, now, { removedByHost: true });
+      this.pollingRateLimits.delete(targetId);
+      this.pollingActionIds.delete(targetId);
+    }
     else if (action === 'leave') {
       const result = leaveRoom(this.room, playerId, now);
       this.pollingPresence.delete(playerId);
@@ -281,13 +300,13 @@ export class QuartetRoom extends DurableObject {
 
   async webSocketClose(webSocket, code, reason) {
     try { webSocket.close(code, reason); } catch {}
-    await this.markMaybeEmpty();
-    if (this.room) await this.broadcastState();
+    await this.markMaybeEmpty(webSocket);
+    if (this.room) await this.broadcastState(webSocket);
   }
   async webSocketError(webSocket) {
     try { webSocket.close(1011, 'WebSocket error'); } catch {}
-    await this.markMaybeEmpty();
-    if (this.room) await this.broadcastState();
+    await this.markMaybeEmpty(webSocket);
+    if (this.room) await this.broadcastState(webSocket);
   }
 
   /** Кто-то на связи: отсчёт пустоты сбрасывается. */
@@ -297,15 +316,11 @@ export class QuartetRoom extends DurableObject {
     await this.ctx.storage.put('emptySince', 0);
   }
 
-  /*
-    Связь оборвалась — возможно, последняя. Проверить это прямо сейчас нельзя:
-    закрывающийся сокет ещё числится в списке. Поэтому ставится отметка и
-    назначается будильник, а был ли тот сокет последним, решает уже он: к его
-    сроку список честный.
-  */
-  async markMaybeEmpty() {
+  async markMaybeEmpty(excludingSocket) {
     if (!this.room) return;
-    if (!this.emptySince) {
+    if (this.connectedPlayerIds(excludingSocket).size) {
+      await this.markOccupied();
+    } else if (!this.emptySince) {
       this.emptySince = Date.now();
       await this.ctx.storage.put('emptySince', this.emptySince);
     }
@@ -334,20 +349,16 @@ export class QuartetRoom extends DurableObject {
       await this.ctx.storage.put('emptySince', this.emptySince);
     }
     if (changed) await this.persistAndBroadcast();
-    else {
-      await this.broadcastState();
-      await this.scheduleAlarm();
-    }
+    else await this.broadcastState();
   }
 
   async persistAndBroadcast() {
     if (!this.room) return;
     ensureChat(this.room);
     await this.ctx.storage.put('room', this.room);
-    await this.scheduleAlarm();
     await this.broadcastState();
   }
-  async scheduleAlarm() {
+  async scheduleAlarm(connected = this.connectedPlayerIds()) {
     if (!this.room) return;
     const cleanupAt = Number(this.room.updatedAt || Date.now()) + ROOM_IDLE_TTL_MS;
     const emptyAt = this.emptySince ? this.emptySince + EMPTY_ROOM_TTL_MS : Number.POSITIVE_INFINITY;
@@ -355,17 +366,26 @@ export class QuartetRoom extends DurableObject {
     const pollExpiryAt = this.pollingPresence.size
       ? Math.min(...this.pollingPresence.values()) + POLL_PRESENCE_TTL_MS
       : Number.POSITIVE_INFINITY;
-    await this.ctx.storage.setAlarm(Math.min(cleanupAt, emptyAt, turnAt, pollExpiryAt));
+    const now = Date.now();
+    let removableAt = Number.POSITIVE_INFINITY;
+    if (connected.has(this.room.hostPlayerId)) {
+      for (const [playerId, since] of this.offlineSince) {
+        const deadline = since + OFFLINE_REMOVAL_MS;
+        if (playerId !== this.room.hostPlayerId && deadline > now) removableAt = Math.min(removableAt, deadline);
+      }
+    }
+    await this.ctx.storage.setAlarm(Math.min(cleanupAt, emptyAt, turnAt, pollExpiryAt, removableAt));
   }
-  connectedPlayerIds() {
+  connectedPlayerIds(excludingSocket) {
     const ids = new Set();
     for (const socket of this.ctx.getWebSockets()) {
+      if (socket === excludingSocket || socket.readyState !== 1) continue;
       const attachment = socket.deserializeAttachment() || {};
       if (attachment.playerId) ids.add(String(attachment.playerId));
     }
     const now = Date.now();
     for (const [playerId, seenAt] of this.pollingPresence) {
-      if (now - Number(seenAt) <= POLL_PRESENCE_TTL_MS) ids.add(String(playerId));
+      if (now - Number(seenAt) < POLL_PRESENCE_TTL_MS) ids.add(String(playerId));
       else this.pollingPresence.delete(playerId);
     }
     return ids;
@@ -388,19 +408,54 @@ export class QuartetRoom extends DurableObject {
     if (recent.length > 128) recent.splice(0, recent.length - 128);
     this.pollingActionIds.set(playerId, recent);
   }
-  async broadcastState() {
+  canRemoveOfflinePlayer(playerId, connected, now = Date.now()) {
+    const since = this.offlineSince.get(playerId);
+    return since !== undefined && !connected.has(playerId) && now - since >= OFFLINE_REMOVAL_MS;
+  }
+
+  async updateOfflinePresence(connected) {
+    const entries = new Map();
+    const now = Date.now();
+    let changed = false;
+    for (const player of this.room.players) {
+      if (player.isActive === false || connected.has(player.playerId)) continue;
+      const since = this.offlineSince.get(player.playerId);
+      changed ||= since === undefined;
+      entries.set(player.playerId, since ?? now);
+    }
+    if (!changed && entries.size === this.offlineSince.size) return;
+    this.offlineSince = entries;
+    await this.ctx.storage.put('offlineSince', [...entries]);
+  }
+
+  buildClientView(playerId, connected = this.connectedPlayerIds()) {
+    const view = buildView(this.room, playerId, connected);
+    view.chat = this.room.chat.map((entry) => ({ ...entry }));
+    if (view.me?.isHost) {
+      for (const player of view.players) {
+        player.canRemove = player.isActive && player.playerId !== playerId &&
+          this.canRemoveOfflinePlayer(player.playerId, connected);
+      }
+    }
+    return view;
+  }
+
+  async broadcastState(excludingSocket) {
     if (!this.room) return;
     ensureChat(this.room);
-    const connected = this.connectedPlayerIds();
+    await this.updateOfflinePresence(this.connectedPlayerIds(excludingSocket));
+    if (!this.room) return;
+    const connected = this.connectedPlayerIds(excludingSocket);
     for (const socket of this.ctx.getWebSockets()) {
+      if (socket === excludingSocket || socket.readyState !== 1) continue;
       const attachment = socket.deserializeAttachment() || {};
       const playerId = String(attachment.playerId || '');
       try {
-        const view = buildView(this.room, playerId, connected);
-        view.chat = this.room.chat.map((entry) => ({ ...entry }));
+        const view = this.buildClientView(playerId, connected);
         socket.send(JSON.stringify({ type: 'state', state: view }));
       } catch (error) { console.warn('socket send failed', error); }
     }
+    await this.scheduleAlarm(connected);
   }
   sendError(webSocket, message, code, request) { try { webSocket.send(JSON.stringify({ type: 'error', error: message, code, ...request })); } catch {} }
   closeAllSockets(code, reason) { for (const socket of this.ctx.getWebSockets()) try { socket.close(code, reason); } catch {} }

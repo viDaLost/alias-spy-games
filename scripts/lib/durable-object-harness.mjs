@@ -17,6 +17,7 @@ export function createContext() {
       const socket = {
         playerId,
         closed: false,
+        get readyState() { return this.closed ? 3 : 1; },
         deserializeAttachment: () => ({ playerId }),
         serializeAttachment() {},
         send() {},

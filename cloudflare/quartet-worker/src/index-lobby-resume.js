@@ -1,5 +1,4 @@
 import quartetWorker, { QuartetRoom as BaseQuartetRoom } from './index-chat.js';
-import { buildView } from './engine.js';
 import { hideInactiveLobbyPlayers, leaveLobbyForResume, restoreLobbyHost } from './lobby-resume.js';
 
 export default quartetWorker;
@@ -26,7 +25,6 @@ export class QuartetRoom extends BaseQuartetRoom {
       restoreLobbyHost(this.room, joiningPlayerId)
     ) {
       await this.ctx.storage.put('room', this.room);
-      await this.scheduleAlarm();
       await this.broadcastState();
       freshJoinState = this.buildClientView(joiningPlayerId);
     }
@@ -49,24 +47,8 @@ export class QuartetRoom extends BaseQuartetRoom {
     return super.applyAction(playerId, action, data, now);
   }
 
-  async broadcastState() {
-    if (!this.room) return;
-    const connected = this.connectedPlayerIds();
-    for (const socket of this.ctx.getWebSockets()) {
-      const attachment = socket.deserializeAttachment() || {};
-      const playerId = String(attachment.playerId || '');
-      try {
-        socket.send(JSON.stringify({ type: 'state', state: this.buildClientView(playerId, connected) }));
-      } catch (error) {
-        console.warn('socket send failed', error);
-      }
-    }
-  }
-
   buildClientView(playerId, connected = this.connectedPlayerIds()) {
-    const state = buildView(this.room, playerId, connected);
-    state.chat = Array.isArray(this.room?.chat) ? this.room.chat.map((entry) => ({ ...entry })) : [];
-    return hideInactiveLobbyPlayers(state);
+    return hideInactiveLobbyPlayers(super.buildClientView(playerId, connected));
   }
 }
 
