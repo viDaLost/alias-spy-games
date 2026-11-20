@@ -8,7 +8,7 @@
     const flights = new Map();
     let groupId = '';
     let table = null;
-    let chatSize = 0;
+    let chat = null;
     let chatKey = '';
 
     function patch(node, markup) {
@@ -66,7 +66,7 @@
     }
 
     function renderLobby(state, pending, { minPlayers, playerLimit }) {
-      dispose();
+      disposeTable();
       const players = state.players.filter((player) => player.isActive !== false);
       const waiting = (state.minPlayers ?? minPlayers) - players.length;
       const action = waiting > 0 ? `More players needed: ${waiting}` : 'Start match';
@@ -82,12 +82,11 @@
 
     function mountTable(practice) {
       groupId = '';
-      chatSize = 0;
       content.innerHTML = `
         <div class="qt-play">
           <section class="qt-turn" id="qv2-turn-banner">
             <div class="qt-turn-main"><h3 aria-live="polite" data-turn-name></h3><p data-turn-guide></p></div>
-            ${practice ? '' : `<span class="qt-timer" id="qv2-turn-timer" aria-label="Time left for the turn"></span>\n            <div class="qt-timer-bar" aria-hidden="true"><span id="qv2-turn-progress"></span></div>`}\n          </section>\n          <div class="qt-table-grid">\n            <section class="qt-opponents" aria-labelledby="qt-opponents-title">\n              <div class="qt-section-title qt-players-title">\n                <div class="qt-table-stack" aria-hidden="true">\n                  <i class="qt-card-back"></i><i class="qt-card-back"></i><i class="qt-card-back"></i>\n                </div>\n                <h3 id="qt-opponents-title">Opponents</h3><span data-table-score></span>\n              </div>\n              <label class="qt-player-search" hidden>\n                <input type="search" placeholder="Search by name" aria-label="Find an opponent" aria-controls="qt-player-list" maxlength="32">\n              </label>\n              <div class="qt-players" id="qt-player-list" data-players></div>\n              <p class="qt-note" data-player-empty role="status" hidden>No matching opponent.</p>\n            </section>\n            <section class="qt-paper qt-hand" aria-labelledby="qt-hand-title">\n              <div class="qt-section-title"><h3 id="qt-hand-title">Your hand</h3><span data-hand-score></span></div>\n              <div data-inspection></div>\n              <div class="qt-groups" data-groups aria-label="Quartets in your hand"></div>\n              <div class="qt-completed" data-completed hidden></div>\n            </section>\n            <p class="qt-event" data-event aria-live="polite" hidden></p>\n          </div>\n          <details class="qt-paper qt-details">\n            <summary>Turn history</summary>\n            <ol class="qt-history" data-history></ol>\n          </details>\n          ${practice ? '' : `<details class="qt-paper qt-details">\n            <summary>Room chat</summary>\n            <ol class="qt-history qt-chat" data-chat></ol>\n            <form id="qt-chat-form" class="qt-chat-form">\n              <input name="message" maxlength="300" placeholder="Message" aria-label="Message" required>\n              <button type="submit" class="qt-btn qt-btn--line">Send</button>\n            </form>\n          </details>`}\n          <button type="button" class="qt-link qt-leave" data-action="leave-room">Leave game</button>\n        </div>`;
+            ${practice ? '' : `<span class="qt-timer" id="qv2-turn-timer" aria-label="Time left for the turn"></span>\n            <div class="qt-timer-bar" aria-hidden="true"><span id="qv2-turn-progress"></span></div>`}\n          </section>\n          <div class="qt-table-grid">\n            <section class="qt-opponents" aria-labelledby="qt-opponents-title">\n              <div class="qt-section-title qt-players-title">\n                <div class="qt-table-stack" aria-hidden="true">\n                  <i class="qt-card-back"></i><i class="qt-card-back"></i><i class="qt-card-back"></i>\n                </div>\n                <h3 id="qt-opponents-title">Opponents</h3><span data-table-score></span>\n              </div>\n              <label class="qt-player-search" hidden>\n                <input type="search" placeholder="Search by name" aria-label="Find an opponent" aria-controls="qt-player-list" maxlength="32">\n              </label>\n              <div class="qt-players" id="qt-player-list" data-players></div>\n              <p class="qt-note" data-player-empty role="status" hidden>No matching opponent.</p>\n            </section>\n            <section class="qt-paper qt-hand" aria-labelledby="qt-hand-title">\n              <div class="qt-section-title"><h3 id="qt-hand-title">Your hand</h3><span data-hand-score></span></div>\n              <div data-inspection></div>\n              <div class="qt-groups" data-groups aria-label="Quartets in your hand"></div>\n              <div class="qt-completed" data-completed hidden></div>\n            </section>\n            <p class="qt-event" data-event aria-live="polite" hidden></p>\n          </div>\n          <details class="qt-paper qt-details">\n            <summary>Turn history</summary>\n            <ol class="qt-history" data-history></ol>\n          </details>\n          <button type="button" class="qt-link qt-leave" data-action="leave-room">Leave game</button>\n        </div>`;
       table = {
         root: content.querySelector('.qt-play'),
         timer: content.querySelector('.qt-turn'),
@@ -105,10 +104,11 @@
         inspection: content.querySelector('[data-inspection]'),
         completed: content.querySelector('[data-completed]'),
         history: content.querySelector('[data-history]'),
-        chat: content.querySelector('[data-chat]'),
-        chatSubmit: content.querySelector('#qt-chat-form button'),
       };
       table.opponentQuery.addEventListener('input', filterOpponents);
+      table.inspection.addEventListener('error', (event) => {
+        if (event.target.matches('.qt-card-face img')) event.target.hidden = true;
+      }, true);
     }
 
     function filterOpponents() {
@@ -137,8 +137,8 @@
 
     function cardFace(card, quartet, color) {
       const art = cardAsset(card);
-      const visual = art ? `<img src="${esc(art)}" alt="" loading="lazy" decoding="async">`
-        : `<span class="qt-card-symbol" aria-hidden="true">${esc(card.icon || quartet.icon)}</span>`;
+      const visual = `<span class="qt-card-symbol" aria-hidden="true">${esc(card.icon || quartet.icon)}</span>
+        ${art ? `<img src="${esc(art)}" alt="" decoding="async">` : ''}`;
       const content = `<span class="qt-card-face qt-color-${color}">${visual}</span>
         <strong>${esc(card.title)}</strong><small>${card.owned ? '✓ You have' : 'Missing'}</small>`;
       return card.owned
@@ -149,15 +149,21 @@
           </div>`;
     }
 
-    function dispose() {
+    function disposeTable() {
       for (const [animation, sprite] of flights) {
         animation.cancel();
         sprite.remove();
       }
       flights.clear();
+      table = null;
+    }
+
+    function dispose() {
+      disposeTable();
       if (chatKey) window.GameChatToasts?.reset(chatKey);
       chatKey = '';
-      table = null;
+      chat?.panel.remove();
+      chat = null;
     }
 
     function visibleCenter(node) {
@@ -253,11 +259,19 @@
       if (table.opponentSearch.hidden && table.opponentQuery.value) table.opponentQuery.value = '';
       patch(table.opponents, opponents.map((player) => playerCard(player, state.turnPlayerId, state.practice)).join(''));
       filterOpponents();
-      patch(table.groups, myGroups.map(({ quartet, ownedCount }) =>
+      const groupsChanged = patch(table.groups, myGroups.map(({ quartet, ownedCount }) =>
         `<button type="button" class="qt-group" data-action="table-group" data-group-id="${esc(quartet.id)}">
           <span aria-hidden="true">${esc(quartet.icon)}</span><strong>${esc(quartet.name)}</strong><small>${ownedCount}/4</small>
         </button>`).join(''));
-      for (const button of table.groups.children) button.setAttribute('aria-pressed', String(button.dataset.groupId === groupId));
+      for (const button of table.groups.children) {
+        const active = button.dataset.groupId === groupId;
+        button.setAttribute('aria-pressed', String(active));
+        if (active && groupsChanged) {
+          const strip = table.groups.getBoundingClientRect();
+          const tab = button.getBoundingClientRect();
+          table.groups.scrollLeft += tab.left < strip.left ? tab.left - strip.left : Math.max(0, tab.right - strip.right);
+        }
+      }
       const handChanged = patch(table.inspection, group
         ? `<div class="qt-cards" aria-label="${esc(group.quartet.name)}">${group.cards.map((item) =>
           cardFace(item, group.quartet, group.catalogIndex % 6)).join('')}</div>`
@@ -289,34 +303,43 @@
       patch(table.event, event?.text || '');
       patch(table.history, (state.log || []).slice().reverse().map((line) => `<li>${esc(line)}</li>`).join(''));
 
-      if (table.chat) {
-        const chat = state.chat || [];
-        if (patch(table.chat, chat.map((item) => `<li><strong>${esc(item.name)}</strong><span>${esc(item.text)}</span></li>`).join('')) && chat.length >= chatSize) {
-          table.chat.scrollTop = table.chat.scrollHeight;
-        }
-        chatSize = chat.length;
-        table.chatSubmit.disabled = !connected;
-        const chatList = table.chat;
-        const panel = chatList.closest('details');
-        chatKey = `quartet:${state.roomId}`;
-        window.GameChatToasts?.sync({
-          key: chatKey,
-          messages: chat,
-          selfId: me.playerId,
-          chatVisible: () => panel.open && Boolean(visibleCenter(chatList)),
-          onOpen: () => {
-            if (!panel.isConnected) return;
-            panel.open = true;
-            panel.scrollIntoView({ block: 'nearest' });
-          },
-        });
-      }
-
       animateEvent(state.lastEvent, me.playerId, entering);
     }
 
+    function renderChat(state, { connected, pending }) {
+      if (!state?.me || state.practice) return;
+      if (!chat) {
+        content.insertAdjacentHTML('beforebegin', `<details class="qt-paper qt-details qt-room-chat">\n          <summary>Room chat</summary>\n          <ol class="qt-history qt-chat" data-chat role="log"></ol>\n          <form id="qt-chat-form" class="qt-chat-form">\n            <input name="message" maxlength="300" placeholder="Message" aria-label="Message" autocomplete="off" required>\n            <button type="submit" class="qt-btn qt-btn--line">Send</button>\n          </form>\n        </details>`);
+        const panel = content.previousElementSibling;
+        const list = panel.querySelector('[data-chat]');
+        chat = { panel, list, submit: panel.querySelector('button') };
+        panel.addEventListener('toggle', () => {
+          if (panel.open) list.scrollTop = list.scrollHeight;
+        });
+      }
+      const { panel, list, submit } = chat;
+      const messages = state.chat || [];
+      if (patch(list, messages.map((item) => `<li><strong>${esc(item.name)}</strong><span>${esc(item.text)}</span></li>`).join('')) && panel.open) {
+        list.scrollTop = list.scrollHeight;
+      }
+      submit.disabled = !connected || pending;
+      setText(submit, pending ? 'Sending…' : 'Send');
+      chatKey = `quartet:${state.roomId}`;
+      window.GameChatToasts?.sync({
+        key: chatKey,
+        messages,
+        selfId: state.me.playerId,
+        chatVisible: () => panel.open && Boolean(visibleCenter(list)),
+        onOpen: () => {
+          if (!panel.isConnected) return;
+          panel.open = true;
+          panel.scrollIntoView({ block: 'nearest' });
+        },
+      });
+    }
+
     function renderResults(state, pending, minPlayers) {
-      dispose();
+      disposeTable();
       groupId = '';
       const winners = state.score.filter((player) => state.winnerIds.includes(player.playerId));
       const active = state.players.filter((player) => player.isActive !== false).length;
@@ -331,7 +354,7 @@
         </div>`);
     }
 
-    return { renderHome, renderLobby, renderGame, renderResults, dispose, selectGroup: (id) => { groupId = id; } };
+    return { renderHome, renderLobby, renderGame, renderChat, renderResults, dispose, selectGroup: (id) => { groupId = id; } };
   }
 
   window.QuartetTable = { create };

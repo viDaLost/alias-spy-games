@@ -28,6 +28,7 @@ function check(condition, message) {
 // --- подключение чатов ----------------------------------------------------------
 
 const WIRED = [
+  ['web/games/quartet-table.js', 'quartet:'],
   ['web/js/quartet-chat-addon.js', 'quartet:'],
   ['web/games/bible-sketch.js', 'bible-sketch:'],
   ['web/games/spy-online.js', 'spy:'],
@@ -130,11 +131,17 @@ try {
   const last = await page.evaluate(() => document.querySelector('.chat-toast:last-child')?.textContent || '');
   check(last.includes('реплика 10'), `Последним показано не самое свежее: «${last}»`);
 
+  // Обновление до исчезновения предыдущих карточек не должно блокировать стол.
+  await sync({ key: 'room', messages: [message('11', 'her', 'реплика 11')], selfId: 'me' });
+  check(await count() === 3, 'При новом сообщении переполнился список уведомлений');
+  const texts = await page.locator('.chat-toast__text').allTextContents();
+  check(texts.join(', ') === 'реплика 9, реплика 10, реплика 11', 'После переполнения остались не самые свежие реплики');
+
   // 7. Карточка уходит сама, без единого нажатия.
   await page.waitForFunction(() => document.querySelectorAll('.chat-toast').length === 0, null, { timeout: 9_000 });
 
   // 8. Выход из игры забывает комнату целиком.
-  await sync({ key: 'room', messages: [message('11', 'her', 'ещё одно')], selfId: 'me' });
+  await sync({ key: 'room', messages: [message('12', 'her', 'ещё одно')], selfId: 'me' });
   check(await count() === 1, 'После автоскрытия уведомления перестали появляться');
   await page.evaluate(() => window.GameChatToasts.reset('room'));
   check(await count() === 0, 'reset не убрал уведомления');

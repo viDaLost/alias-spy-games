@@ -102,7 +102,6 @@ html body[data-current-game="quartet"] #game-container {
 .qt-root .qt-players-title { margin-bottom: 2px; padding: 0 2px; }
 .qt-root .qt-opponents .qt-section-title h3 { color: var(--qt-ink); font-size: 13px; }
 .qt-root .qt-opponents .qt-section-title span { color: var(--qt-muted); font-variant-numeric: tabular-nums; }
-.qt-root .qt-table-stack { display: none; }
 .qt-root .qt-players, .qt-root .qt-groups { scrollbar-color: #7985dd transparent; }
 .qt-root .qt-player {
   flex: 0 0 126px;
@@ -134,6 +133,7 @@ html body[data-current-game="quartet"] #game-container {
 #game-container .qt-root .qt-event.is-success { color: #166534; }
 .qt-root .qt-details { padding-block: 5px; }
 .qt-root .qt-details summary { line-height: 32px; }
+.qt-root .qt-room-chat { margin-bottom: 8px; }
 
 .qt-root .qt-cards {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -172,7 +172,7 @@ html body[data-current-game="quartet"] #game-container {
   border: 0;
   border-radius: inherit;
 }
-.qt-root .qt-card-face img { object-position: center; }
+.qt-root .qt-card-face img { position: absolute; inset: 0; object-position: center; }
 .qt-root .qt-card-content:disabled .qt-card-face { opacity: 1; }
 .qt-root .qt-card-content::after {
   position: absolute;

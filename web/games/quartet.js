@@ -52,6 +52,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
   let table = null;
   let tableRequest = null;
   let tableRequestTimer = null;
+  let pendingChat = null;
   let practice = null;
 
   const ui = {};
@@ -298,12 +299,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
         const form = event.target;
         try {
           if (form.id === 'qt-join-form') return await joinRoomFromForm(form.querySelector('button'));
-          if (form.id === 'qt-chat-form') {
-            const input = form.elements.message;
-            if (!input.value.trim()) return;
-            await sendAction('chat', { text: input.value });
-            input.value = '';
-          }
+          if (form.id === 'qt-chat-form') await sendChat(form.elements.message);
         } catch (error) { showToast(error.message, 'error'); }
       });
     }
@@ -570,6 +566,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
         if (tableRequest !== null && tableRequest !== message.state.version) clearTableRequest();
         const previousState = state;
         state = message.state;
+        confirmChat();
         roomId = normalizeRoomId(state.roomId || roomId);
         localStorage.setItem(LS.roomId, roomId);
         reconcileSelection(previousState, state);
@@ -655,6 +652,14 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     if (state.status === 'lobby') renderLobby();
     else if (state.status === 'playing') renderGame();
     else if (state.status === 'finished') renderResults();
+    renderChat();
+  }
+
+  function renderChat() {
+    table?.renderChat(state, {
+      connected: socket?.readyState === WebSocket.OPEN,
+      pending: Boolean(pendingChat),
+    });
   }
 
   function updateHeader() {
@@ -1095,6 +1100,47 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     finally { if (button) setTimeout(() => setButtonBusy(button, false), 700); }
   }
 
+  async function sendChat(input) {
+    if (pendingChat) return;
+    const draft = input.value;
+    // Match the room's normalization when recognizing the echoed message.
+    const text = draft.replace(/[<>\r\t]/g, ' ').replace(/\s{3,}/g, '  ').trim();
+    if (!text) return;
+    pendingChat = {
+      input,
+      draft,
+      text,
+      after: Number(state.chat?.at(-1)?.id || 0),
+      timer: setTimeout(() => {
+        finishChat();
+        renderChat();
+        showToast('Сообщение не подтверждено. Попробуйте ещё раз.', 'error');
+      }, 7000),
+    };
+    renderChat();
+    try { await sendAction('chat', { text }); }
+    catch (error) {
+      finishChat();
+      renderChat();
+      throw error;
+    }
+  }
+
+  function confirmChat() {
+    if (!pendingChat) return;
+    const delivered = state.chat?.some((item) => Number(item.id) > pendingChat.after &&
+      item.playerId === state.me?.playerId && item.text === pendingChat.text);
+    if (delivered) finishChat(true);
+  }
+
+  function finishChat(delivered = false) {
+    if (!pendingChat) return;
+    const { input, draft, timer } = pendingChat;
+    pendingChat = null;
+    clearTimeout(timer);
+    if (delivered && input.value === draft) input.value = '';
+  }
+
   async function confirmLeave() {
     if (practice) return onBack();
     const ok = window.confirm(state?.status === 'playing'
@@ -1226,6 +1272,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
   }
 
   function clearRoomSession() {
+    finishChat();
     roomId = '';
     sessionToken = '';
     state = null;
@@ -1246,6 +1293,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     ui.connection.setAttribute('title', text);
     ui.connection.setAttribute('aria-label', `Связь: ${text}`);
     if (table && currentScreen === 'game') renderGame();
+    renderChat();
   }
 
   function setButtonBusy(button, busy, text = '') {
@@ -1370,6 +1418,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     clearTimeout(toastTimer);
     clearTimeout(turnNoticeTimer);
     clearTableRequest();
+    finishChat();
     closeSocket(false);
     try { tg?.disableClosingConfirmation?.(); } catch {}
     window.__quartetCleanup = null;

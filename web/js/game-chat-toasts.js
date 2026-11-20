@@ -71,7 +71,12 @@
 
   function show(message, onOpen) {
     const box = host();
-    while (box.children.length >= MAX_VISIBLE) dismiss(box.firstElementChild);
+    // Capacity eviction is immediate. Animated dismissal removes the node later.
+    if (box.children.length >= MAX_VISIBLE) {
+      const oldest = box.firstElementChild;
+      clearTimeout(Number(oldest.dataset.timer));
+      oldest.remove();
+    }
 
     const toast = document.createElement('button');
     toast.type = 'button';
