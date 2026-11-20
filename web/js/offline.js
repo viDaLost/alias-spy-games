@@ -129,7 +129,7 @@
   }
 
   function register() {
-    if (!('serviceWorker' in navigator)) return;
+    if (window.__ANDROID_APK__ || !('serviceWorker' in navigator)) return;
     // Работник живёт только на защищённом соединении. На http он не встанет, а
     // попытка регистрации напечатает в консоль ошибку на каждый запуск.
     const local = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);

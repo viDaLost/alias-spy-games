@@ -40,6 +40,11 @@
       || (memory > 0 && memory <= 3));
   }
 
+  function layerFile(config, index) {
+    if (!window.GameDisplay?.staticMenu()) return config.file;
+    return index === 0 ? 'menu-still.webp' : null;
+  }
+
   function createLayer(config, index) {
     const image = document.createElement('img');
     image.className = `home-gamehub-parallax__layer home-gamehub-parallax__layer--${config.key}`;
@@ -50,7 +55,8 @@
     image.fetchPriority = index === 0 ? 'high' : index <= 2 ? 'auto' : 'low';
     image.draggable = false;
     image.style.opacity = String(config.opacity);
-    if (index === 0 || !window.GameDisplay?.lowGraphics()) image.src = assetUrl(config.file);
+    const file = layerFile(config, index);
+    if (file) image.src = assetUrl(file);
     return image;
   }
 
@@ -137,10 +143,11 @@
 
   function updateMotionPreference() {
     reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true
-      || lowPowerDevice() || window.GameDisplay?.reducedMotion() === true || window.GameDisplay?.lowGraphics() === true;
+      || window.GameDisplay?.staticMenu() || lowPowerDevice() || window.GameDisplay?.reducedMotion() === true || window.GameDisplay?.lowGraphics() === true;
     for (const [index, layer] of layers.entries()) {
-      if (index > 0 && window.GameDisplay?.lowGraphics()) layer.element.removeAttribute('src');
-      else if (!layer.element.hasAttribute('src')) layer.element.src = assetUrl(layer.file);
+      const file = layerFile(layer, index);
+      if (!file) layer.element.removeAttribute('src');
+      else if (layer.element.getAttribute('src') !== assetUrl(file)) layer.element.src = assetUrl(file);
       layer.element.style.willChange = active && !reducedMotion ? 'transform' : 'auto';
     }
     stopAnimation();

@@ -1,1 +1,1 @@
-3.0.15: improve Telegram code delivery and recover the game screen after WebView exits
+3.0.16: reduce startup image decoding and offscreen menu work

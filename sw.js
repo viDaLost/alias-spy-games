@@ -19,18 +19,19 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = 'e5902aba9b';
+const VERSION = '8a1c9b5e92';
 const PRECACHE = [
   'index.html',
   'install.html',
   'manifest.webmanifest',
   'web/js/language-choice.js',
+  'web/js/telegram-launch-context.js',
   'web/i18n/bootstrap.js',
   'web/assets/twelve-tribes/art.json',
   'web/assets/bible-geography/map.json',
   'web/assets/bible-geography/art.json',
-  'web/dist/app.0a17bce0bf.css',
-  'web/dist/app.48b27207c8.js',
+  'web/dist/app.632e21df05.css',
+  'web/dist/app.e5c7410ab3.js',
   'web/games/alias.js',
   'web/games/bible-geography-logic.js',
   'web/games/bible-geography.css',
@@ -181,7 +182,7 @@ self.addEventListener('install', (event) => {
       await Promise.all(PRECACHE.slice(index, index + BATCH).map(async (asset) => {
         const url = new URL(asset, scope);
         try {
-          const response = await fetch(new Request(url, { cache: 'reload' }));
+          const response = await fetch(new Request(url, { cache: 'no-cache' }));
           if (response.ok) await cache.put(url, response);
         } catch { /* нет сети при установке — доберём в бою */ }
       }));

@@ -15,11 +15,20 @@
     let pointer;
     let suppressClickUntil = 0;
     let autoplayTimer;
+    let onScreen = true;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => {
+        onScreen = entry.isIntersecting;
+        feature.classList.toggle('catalog-offscreen', !onScreen);
+        restartAutoplay();
+      }).observe(feature);
+    }
+    document.addEventListener('visibilitychange', restartAutoplay);
 
     function restartAutoplay() {
       clearInterval(autoplayTimer);
       autoplayTimer = null;
-      if (order.length < 2) return;
+      if (order.length < 2 || !onScreen || document.hidden) return;
       autoplayTimer = setInterval(() => {
         if (document.hidden || pointer || document.body.dataset.mode || document.body.dataset.currentGame
           || viewport.contains(document.activeElement) || document.querySelector('dialog[open]')

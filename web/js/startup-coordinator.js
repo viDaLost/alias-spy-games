@@ -34,7 +34,8 @@
     });
   }
 
-  const iconWarmup = isAndroidApk
+  const catalogMenu = root.hasAttribute('data-game-catalog');
+  const iconWarmup = isAndroidApk || catalogMenu
     ? Promise.resolve().then(() => root.classList.add('app-icons-ready'))
     : Promise.all(ICON_URLS.map(preloadIcon)).then(() => root.classList.add('app-icons-ready'));
   window.__appMenuIconsReady = iconWarmup;
@@ -93,7 +94,7 @@
   }
 
   function warmVisibleMenu(menu) {
-    if (warmupRunning) return;
+    if (catalogMenu || warmupRunning) return;
     warmupRunning = true;
     Promise.resolve().then(async () => {
       forceEagerImages(menu);

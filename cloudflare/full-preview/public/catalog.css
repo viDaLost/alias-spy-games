@@ -581,3 +581,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   .catalog-tools { gap: 2px; }
   .catalog-game strong { font-size: 14px; }
 }
+
+.catalog-offscreen .catalog-promo *,
+.catalog-offscreen .catalog-promo ::before,
+.catalog-offscreen .catalog-promo ::after { animation-play-state: paused !important; }

@@ -261,6 +261,7 @@
   function finish() {
     if (finished || failed) return;
     finished = true;
+    if (staticMenu) { removeScene(); return; }
     setStatus('Всё готово!');
 
     const elapsed = performance.now() - startedAt;
@@ -288,12 +289,18 @@
 
   retry?.addEventListener('click', () => window.location.reload());
 
+  const staticMenu = window.GameDisplay?.staticMenu() ?? lowPower;
   mountPortalArtwork();
-  buildOrbitIcons();
+  if (!staticMenu) buildOrbitIcons();
 
   // Load the same source-resolution assets as the home parallax. They stay in
   // the browser cache, so the menu reuses them rather than downloading twice.
-  layerImages.forEach((image) => warmLayer(image));
+  if (staticMenu) {
+    if (layerImages[0]) {
+      layerImages[0].dataset.gamehubLayerFile = 'menu-still.webp';
+      warmLayer(layerImages[0]);
+    }
+  } else layerImages.forEach((image) => warmLayer(image));
   warmIcons();
   if (reducedMotion) layoutReducedMotionIcons();
   else startOrbit();

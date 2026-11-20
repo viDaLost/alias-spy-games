@@ -47,7 +47,7 @@ const PRECACHE_DIRS = [
   откроется, поэтому она — и список нарисованных картин — идут в кеш поимённо.
 */
 const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest',
-  'web/js/language-choice.js', 'web/i18n/bootstrap.js',
+  'web/js/language-choice.js', 'web/js/telegram-launch-context.js', 'web/i18n/bootstrap.js',
   'web/assets/twelve-tribes/art.json',
   'web/assets/bible-geography/map.json', 'web/assets/bible-geography/art.json'];
 
