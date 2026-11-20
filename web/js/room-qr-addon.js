@@ -156,12 +156,18 @@
     if (!invite || currentGame() !== invite.game) return;
     const isQuartet = invite.game === 'quartet';
     const input = document.querySelector(isQuartet ? '#qv2-room-code' : '#bsk-room-code');
-    const button = document.querySelector(isQuartet ? '[data-action="join"]' : '[data-action="join-room"]');
+    const form = isQuartet && input?.form?.id === 'qt-join-form' ? input.form : null;
+    const button = form?.querySelector('button[type="submit"]') ||
+      document.querySelector(isQuartet ? '[data-action="join"]' : '[data-action="join-room"]');
     if (!input || !button || input.dataset.roomInviteAttempted === invite.room) return;
     input.dataset.roomInviteAttempted = invite.room;
     input.value = invite.room;
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    window.setTimeout(() => button.click(), 60);
+    window.setTimeout(() => {
+      if (!button.isConnected || window.RoomInvite.peek()?.room !== invite.room) return;
+      if (form) window.RoomInvite.consume('quartet');
+      button.click();
+    }, 60);
   }
 
   function update() {

@@ -54,7 +54,7 @@
           return;
         }
         if (!result.ok || !result.state) {
-          this.notify({ type: 'error', error: result.error });
+          this.notify({ type: 'error', error: result.error, requestId: request.requestId });
           return;
         }
         if (this.readyState === WebSocket.CONNECTING) {
@@ -64,9 +64,10 @@
         this.failures = 0;
         this.status = result.state.status;
         this.notify({ type: 'state', state: result.state });
+        if (request.action) this.notify({ type: 'actionOk', requestId: request.requestId });
       } catch {
         if (this.readyState === WebSocket.CLOSED) return;
-        if (request.action) this.notify({ type: 'error', error: 'Ответ задержался. Проверяем состояние партии.' });
+        if (request.action) this.notify({ type: 'error', error: 'Ответ задержался. Проверяем состояние партии.', requestId: request.requestId });
         this.failures += 1;
         if (this.failures >= 3) this.close();
       } finally {
@@ -80,8 +81,8 @@
     }
 
     send(data) {
-      const { action, payload } = JSON.parse(data);
-      const request = { action, payload, requestId: crypto.randomUUID() };
+      const { action, payload, requestId = '' } = JSON.parse(data);
+      const request = { action, payload, requestId: requestId || crypto.randomUUID() };
       if (action === 'leave') {
         // The game closes its connection as soon as the player leaves.
         this.post(request, { keepalive: true }).catch(() => {});

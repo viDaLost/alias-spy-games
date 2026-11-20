@@ -4,6 +4,7 @@ import {
   askCard,
   buildView,
   createRoomState,
+  gameError,
   joinRoom,
   leaveRoom,
   passTimedOutTurn,
@@ -79,7 +80,6 @@ export default {
           if (session.roomId !== roomId) throw httpError(403, 'Сессия относится к другой комнате');
           const headers = new Headers(request.headers);
           headers.set('X-Quartet-Player-Id', session.playerId);
-          headers.set('X-Quartet-Player-Name', session.name);
           return stub.fetch(new Request('https://quartet.internal/ws', { method: 'GET', headers }));
         }
         if (action === 'poll' && request.method === 'POST') {
@@ -91,7 +91,6 @@ export default {
             headers: {
               'Content-Type': 'application/json',
               'X-Quartet-Player-Id': session.playerId,
-              'X-Quartet-Player-Name': session.name,
             },
             body: JSON.stringify(body),
           });
@@ -223,25 +222,30 @@ export class QuartetRoom extends DurableObject {
     if (!playerId || !this.room) return this.sendError(webSocket, 'Сессия комнаты недоступна', 'NO_SESSION');
     ensureChat(this.room);
     const now = Date.now();
-    if (payload.type === 'ping') {
+    if (payload?.type === 'ping') {
       try { webSocket.send(JSON.stringify({ type: 'pong', at: now })); } catch {}
       return;
     }
-    if (payload.type !== 'action') return this.sendError(webSocket, 'Неизвестный тип сообщения', 'BAD_MESSAGE');
+    if (payload?.type !== 'action') return this.sendError(webSocket, 'Неизвестный тип сообщения', 'BAD_MESSAGE');
 
     const action = String(payload.action || '');
+    const requestId = normalizeRequestId(payload.requestId);
+    const request = { action, requestId };
     const data = payload.payload || {};
     const chatAction = action === 'chat';
     const rateKey = chatAction ? 'lastChatAt' : 'lastActionAt';
     const minDelay = chatAction ? 700 : 250;
-    if (now - Number(attachment[rateKey] || 0) < minDelay) return this.sendError(webSocket, 'Слишком много действий подряд', 'RATE_LIMIT');
+    if (now - Number(attachment[rateKey] || 0) < minDelay) return this.sendError(webSocket, 'Слишком много действий подряд', 'RATE_LIMIT', request);
     attachment[rateKey] = now;
     webSocket.serializeAttachment(attachment);
 
     try {
       await this.applyAction(playerId, action, data, now);
     } catch (error) {
-      this.sendError(webSocket, String(error?.message || error), error?.code || 'ACTION_ERROR');
+      return this.sendError(webSocket, String(error?.message || error), error?.code || 'ACTION_ERROR', request);
+    }
+    if (requestId) {
+      try { webSocket.send(JSON.stringify({ type: 'actionOk', requestId })); } catch {}
     }
   }
 
@@ -251,7 +255,13 @@ export class QuartetRoom extends DurableObject {
     if (action === 'startGame') startGame(this.room, playerId, now);
     else if (action === 'restartGame') restartGame(this.room, playerId, now);
     else if (action === 'setDeckSize') setDeckSize(this.room, playerId, data.count, now);
-    else if (action === 'askCard') askCard(this.room, playerId, String(data.targetId || ''), String(data.cardId || ''), now);
+    else if (action === 'askCard') {
+      if (this.room.turnDeadlineMs && passTimedOutTurn(this.room, now)) {
+        await this.persistAndBroadcast();
+        throw gameError('Время хода истекло', 'TURN_EXPIRED');
+      }
+      askCard(this.room, playerId, String(data.targetId || ''), String(data.cardId || ''), now);
+    }
     else if (action === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
     else if (action === 'leave') {
       const result = leaveRoom(this.room, playerId, now);
@@ -392,7 +402,7 @@ export class QuartetRoom extends DurableObject {
       } catch (error) { console.warn('socket send failed', error); }
     }
   }
-  sendError(webSocket, message, code) { try { webSocket.send(JSON.stringify({ type: 'error', error: message, code })); } catch {} }
+  sendError(webSocket, message, code, request) { try { webSocket.send(JSON.stringify({ type: 'error', error: message, code, ...request })); } catch {} }
   closeAllSockets(code, reason) { for (const socket of this.ctx.getWebSockets()) try { socket.close(code, reason); } catch {} }
 }
 
