@@ -37,6 +37,7 @@ function create(playerName, onState) {
   let timer;
 
   function publish() {
+    state.turnDeadlineMs = 0;
     const view = buildView(state, human.playerId, connected);
     onState({ ...view, practice: true });
     scheduleBot();

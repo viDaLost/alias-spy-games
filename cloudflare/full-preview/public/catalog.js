@@ -271,7 +271,7 @@
         loadResource('web/games/quartet-table.css?v=8', true),
         loadResource('web/games/quartet-table-theme.css?v=4', true),
         loadResource('web/games/quartet-table.js?v=10'),
-        ...(preview ? [loadResource('/quartet-polling.js')] : []),
+        ...(preview ? [loadResource('/quartet-polling.js?v=2')] : []),
       ]);
       if (document.body.dataset.currentGame === 'quartet') {
         window.startQuartetGame('web/data/quartet_bible.json', { preview });
@@ -283,7 +283,7 @@
   }
 
   async function loadQuartetPractice() {
-    await loadResource('/quartet-practice.js');
+    await loadResource('/quartet-practice.js?v=2');
     return window.QuartetPractice;
   }
 

@@ -52,7 +52,7 @@ assert(errors.includes("'X-Telegram-Init-Data': initData"), 'error feed must aut
 assert(!errors.includes('/admin/stats?initData='), 'error feed must not expose initData or bypass the GET request budget');
 assert(errors.includes('document.hidden'), 'error feed must pause in background');
 
-assert(app.includes("expectedGame === 'quartet' ? 22"), 'dynamic game cache key must expose the patched Quartet source');
+assert(app.includes("expectedGame === 'quartet' ? 23"), 'dynamic game cache key must expose the patched Quartet source');
 // Адрес «Художника» проходит через выбор языка — у него есть переведённая
 // копия, — но метка версии обязана остаться: без неё браузер отдаст старый файл.
 assert(sketchLauncher.includes("'web/games/bible-sketch.js'") && /script\.src = `\$\{[^`]+\}\?v=4`;/.test(sketchLauncher),

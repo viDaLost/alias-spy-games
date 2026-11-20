@@ -176,6 +176,20 @@ try {
   const finalRejections = await page.evaluate(() => window.__rejections);
   check(finalRejections.length === 0, `Необработанные отказы: ${finalRejections.join(' | ')}`);
 
+  // 4. Ошибка сервера сохраняет комнату, окончательный отказ возвращает на форму входа.
+  joinStatus = 503;
+  await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
+  await openQuartet();
+  const retry = page.locator('#qv2-root [data-action="retry-connect"]');
+  await retry.waitFor();
+  check(await page.evaluate(() => localStorage.getItem('quartet_v2_room_id')) === 'TEST12',
+    'После временной ошибки потеряли сохранённую комнату');
+  joinStatus = 404;
+  await retry.click();
+  await page.locator('#qv2-player-name').waitFor();
+  check(await page.evaluate(() => localStorage.getItem('quartet_v2_room_id')) === null,
+    'После окончательного отказа осталась ссылка на недоступную комнату');
+
   await context.close();
   console.log('OK: решения бюджета запросов больше не ошибки — беда в нажатии доходит до человека, '
     + 'свёрнутое приложение не ходит в сеть и не теряет комнату, а возвращение на экран само восстанавливает связь.');

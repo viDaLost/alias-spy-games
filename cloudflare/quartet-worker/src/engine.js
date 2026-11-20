@@ -39,7 +39,7 @@ export function createRoomState(roomId, player, now = Date.now()) {
 
 export function joinRoom(state, player, now = Date.now()) {
   const existing = state.players.find((item) => item.playerId === player.playerId);
-  const roomFull = state.status === 'lobby' && activePlayers(state).length >= ROOM_LIMIT;
+  const roomFull = state.status !== 'playing' && activePlayers(state).length >= ROOM_LIMIT;
   if (roomFull && (!existing || existing.isActive === false)) {
     throw gameError(`В комнате уже максимум ${ROOM_LIMIT} игроков`, 'ROOM_FULL');
   }
@@ -228,15 +228,17 @@ export function passTimedOutTurn(state, now = Date.now()) {
 }
 
 export function leaveRoom(state, actorId, now = Date.now()) {
-  const player = state.players.find((item) => item.playerId === actorId);
+  const player = getActivePlayer(state, actorId);
   if (!player) return { deleted: false, changed: false };
 
   if (state.status === 'lobby') {
     state.players = state.players.filter((item) => item.playerId !== actorId);
     state.log.push(`${player.name} вышел из комнаты`);
+  } else if (state.status === 'finished') {
+    player.isActive = false;
   } else {
     player.isActive = false;
-    const remaining = activePlayers(state).filter((item) => item.playerId !== actorId);
+    const remaining = activePlayers(state);
     if (remaining.length) {
       let cursor = 0;
       const cards = [...player.hand];
@@ -252,6 +254,7 @@ export function leaveRoom(state, actorId, now = Date.now()) {
         state.turnPlayerId = null;
         state.turnDeadlineMs = 0;
         state.winnerIds = [remaining[0].playerId];
+        state.log.push(`Игра завершена · ${remaining[0].name}`);
         state.lastEvent = makeEvent('game_finished', { winnerIds: [remaining[0].playerId], winnerNames: [remaining[0].name] }, now);
       }
     } else {
@@ -271,12 +274,13 @@ export function leaveRoom(state, actorId, now = Date.now()) {
     state.hostPlayerId = activePlayers(state)[0]?.playerId || state.players[0]?.playerId || null;
   }
 
-  if (state.status === 'playing' && state.turnPlayerId === actorId) {
-    state.turnPlayerId = nextTurnPlayer(state, actorId)?.playerId || null;
+  const current = getActivePlayer(state, state.turnPlayerId);
+  if (state.status === 'playing' && !current?.hand.length) {
+    state.turnPlayerId = nextTurnPlayer(state, state.turnPlayerId)?.playerId || null;
     state.turnDeadlineMs = state.turnPlayerId ? now + TURN_TIMEOUT_MS : 0;
   }
 
-  state.lastEvent = makeEvent('player_left', { playerId: actorId, playerName: player.name }, now);
+  if (state.status !== 'finished') state.lastEvent = makeEvent('player_left', { playerId: actorId, playerName: player.name }, now);
   trimLog(state);
   touch(state, now);
   checkFinished(state, now);
@@ -335,6 +339,7 @@ export function buildView(state, playerId, connectedIds = new Set()) {
 }
 
 export function checkFinished(state, now = Date.now()) {
+  if (state.status !== 'playing') return false;
   const completed = state.players.reduce((sum, player) => sum + player.completedQuartets.length, 0);
   const cardsInHands = state.players.reduce((sum, player) => sum + player.hand.length, 0);
   if (completed < (state.dealtQuartetCount ?? LEGACY_QUARTET_COUNT) && cardsInHands > 0) return false;
