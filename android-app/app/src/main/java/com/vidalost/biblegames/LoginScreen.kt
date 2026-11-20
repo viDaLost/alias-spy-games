@@ -134,7 +134,7 @@ internal fun LoginScreen(
     }
 
     fun requestCode() {
-        if (busy || SystemClock.elapsedRealtime() < resendAt) return
+        if (requesting || verifying || SystemClock.elapsedRealtime() < resendAt) return
         if (!id.matches(Regex("^[0-9]{5,20}$"))) {
             error = "Введите Telegram ID из 5–20 цифр."
             return
@@ -164,7 +164,7 @@ internal fun LoginScreen(
     }
 
     fun verifyCode() {
-        if (busy || code.length != 6) return
+        if (requesting || verifying || code.length != 6) return
         val current = challenge ?: return
         focus.clearFocus()
         verifying = true
