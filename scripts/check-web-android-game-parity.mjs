@@ -70,7 +70,12 @@ assert(!parityShell.includes('onNativeFallback'), 'signed-in APK can still fall 
 assert(!parityShell.includes('nativeFallback'), 'signed-in APK retains the divergent native fallback state');
 assert(parityShell.includes('mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW'), 'WebView allows mixed content');
 assert(parityShell.includes('allowFileAccess = false') && parityShell.includes('allowContentAccess = false'), 'WebView local file/content access is not disabled');
-assert(parityShell.includes('DisposableEffect(Unit)'), 'WebView cleanup is not tied to screen lifecycle');
+assert(parityShell.includes('onRelease = ::releaseWebView'), 'WebView cleanup is not tied to its container');
+assert(/container\.removeView\(view\)\s+view\.destroy\(\)/.test(parityShell), 'WebView must be detached before destruction');
+assert(/override fun onRenderProcessGone[\s\S]*?WebScreen\.RendererGone[\s\S]*?releaseWebView\(container\)[\s\S]*?return true/.test(parityShell),
+  'renderer loss must release the old WebView and offer recovery');
+assert(/reloadKey \+= 1\s+screen = WebScreen\.Loading/.test(parityShell) && !parityShell.includes('webView?.loadUrl'),
+  'retry must create a new WebView and load the bundled menu');
 assert(!parityShell.includes('DisposableEffect(webView)'), 'WebView can be destroyed during startup state replacement');
 assert(androidRuntime.includes('ensureSocialFeatures'), 'Android does not mount profile/friends/favorites Web modules');
 assert(androidRuntime.includes('android-native-session'), 'Android social identity marker is missing');

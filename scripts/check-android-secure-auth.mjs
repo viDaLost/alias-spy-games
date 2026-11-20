@@ -47,7 +47,7 @@ need(parityShell, '.setHttpAllowed(false)', 'local asset loader permits cleartex
 reject(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'Android auth shell still impersonates GitHub Pages');
 reject(parityShell, 'https://vidalost.github.io', 'Android auth shell still contains a GitHub Pages runtime URL');
 reject(parityShell, 'nativeFallback', 'signed-in sessions can still enter divergent native games');
-need(parityShell, 'DisposableEffect(Unit)', 'WebView lifecycle cleanup can still destroy the instance during startup');
+need(parityShell, 'onRelease = ::releaseWebView', 'WebView cleanup must follow the container lifecycle');
 reject(parityShell, 'DisposableEffect(webView)', 'WebView cleanup is incorrectly keyed by the WebView instance');
 need(assetSync, "['index.html', 'index.html']", 'APK bundle does not include index.html');
 need(assetSync, "['web', 'web']", 'APK bundle does not include the production web tree');

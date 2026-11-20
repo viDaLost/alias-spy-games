@@ -36,7 +36,7 @@ reject(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'Android still impe
 reject(parityShell, 'https://vidalost.github.io', 'Android shell still contains a GitHub Pages runtime URL');
 need(parityShell, 'getSessionToken(): String = sessionToken', 'Web parity requests cannot use the verified bearer');
 reject(parityShell, 'nativeFallback', 'signed-in Android can still switch to divergent native games');
-need(parityShell, 'DisposableEffect(Unit)', 'WebView lifecycle can destroy the active instance during startup');
+need(parityShell, 'onRelease = ::releaseWebView', 'WebView must be released when its container leaves the screen');
 need(cloud, 'callTimeout(11, TimeUnit.SECONDS)', 'bounded primary access deadline missing');
 need(cloud, 'accessFallbackClient', 'fallback access transport missing');
 need(cloud, 'protocols(listOf(Protocol.HTTP_1_1))', 'access transport is not VPN-friendly HTTP/1.1');
