@@ -152,11 +152,9 @@ try {
   const delegatedContext = await contextFor({ social: true });
   const delegatedPage = await delegatedContext.newPage();
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=game_quartet`);
-  await delegatedPage.waitForFunction(() => document.documentElement.classList.contains('app-ui-ready') && window.AppAccess?.allowed());
-  assert.equal(await delegatedPage.evaluate(() => document.body.dataset.currentGame || ''), '');
+  await delegatedPage.waitForFunction(() => document.body.dataset.currentGame === 'quartet');
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=favorites`);
-  await delegatedPage.locator('#open-profile').waitFor();
-  assert.equal(await delegatedPage.locator('.social-sheet-overlay.is-open').count(), 0);
+  await delegatedPage.locator('.social-sheet-overlay.is-open .social-favorites-grid').waitFor();
   await delegatedContext.close();
 
   id = '1288379477'; isRoot = true;
@@ -277,5 +275,5 @@ try {
 
   assert.deepEqual(authErrors, [], 'Android and iOS must use their verified session, never the native launch marker');
   console.log('PASS: app startup without the global lock screen on Telegram, Android, iOS and guest sessions, foreground recovery, individual bans and verified access controls.');
-  console.log('PASS: favorite game links and the favorites editor open directly for the root account only.');
+  console.log('PASS: favorite game links and the favorites editor open directly for both admin and regular accounts with access.');
 } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }

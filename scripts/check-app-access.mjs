@@ -204,32 +204,38 @@ try {
   const empty = await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
   assert.equal(empty.status, 200);
   assert(replies.at(-1).url.endsWith('/sendWidget'));
-  assert.equal(replies.at(-1).body.chat_data, '[]');
+  assert.deepEqual(JSON.parse(replies.at(-1).body.chat_data), { favorites: [], lastGame: '' });
+  assert.equal(replies.at(-1).body.reply_markup.inline_keyboard[0][0].url,
+    'https://t.me/FavoritesTestBot?startapp=lang_ru');
 
   const games = ['quartet', 'bible-geography', 'twelve-tribes', 'alias'];
   const saved = await compat(owner, 'profileSetFavorites', { favorites: [...games, 'kingdoms', 'invalid'] });
   assert.deepEqual(saved.data.favorites, games);
+  await compat(owner, 'profileTrackGame', { game: 'alias' });
   for (const lang of ['ru', 'en', 'de', 'es']) {
     await botUpdate({ message: { ...ownerChat, text: `/start favorites_${lang}` } });
     const { url, body: widget } = replies.at(-1);
     assert(url.endsWith('/sendWidget'));
-    assert.equal(widget.chat_id, owner);
-    assert.deepEqual(JSON.parse(widget.chat_data), games);
+    assert.equal(widget.chat_id, String(owner));
+    assert.equal(widget.protect_content, true);
+    assert.deepEqual(JSON.parse(widget.chat_data), { favorites: games, lastGame: 'alias' });
     assert.equal(widget.allow_queries, true);
     assert(Buffer.byteLength(widget.html) <= 32768 && deflateSync(widget.html, { level: 9 }).length <= 4096, lang);
     assert(widget.html.includes('https://t.me/FavoritesTestBot?startapp=favorites'));
   }
   const { html } = replies.at(-1).body;
-  let refreshData = [...games, 'bible-wow'];
+  let refreshData = { favorites: [...games, 'bible-wow'], lastGame: 'alias' };
+  let opened = '';
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
+    url: 'https://widget.test/',
     beforeParse(window) {
       window.TelegramWidget = {
         chatData: JSON.stringify(refreshData),
-        onEvent() {},
         ready() {},
+        openTelegramLink(url) { opened = url; },
         async request(data) {
-          assert.equal(data, 'favorite_games_v1');
+          assert.equal(data, 'favorite_games_v2');
           return { result: JSON.stringify(refreshData) };
         },
       };
@@ -239,16 +245,26 @@ try {
     const { document } = dom.window;
     assert.equal(document.querySelectorAll('#games a').length, 4);
     assert.equal(document.querySelector('.game').href, 'https://t.me/FavoritesTestBot?startapp=game_quartet');
+    document.querySelector('.game').click();
+    assert.equal(opened, 'https://t.me/FavoritesTestBot?startapp=game_quartet');
+    document.getElementById('recent').click();
+    assert.equal(opened, 'https://t.me/FavoritesTestBot?startapp=game_alias');
     document.getElementById('next').click();
     assert.equal(document.querySelectorAll('#games a').length, 1);
     assert.equal(document.getElementById('page').textContent, '2 / 2');
-    refreshData = ['twelve-tribes'];
+    document.getElementById('catalog').click();
+    assert.equal(document.getElementById('page').textContent, '1 / 4');
+    document.getElementById('favorites').click();
+    refreshData = { favorites: ['twelve-tribes', 'toString', 'twelve-tribes'], lastGame: 'removed' };
     await new Promise((resolve) => setImmediate(resolve));
     document.getElementById('refresh').click();
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(document.querySelector('.game').href, 'https://t.me/FavoritesTestBot?startapp=game_twelve-tribes');
     assert.equal(document.getElementById('pages').hidden, true);
     assert.equal(document.getElementById('status').hidden, false);
+    assert.equal(document.getElementById('recent').hidden, true);
+    assert.equal(document.querySelectorAll('#games a').length, 1);
+    assert.equal(dom.window.localStorage.getItem('games-state'), JSON.stringify(refreshData));
   } finally {
     dom.window.close();
   }
@@ -263,28 +279,62 @@ try {
   const delegated = 666666666;
   await compat(owner, 'appAccessGrant', { targetId: String(delegated) });
   assert.equal((await request('/app/access', { telegramInitData: signed(delegated) })).data.allowed, true);
+  const delegatedChat = { chat: { id: delegated, type: 'private' }, from: { id: delegated } };
+  await compat(delegated, 'profileSetFavorites', { favorites: ['quartet'] });
+  await botUpdate({ message: { ...delegatedChat, text: '/favorites', is_topic_message: true, message_thread_id: 3 } });
+  assert(replies.at(-1).url.endsWith('/sendWidget'));
+  assert.equal(replies.at(-1).body.message_thread_id, 3);
+  assert.deepEqual(JSON.parse(replies.at(-1).body.chat_data), { favorites: ['quartet'], lastGame: '' });
+  const modernQuery = { ...query, ...delegatedChat, data: 'favorite_games_v2' };
+  await botUpdate({ widget_query: modernQuery });
+  assert.deepEqual(JSON.parse(replies.at(-1).body.data), { favorites: ['quartet'], lastGame: '' });
+
   const beforeUnauthorized = replies.length;
-  await botUpdate({ message: { chat: { id: delegated, type: 'private' }, from: { id: delegated }, text: '/favorites' } });
-  await botUpdate({ widget_query: { ...query, chat: { id: delegated, type: 'private' }, from: { id: delegated } } });
+  await botUpdate({ widget_query: { ...modernQuery, chat: ownerChat.chat } });
   await botUpdate({ widget_query: { ...query, chat: { id: owner, type: 'group' } } });
   assert.equal((await botUpdate({ widget_query: query }, 'forged')).status, 403);
   assert(!replies.slice(beforeUnauthorized).some(({ url }) => /\/(sendWidget|answerWidgetQuery)$/.test(url)));
+  await botUpdate({ widget_query: { ...modernQuery, ...message } });
+  assert(replies.at(-1).url.endsWith('/answerWidgetQuery'));
+  assert.equal(replies.at(-1).body.data, undefined, 'a blocked user receives no profile data');
 
-  for (const [code, description, notice] of [
-    [400, 'Bad Request: INPUT_MEDIA_WIDGET_NOT_ALLOWED', 'Telegram пока не разрешает этому боту отправлять HTML-виджеты.'],
-    [404, 'Not Found', 'Telegram не принял HTML-виджет.'],
+  for (const [code, description] of [
+    [400, 'Bad Request: INPUT_MEDIA_WIDGET_NOT_ALLOWED'],
+    [403, 'Forbidden'],
+    [404, 'Not Found'],
   ]) {
     widgetFailure = { error_code: code, description };
     await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
     const [attempt, fallback] = replies.slice(-2);
     assert(attempt.url.endsWith('/sendWidget'));
     assert(fallback.url.endsWith('/sendMessage'));
-    assert(fallback.body.text.includes(notice));
+    assert(fallback.body.text.includes('Избранное'));
     assert.equal(fallback.body.protect_content, true);
-    const [open, game] = fallback.body.reply_markup.inline_keyboard;
-    assert.deepEqual(open, [{ text: 'Открыть избранное', url: 'https://t.me/FavoritesTestBot?startapp=favorites' }]);
-    assert.equal(game[0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
+    const keyboard = fallback.body.reply_markup.inline_keyboard;
+    assert.equal(keyboard[0][0].url, 'https://t.me/FavoritesTestBot?startapp=game_alias');
+    assert.equal(keyboard[1][1].callback_data, 'favorite_menu:ru:catalog:0');
+    assert.equal(keyboard[2][0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
+    assert.equal(keyboard.at(-1)[0].url, 'https://t.me/FavoritesTestBot?startapp=favorites');
   }
+
+  const callback = { id: 'favorite-callback', from: ownerChat.from,
+    message: { chat: ownerChat.chat, message_id: 42 }, data: 'favorite_menu:ru:catalog:1' };
+  await botUpdate({ callback_query: { ...callback, data: 'favorite_menu:ru:buttons:0',
+    message: { ...callback.message, is_topic_message: true, message_thread_id: 3 } } });
+  const [buttons, buttonsAnswer] = replies.slice(-2);
+  assert(buttons.url.endsWith('/sendMessage'));
+  assert.equal(buttons.body.message_thread_id, 3);
+  assert.equal(buttons.body.protect_content, true);
+  assert.equal(buttons.body.reply_markup.inline_keyboard[2][0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
+  assert(buttonsAnswer.url.endsWith('/answerCallbackQuery'));
+  await botUpdate({ callback_query: callback });
+  const [edit, answer] = replies.slice(-2);
+  assert(edit.url.endsWith('/editMessageText'));
+  assert.equal(edit.body.message_id, 42);
+  assert(edit.body.text.includes('Все игры · 2/4'));
+  assert.equal(edit.body.reply_markup.inline_keyboard[2][0].url, 'https://t.me/FavoritesTestBot?startapp=game_spy');
+  assert(answer.url.endsWith('/answerCallbackQuery'));
+  assert.equal(answer.body.callback_query_id, callback.id);
   widgetFailure = null;
 
   assert.equal((await compat('555555555', 'appAccessRestore', { adminId: env.ADMIN_TELEGRAM_ID })).status, 403);
@@ -327,6 +377,6 @@ try {
 } finally { globalThis.fetch = realFetch; }
 console.log('PASS: verified root, blocked guests/delegated admins/forged identities, persistent exceptions, revocation, Android legacy compatibility, permanent bans, unchanged progress and room socket enforcement.');
 console.log('PASS: bot commands, arbitrary text, photos, stickers, edited messages, callbacks, both Synodal references, webhook authentication, duplicate prevention and retry after delivery failure.');
-console.log('PASS: owner-only favorites widget, live refresh, compressed size limit and inline keyboard fallback.');
+console.log('PASS: favorites widget access, private state, refresh, compression limit and paginated inline keyboard fallback.');
 console.log('PASS: owner-only reopening persists across restarts, restores the app and standard Telegram commands, and preserves account bans and progress.');
 db.close();

@@ -129,10 +129,10 @@ async function sendRichWelcomeMessage(env, chatId, language='ru') {
               style: 'primary',
               callback_data: 'support:start',
             },
-            ...(String(chatId) === String(env.ADMIN_TELEGRAM_ID || '') ? [{
+            {
               text: FAVORITES_LABEL[language] || FAVORITES_LABEL.ru,
               url: miniAppUrl.replace(/\?startapp.*$/, `?start=favorites_${language}`),
-            }] : []),
+            },
           ],
         },
         ...languageButtons,

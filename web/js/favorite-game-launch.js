@@ -31,7 +31,7 @@
 
     function open() {
       const access = window.AppAccess?.state();
-      if (!access?.allowed || !access.isRoot || menu.classList.contains('hidden')
+      if (!access?.allowed || menu.classList.contains('hidden')
         || !document.documentElement.classList.contains('app-ui-ready')) return;
       if (edit) {
         if (!window.PlayerSocial?.open) return;
