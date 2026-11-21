@@ -7,17 +7,27 @@
   if (!documentRoot.hasAttribute('data-full-preview') && !documentRoot.hasAttribute('data-game-catalog')) return;
   documentRoot.dataset.gameCatalog = '';
   const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const apk = window.__ANDROID_APK__ === true;
+  const android = apk || /Android/i.test(navigator.userAgent)
+    || navigator.userAgentData?.platform === 'Android'
+    || /^android/i.test(window.Telegram?.WebApp?.platform || '');
+  const safeDisplay = apk && new URLSearchParams(location.search).get('safeDisplay') === '1';
   const limitedDevice = Boolean(navigator.connection?.saveData
     || (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4)
-    || (navigator.deviceMemory > 0 && navigator.deviceMemory <= 4));
+    || (navigator.deviceMemory > 0 && navigator.deviceMemory <= 4)
+    || (apk && window.AndroidApp?.isLowRamDevice?.()));
   let preferences;
+
+  function staticMenu() {
+    return android || limitedDevice || preferences.graphics === 'low';
+  }
 
   function read() {
     let saved;
     try { saved = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
     return {
-      graphics: levels.has(saved?.graphics) ? saved.graphics : 'normal',
-      animations: levels.has(saved?.animations) ? saved.animations : reduceMotion?.matches ? 'low' : 'normal',
+      graphics: levels.has(saved?.graphics) ? saved.graphics : limitedDevice ? 'low' : 'normal',
+      animations: levels.has(saved?.animations) ? saved.animations : (limitedDevice || reduceMotion?.matches) ? 'low' : 'normal',
     };
   }
 
@@ -25,14 +35,16 @@
     preferences = next;
     documentRoot.dataset.graphics = next.graphics;
     documentRoot.dataset.animations = next.animations;
+    documentRoot.toggleAttribute('data-static-menu', staticMenu());
   }
 
   function set(values) {
+    const saved = read();
     const next = { ...preferences };
     for (const type of ['graphics', 'animations']) {
-      if (levels.has(values[type])) next[type] = values[type];
+      if (levels.has(values[type])) saved[type] = next[type] = values[type];
     }
-    try { localStorage.setItem(key, JSON.stringify(next)); } catch {}
+    try { localStorage.setItem(key, JSON.stringify(saved)); } catch {}
     apply(next);
     window.dispatchEvent(new Event('game-display:change'));
   }
@@ -42,7 +54,7 @@
     return Math.min(window.devicePixelRatio || 1, limit, budget);
   }
 
-  apply(read());
+  apply(safeDisplay ? { graphics: 'low', animations: 'low' } : read());
   window.addEventListener('storage', (event) => {
     if (event.key !== key && event.key !== null) return;
     apply(read());
@@ -53,7 +65,7 @@
     set,
     lowGraphics: () => preferences.graphics === 'low',
     reducedMotion: () => preferences.animations === 'low' || reduceMotion?.matches === true,
-    staticMenu: () => preferences.graphics === 'low' || (limitedDevice && preferences.graphics !== 'high'),
+    staticMenu,
     pixelRatio,
   });
 })();

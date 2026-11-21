@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '8a1c9b5e92';
+const VERSION = '6fcaeb3588';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -30,8 +30,8 @@ const PRECACHE = [
   'web/assets/twelve-tribes/art.json',
   'web/assets/bible-geography/map.json',
   'web/assets/bible-geography/art.json',
-  'web/dist/app.632e21df05.css',
-  'web/dist/app.e5c7410ab3.js',
+  'web/dist/app.191131a11a.css',
+  'web/dist/app.73203353af.js',
   'web/games/alias.js',
   'web/games/bible-geography-logic.js',
   'web/games/bible-geography.css',
@@ -100,6 +100,22 @@ const PRECACHE = [
   'web/assets/icons/bible-sketch.svg',
   'web/assets/icons/bible-sketch.webp',
   'web/assets/icons/biblical-treasures-v38.webp',
+  'web/assets/icons/catalog-v1/alias.webp',
+  'web/assets/icons/catalog-v1/ark.webp',
+  'web/assets/icons/catalog-v1/bible-geography.webp',
+  'web/assets/icons/catalog-v1/bible-sketch.webp',
+  'web/assets/icons/catalog-v1/biblical-treasures.webp',
+  'web/assets/icons/catalog-v1/character.webp',
+  'web/assets/icons/catalog-v1/describe.webp',
+  'web/assets/icons/catalog-v1/idea.webp',
+  'web/assets/icons/catalog-v1/moses-nile.webp',
+  'web/assets/icons/catalog-v1/promised-land.webp',
+  'web/assets/icons/catalog-v1/quartet.webp',
+  'web/assets/icons/catalog-v1/sacred.webp',
+  'web/assets/icons/catalog-v1/search.webp',
+  'web/assets/icons/catalog-v1/spy.webp',
+  'web/assets/icons/catalog-v1/twelve-tribes.webp',
+  'web/assets/icons/catalog-v1/words.webp',
   'web/assets/icons/channel.webp',
   'web/assets/icons/character.webp',
   'web/assets/icons/describe.webp',
@@ -177,13 +193,15 @@ self.addEventListener('install', (event) => {
     // установку целиком и оставлять человека вовсе без офлайна. И небольшими
     // порциями, а не все восемьдесят разом: иначе установка забивает канал
     // ровно в тот момент, когда приложение запускается.
-    const BATCH = 6;
+    const BATCH = 3;
     for (let index = 0; index < PRECACHE.length; index += BATCH) {
       await Promise.all(PRECACHE.slice(index, index + BATCH).map(async (asset) => {
         const url = new URL(asset, scope);
         try {
-          const response = await fetch(new Request(url, { cache: 'no-cache' }));
-          if (response.ok) await cache.put(url, response);
+          await withNetworkDeadline(8000, async (signal) => {
+            const response = await fetch(new Request(url, { cache: 'no-cache', signal }));
+            if (response.ok) await cache.put(url, response);
+          });
         } catch { /* нет сети при установке — доберём в бою */ }
       }));
     }
@@ -213,40 +231,36 @@ const isImmutable = (url) => url.pathname.includes('/web/dist/');
 // каждый раз новый. Файлы здесь статические, и путь однозначно их определяет.
 const keyFor = (url) => new Request(`${url.origin}${url.pathname}`);
 
-/*
-  Жалоба: «на некоторых телефонах не прогружаются игры или картинки». У
-  fetch() здесь не было потолка ожидания: запрос, который на нестабильной
-  мобильной сети не ответил и не оборвался, — обычное дело, — оставлял
-  fromNetwork висеть вечно, а вместе с ней и весь event.respondWith. Ниже по
-  коду это уже учтено (навигация падает на кеш или index.html, неизменные
-  бандлы — на Response.error(), у остального есть кеш или тот же
-  Response.error()) — но только если fromNetwork хоть когда-нибудь
-  отклонится. Без таймаута зависший запрос никогда не отклонялся, и картинка
-  или файл игры просто не появлялись — ни ошибки, ни повтора, только вечная
-  загрузка.
-*/
-function withTimeout(promise, ms) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('network timeout')), ms);
-    promise.then(
-      (value) => { clearTimeout(timer); resolve(value); },
-      (error) => { clearTimeout(timer); reject(error); },
-    );
-  });
+async function withNetworkDeadline(ms, task) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await task(controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-async function fromNetwork(request, cacheName, timeoutMs = 8000) {
-  const response = await withTimeout(fetch(request), timeoutMs);
-  if (response.ok && request.method === 'GET') {
-    const cache = await caches.open(cacheName);
-    cache.put(keyFor(new URL(request.url)), response.clone());
+async function fromNetwork(event, cacheName, timeoutMs = 8000) {
+  const { request } = event;
+  const response = await withNetworkDeadline(timeoutMs, (signal) => fetch(request, { signal }));
+  if (response.ok) {
+    const copy = response.clone();
+    event.waitUntil(caches.open(cacheName)
+      .then((cache) => cache.put(keyFor(new URL(request.url)), copy))
+      .catch(() => { /* Ошибка дискового кеша не влияет на сетевой ответ. */ }));
   }
   return response;
 }
 
-/** Сначала точное совпадение, потом — тот же путь без запроса. */
-async function fromCache(request) {
-  return (await caches.match(request)) || (await caches.match(keyFor(new URL(request.url))));
+async function fromCache(url) {
+  const key = keyFor(url);
+  // Обновлённый файл должен иметь приоритет над предзагруженной версией.
+  try {
+    return (await caches.match(key, { cacheName: RUNTIME })) || await caches.match(key, { cacheName: SHELL });
+  } catch {
+    return undefined;
+  }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -260,10 +274,11 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
+      const cached = await fromCache(url) || await fromCache(new URL('index.html', scope));
       try {
-        return await fromNetwork(request, SHELL);
+        const response = await fromNetwork(event, SHELL, cached ? 3500 : 8000);
+        return response.status >= 500 && cached ? cached : response;
       } catch {
-        const cached = await fromCache(request) || await caches.match(new URL('index.html', scope));
         return cached || Response.error();
       }
     })());
@@ -272,18 +287,18 @@ self.addEventListener('fetch', (event) => {
 
   if (isImmutable(url)) {
     event.respondWith((async () => {
-      const cached = await fromCache(request);
+      const cached = await fromCache(url);
       if (cached) return cached;
-      try { return await fromNetwork(request, SHELL); } catch { return Response.error(); }
+      try { return await fromNetwork(event, SHELL); } catch { return Response.error(); }
     })());
     return;
   }
 
   event.respondWith((async () => {
-    const cached = await fromCache(request);
+    const cached = await fromCache(url);
     // Тихое обновление: страница получает кеш сразу, а свежий файл ложится
     // рядом и достанется следующему запуску.
-    const network = fromNetwork(request, RUNTIME).catch(() => null);
+    const network = fromNetwork(event, RUNTIME).catch(() => null);
     if (cached) { event.waitUntil(network); return cached; }
     const response = await network;
     return response || Response.error();

@@ -332,3 +332,10 @@
   }
   .gamehub-boot__portal-image { opacity: 1; }
 }
+
+.gamehub-boot:not(.gamehub-boot--rich) :is(.gamehub-boot__art, .gamehub-boot__portal) {
+  display: none;
+}
+.gamehub-boot:not(.gamehub-boot--rich) .gamehub-boot__progress::after {
+  animation: none;
+}

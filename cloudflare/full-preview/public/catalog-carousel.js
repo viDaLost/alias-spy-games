@@ -57,7 +57,7 @@
         <div class="catalog-promo-copy"><h2>${game.title}</h2><p>${game.desc}</p><a class="catalog-hero-play" href="${routeURL(game.key, treasure ? { level: 51 } : {})}" data-launch="${game.key}">${treasure ? 'Начать раскопки' : 'Играть'} <span aria-hidden="true">›</span></a></div>
         <div class="catalog-promo-stage" aria-hidden="true"><img src="${artwork(game)}" width="280" height="250" alt="" decoding="async" draggable="false"></div>`;
 
-      if (direction && previous && !window.GameDisplay.reducedMotion()) {
+      if (direction && previous && !window.GameDisplay.staticMenu() && !window.GameDisplay.reducedMotion()) {
         previous.className = 'catalog-promo ' + (direction > 0 ? 'go-left' : 'go-right');
         previous.setAttribute('aria-hidden', 'true');
         previous.querySelector('a').tabIndex = -1;
@@ -67,7 +67,7 @@
       } else viewport.replaceChildren(slide);
       feature.dataset.activePromo = game.key;
 
-      if (order.length > 1 && !window.GameDisplay.lowGraphics()) {
+      if (order.length > 1 && !window.GameDisplay.staticMenu()) {
         const next = order[(index + (direction || 1) + order.length) % order.length];
         const preload = new Image();
         preload.src = artwork(next);

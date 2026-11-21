@@ -74,9 +74,14 @@ const mime = new Map([
 // приходится обходиться тем, что лежит в кеше.
 let served = 0;
 let unplugged = false;
+let upstreamUnavailable = false;
 const server = http.createServer((request, response) => {
   if (unplugged) { request.socket.destroy(); return; }
   const pathname = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname);
+  if (upstreamUnavailable && pathname === '/') {
+    response.writeHead(503).end('Upstream temporarily unavailable');
+    return;
+  }
   const target = path.resolve(root, `.${pathname === '/' ? '/index.html' : pathname}`);
   if (!target.startsWith(root + path.sep) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
     response.writeHead(404).end('Not found');
@@ -244,6 +249,13 @@ if (catalogRequests.length) await fail('каталог городов загру
 await page.waitForFunction(() => window.SabbathAccess?.status().allowed);
 await page.evaluate(() => window.SabbathAccess.openCityPicker());
 await page.locator('[data-city="Берлин"]').click();
+
+// Cloudflare may return an HTTP error when Pages is down instead of dropping the socket.
+upstreamUnavailable = true;
+const cachedNavigation = await page.goto(baseURL, { waitUntil: 'commit', timeout: 15_000 });
+assert.equal(cachedNavigation?.status(), 200, 'a temporary upstream 503 must open the cached app');
+await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 15_000 });
+upstreamUnavailable = false;
 
 // --- 3. приложение открывается без сети --------------------------------------------
 await switchNetwork(true);

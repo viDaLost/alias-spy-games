@@ -25,6 +25,8 @@ html[data-full-preview] body:not([data-mode="game"]) {
   --catalog-brand-color: #4f46e5;
   --catalog-line: #ccd6f4;
   font: 500 16px/1.4 Onest, system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 .catalog *, .catalog-dialog * { box-sizing: border-box; }
 .catalog [hidden], .catalog-dialog [hidden] { display: none !important; }
@@ -137,6 +139,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   font-size: 13px;
   font-weight: 760;
   line-height: 1.18;
+  overflow-wrap: anywhere;
 }
 .catalog-filters button[aria-pressed="true"] {
   color: #fff;
@@ -363,7 +366,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   object-fit: contain;
   filter: drop-shadow(0 6px 6px #2b40862b);
 }
-.catalog-game-copy { min-width: 0; display: grid; gap: 5px; padding-right: 34px; }
+.catalog-game-copy { min-width: 0; display: grid; overflow-wrap: anywhere; gap: 5px; padding-right: 34px; }
 .catalog-game strong { color: inherit; font-size: clamp(15px, 1.7vw, 20px); font-weight: 820; line-height: 1.14; }
 .catalog-game-description { color: #4b597e; font-size: 12px; line-height: 1.25; }
 .catalog-game-stats {
@@ -379,7 +382,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   font-weight: 740;
   line-height: 1.2;
 }
-.catalog-game-stats > span { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 6px; background: #e9effd; }
+.catalog-game-stats > span { display: inline-grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; max-width: 100%; overflow-wrap: anywhere; gap: 4px; padding: 3px 6px; border-radius: 6px; background: #e9effd; }
 .catalog-game-stats b { color: #4f46a8; font: 800 13px/1 system-ui, sans-serif; }
 .catalog-save {
   position: absolute;
@@ -403,40 +406,40 @@ html[data-full-preview] body:not([data-mode="game"]) {
 .catalog-save:hover { background: #d9e3ff; }
 
 @media (prefers-reduced-motion: no-preference) {
-  html:not([data-animations="low"]) .catalog-diorama { transition: transform .55s cubic-bezier(.2, .8, .25, 1); }
-  html:not([data-animations="low"]) .catalog-filters::before { transition: transform .33s cubic-bezier(.22, 1, .36, 1); }
-  html:not([data-animations="low"]) .catalog-hero-art { animation: catalog-float 5.4s ease-in-out infinite; }
-  html:not([data-animations="low"]) .catalog-orbit-relic { animation: catalog-orbit 9s ease-in-out infinite; }
-  html:not([data-animations="low"]) .catalog-orbit-scroll { animation-delay: -4.5s; }
-  html:not([data-animations="low"]) .catalog-hero-sparks i { animation: catalog-shimmer 4.4s ease-in-out infinite; }
-  html:not([data-animations="low"]) .catalog-hero-sparks i:nth-child(2) { animation-delay: -2.4s; }
-  html:not([data-animations="low"]) .catalog-hero-sparks i:nth-child(3) { animation-delay: -1.3s; }
-  html:not([data-animations="low"]) .catalog-hero-sparks i:nth-child(4) { animation-delay: -3s; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-diorama { transition: transform .55s cubic-bezier(.2, .8, .25, 1); }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-filters::before { transition: transform .33s cubic-bezier(.22, 1, .36, 1); }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-hero-art { animation: catalog-float 5.4s ease-in-out infinite; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-orbit-relic { animation: catalog-orbit 9s ease-in-out infinite; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-orbit-scroll { animation-delay: -4.5s; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-hero-sparks i { animation: catalog-shimmer 4.4s ease-in-out infinite; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-hero-sparks i:nth-child(2) { animation-delay: -2.4s; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-hero-sparks i:nth-child(3) { animation-delay: -1.3s; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-hero-sparks i:nth-child(4) { animation-delay: -3s; }
   html[data-animations="high"] .catalog-portal { animation: catalog-portal-glow 5s ease-in-out infinite; }
-  html:not([data-animations="low"]) .catalog-header { animation: catalog-reveal .43s backwards; }
-  html:not([data-animations="low"]) .catalog-hero { animation: catalog-reveal .53s .04s backwards; }
-  html:not([data-animations="low"]) .catalog-game.is-revealed { animation: catalog-rise .49s cubic-bezier(.2, .8, .25, 1) backwards; }
-  html:not([data-animations="low"]) .catalog-game.is-revealed:nth-child(even) { animation-delay: .08s; }
-  html:not([data-animations="low"]) .catalog-game,
-  html:not([data-animations="low"]) .catalog-game-face,
-  html:not([data-animations="low"]) .catalog-game-emblem,
-  html:not([data-animations="low"]) .catalog-game img,
-  html:not([data-animations="low"]) .catalog-tool,
-  html:not([data-animations="low"]) .catalog-hero-play,
-  html:not([data-animations="low"]) .catalog-save { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
-  html:not([data-animations="low"]) :is(.catalog-hero-play, .catalog-tool):active { transform: perspective(340px) translateY(2px) rotateX(12deg); }
-  html:not([data-animations="low"]) .catalog-save:active { transform: translateZ(19px) scale(.9); }
-  html:not([data-animations="low"]) .catalog-game-face {
+  html:not([data-animations="low"], [data-static-menu]) .catalog-header { animation: catalog-reveal .43s backwards; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-hero { animation: catalog-reveal .53s .04s backwards; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game.is-revealed { animation: catalog-rise .49s cubic-bezier(.2, .8, .25, 1) backwards; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game.is-revealed:nth-child(even) { animation-delay: .08s; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game,
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game-face,
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game-emblem,
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game img,
+  html:not([data-animations="low"], [data-static-menu]) .catalog-tool,
+  html:not([data-animations="low"], [data-static-menu]) .catalog-hero-play,
+  html:not([data-animations="low"], [data-static-menu]) .catalog-save { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
+  html:not([data-animations="low"], [data-static-menu]) :is(.catalog-hero-play, .catalog-tool):active { transform: perspective(340px) translateY(2px) rotateX(12deg); }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-save:active { transform: translateZ(19px) scale(.9); }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game-face {
     transform: rotateX(var(--catalog-card-tilt-x, 0deg)) rotateY(var(--catalog-card-tilt-y, 0deg));
   }
-  html:not([data-animations="low"]) .catalog-game:has(a:active) .catalog-game-face {
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game:has(a:active) .catalog-game-face {
     transform: translateY(4px) rotateX(10deg) rotateY(var(--catalog-card-tilt-y, 0deg));
   }
-  html:not([data-animations="low"]) .catalog-dialog[open] { animation: catalog-panel-open .34s cubic-bezier(.22, .8, .25, 1) both; }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-dialog[open] { animation: catalog-panel-open .34s cubic-bezier(.22, .8, .25, 1) both; }
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  html:not([data-animations="low"]) .catalog-game:hover .catalog-game-emblem { transform: translate3d(0, -3px, 33px); }
-  html:not([data-animations="low"]) .catalog-tool:hover { transform: perspective(370px) translateY(-2px) rotateX(-8deg); }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-game:hover .catalog-game-emblem { transform: translate3d(0, -3px, 33px); }
+  html:not([data-animations="low"], [data-static-menu]) .catalog-tool:hover { transform: perspective(370px) translateY(-2px) rotateX(-8deg); }
 }
 @keyframes catalog-reveal {
   from { opacity: 0; transform: translateY(9px); }
@@ -495,6 +498,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   display: grid;
   place-items: center;
   text-align: center;
+  overflow-wrap: anywhere;
   min-height: 49px;
   padding: 3px 1px;
   border-radius: 11px;
@@ -552,7 +556,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   .catalog-brand img { width: 34px; height: 34px; border-radius: 10px; box-shadow: none; }
   .catalog-tools { flex: none; gap: 4px; }
   .catalog-tool-label { display: none; }
-  .catalog-tool { padding: 0; border-radius: 12px; box-shadow: none; }
+  .catalog-tool { width: 44px; padding: 0; border-radius: 12px; box-shadow: none; }
 }
 @media (max-width: 510px) {
   .catalog-collections { gap: 16px; }
@@ -577,7 +581,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
 }
 @media (max-width: 360px) {
   .catalog { padding-inline: 6px; }
-  .catalog-top { gap: 3px; padding: 3px; }
+  .catalog-top { flex-wrap: nowrap; gap: 3px; padding: 3px; }
   .catalog-tools { gap: 2px; }
   .catalog-game strong { font-size: 14px; }
 }

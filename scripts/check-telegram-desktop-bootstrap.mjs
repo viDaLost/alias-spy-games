@@ -12,10 +12,9 @@ function assert(condition, message) {
   if (!condition) throw new Error(`[telegram-desktop-bootstrap] ${message}`);
 }
 
-const sdkMatch = index.match(/<script\s+id="telegram-web-app-sdk"[^>]*src="https:\/\/telegram\.org\/js\/telegram-web-app\.js\?63"[^>]*><\/script>/);
-assert(sdkMatch, 'Telegram WebApp SDK tag is missing or does not use the expected current URL.');
-assert(/id="telegram-web-app-sdk"[^>]*\sasync(?:\s|>)/.test(index), 'Telegram SDK must load asynchronously so it cannot block local deferred scripts.');
-assert(!/telegram-web-app\.js[^>]*\sdefer(?:\s|>)/.test(index), 'Telegram SDK must not participate in the deferred execution chain.');
+assert(index.includes("sdk.src = 'https://telegram.org/js/telegram-web-app.js?63'"), 'The expected Telegram SDK URL must be available.');
+assert(index.includes('sdk.async = true'), 'Telegram SDK must load asynchronously.');
+assert(index.includes('if (!window.AndroidApp)'), 'Bundled Android must use its native bridge without downloading the Telegram SDK.');
 
 // The launch context stays outside the bundle: it must run synchronously in <head>,
 // before any deferred script. Everything that depends on it lives in the deferred

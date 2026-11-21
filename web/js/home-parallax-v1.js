@@ -156,6 +156,10 @@
 
   function renderFrame() {
     if (!active || !scene) return;
+    if (window.GameDisplay?.staticMenu()) {
+      for (const layer of layers) layer.element.style.removeProperty('transform');
+      return;
+    }
 
     const scroll = Math.min(Math.max(currentScroll, 0), 1600);
 
@@ -228,9 +232,7 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    init();
-  }
+  if (document.documentElement.hasAttribute('data-full-preview')
+    || document.documentElement.classList.contains('app-ui-ready')) init();
+  else window.addEventListener('app:menu-ready', init, { once: true });
 })();

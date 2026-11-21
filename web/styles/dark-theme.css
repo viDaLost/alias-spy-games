@@ -2933,6 +2933,11 @@ html.theme-dark .theme-dark .catalog-promo .catalog-hero-play {
   color: #aba0de !important;
 }
 
+/* cloudflare/full-preview/public/display-preferences.css */
+html.theme-dark[data-static-menu] .catalog-game-face {
+  background: #070f28 !important;
+}
+
 /* web/styles/catalog-client.css */
 html.theme-dark[data-game-catalog] #more-screen #system-actions .game-card {
   border: 1px solid var(--catalog-line, #1d2b44) !important;

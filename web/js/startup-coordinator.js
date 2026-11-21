@@ -112,7 +112,7 @@
     unlockShell();
     if (!menuReady) {
       menuReady = true;
-      animateMenu(menu);
+      if (!window.GameDisplay?.staticMenu() && !window.GameDisplay?.reducedMotion()) animateMenu(menu);
       window.dispatchEvent(new CustomEvent('app:menu-ready'));
     }
     warmVisibleMenu(menu);
