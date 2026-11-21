@@ -299,7 +299,7 @@ try {
   assert.equal(replies.at(-1).body.data, undefined, 'a blocked user receives no profile data');
 
   for (const [code, description] of [
-    [400, 'Bad Request: INPUT_MEDIA_WIDGET_NOT_ALLOWED'],
+    [400, 'Bad Request: INPUT_MEDIA_WIDGET_HTML_INVALID'],
     [403, 'Forbidden'],
     [404, 'Not Found'],
   ]) {
@@ -314,7 +314,25 @@ try {
     assert.equal(keyboard[0][0].url, 'https://t.me/FavoritesTestBot?startapp=game_alias');
     assert.equal(keyboard[1][1].callback_data, 'favorite_menu:ru:catalog:0');
     assert.equal(keyboard[2][0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
-    assert.equal(keyboard.at(-1)[0].url, 'https://t.me/FavoritesTestBot?startapp=favorites');
+    assert.equal(keyboard.at(-1)[0].callback_data, 'favorite_menu:ru:edit:0');
+  }
+
+  widgetFailure = { error_code: 400, description: 'Bad Request: INPUT_MEDIA_WIDGET_NOT_ALLOWED' };
+  await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
+  assert(replies.at(-2).url.endsWith('/sendWidget'));
+  assert(replies.at(-1).url.endsWith('/sendMessage'));
+  const beforeCooldown = replies.length;
+  await botUpdate({ message: { ...delegatedChat, text: '/favorites' } });
+  assert.deepEqual(replies.slice(beforeCooldown).map(({ url }) => url.split('/').at(-1)), ['sendMessage']);
+  assert.equal(replies.at(-1).body.reply_markup.inline_keyboard[1][0].url, 'https://t.me/FavoritesTestBot?startapp=game_quartet');
+  widgetFailure = null;
+  const realNow = Date.now;
+  try {
+    Date.now = () => realNow() + 5 * 60 * 1000;
+    await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
+    assert(replies.at(-1).url.endsWith('/sendWidget'));
+  } finally {
+    Date.now = realNow;
   }
 
   const callback = { id: 'favorite-callback', from: ownerChat.from,
@@ -335,7 +353,33 @@ try {
   assert.equal(edit.body.reply_markup.inline_keyboard[2][0].url, 'https://t.me/FavoritesTestBot?startapp=game_spy');
   assert(answer.url.endsWith('/answerCallbackQuery'));
   assert.equal(answer.body.callback_query_id, callback.id);
-  widgetFailure = null;
+
+  const playerCallback = { id: 'favorite-edit', from: delegatedChat.from,
+    message: { chat: delegatedChat.chat, message_id: 43 }, data: 'favorite_menu:ru:edit:1' };
+  await botUpdate({ callback_query: playerCallback });
+  const editKeyboard = () => replies.at(-2).body.reply_markup.inline_keyboard;
+  assert(replies.at(-2).url.endsWith('/editMessageText'));
+  assert.equal(replies.at(-2).body.message_id, 43);
+  assert(replies.at(-2).body.text.includes('Изменить избранное · 2/4'));
+  const addSpy = editKeyboard()[0][0];
+  assert.equal(addSpy.text, '☆ Соглядатай');
+  assert.equal(addSpy.callback_data, 'favorite_menu:ru:edit:1:1:spy');
+  assert.equal(editKeyboard()[1][0].text, '★ Квартет');
+  await botUpdate({ callback_query: { ...playerCallback, data: addSpy.callback_data } });
+  const removeSpy = editKeyboard()[0][0];
+  assert.equal(removeSpy.callback_data, 'favorite_menu:ru:edit:1:0:spy');
+  assert.equal(removeSpy.text, '★ Соглядатай');
+  await botUpdate({ callback_query: { ...playerCallback, data: addSpy.callback_data } });
+  assert.deepEqual(store.readProfile(String(delegated)).favorites, ['quartet', 'spy'], 'repeated callback is idempotent');
+  assert.deepEqual(store.readProfile(String(owner)).favorites, ['bible-wow'], 'a player can only edit their own favorites');
+  await botUpdate({ callback_query: { ...playerCallback, data: addSpy.callback_data,
+    message: { ...playerCallback.message, chat: ownerChat.chat } } });
+  await botUpdate({ callback_query: { ...playerCallback, data: 'favorite_menu:ru:edit:1:1:kingdoms' } });
+  assert.equal((await botUpdate({ callback_query: { ...playerCallback, data: removeSpy.callback_data } }, 'forged')).status, 403);
+  assert.deepEqual(store.readProfile(String(delegated)).favorites, ['quartet', 'spy']);
+  assert.deepEqual(store.readProfile(String(owner)).favorites, ['bible-wow']);
+  await botUpdate({ callback_query: { ...playerCallback, data: removeSpy.callback_data } });
+  assert.deepEqual(store.readProfile(String(delegated)).favorites, ['quartet']);
 
   assert.equal((await compat('555555555', 'appAccessRestore', { adminId: env.ADMIN_TELEGRAM_ID })).status, 403);
   assert.equal((await compat('666666666', 'appAccessRestore')).status, 403);
@@ -377,6 +421,6 @@ try {
 } finally { globalThis.fetch = realFetch; }
 console.log('PASS: verified root, blocked guests/delegated admins/forged identities, persistent exceptions, revocation, Android legacy compatibility, permanent bans, unchanged progress and room socket enforcement.');
 console.log('PASS: bot commands, arbitrary text, photos, stickers, edited messages, callbacks, both Synodal references, webhook authentication, duplicate prevention and retry after delivery failure.');
-console.log('PASS: favorites widget access, private state, refresh, compression limit and paginated inline keyboard fallback.');
+console.log('PASS: favorites widget access, private state, refresh, compression limit, retry cooldown and in-chat favorites editing.');
 console.log('PASS: owner-only reopening persists across restarts, restores the app and standard Telegram commands, and preserves account bans and progress.');
 db.close();

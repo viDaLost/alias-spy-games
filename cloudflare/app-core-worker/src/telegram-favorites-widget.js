@@ -5,8 +5,11 @@ import { PLAYER_GAMES } from './player-games.js';
 const LEGACY_QUERY = 'favorite_games_v1';
 const QUERY = 'favorite_games_v2';
 const PER_PAGE = 4;
+const WIDGET_RETRY_DELAY_MS = 5 * 60 * 1000;
+let retryWidgetAt = 0;
 const COPY = {
   ru: {
+    done: 'Готово', editHint: 'Нажмите на игру, чтобы добавить её в избранное или убрать оттуда.',
     buttons: 'Игры кнопками',
     title: 'Мои игры', favorites: 'Избранное', catalog: 'Все игры', recent: 'Последняя игра',
     empty: 'В избранном пока пусто. Выберите игру в каталоге или добавьте её в избранное.',
@@ -15,6 +18,7 @@ const COPY = {
     updating: 'Обновляем…', updated: 'Список обновлён', failed: 'Не удалось обновить. Попробуйте ещё раз.',
   },
   en: {
+    done: 'Done', editHint: 'Tap a game to add it to your favorites or remove it.',
     buttons: 'Game buttons',
     title: 'My games', favorites: 'Favorites', catalog: 'All games', recent: 'Last played',
     empty: 'No favorites yet. Pick a game from the catalog or add it to your favorites.',
@@ -23,6 +27,7 @@ const COPY = {
     updating: 'Updating…', updated: 'List updated', failed: 'Could not refresh. Try again.',
   },
   de: {
+    done: 'Fertig', editHint: 'Tippe auf ein Spiel, um es zu deinen Favoriten hinzuzufügen oder daraus zu entfernen.',
     buttons: 'Spiele als Buttons',
     title: 'Meine Spiele', favorites: 'Favoriten', catalog: 'Alle Spiele', recent: 'Zuletzt gespielt',
     empty: 'Noch keine Favoriten. Wähle ein Spiel aus der Liste oder füge es zu deinen Favoriten hinzu.',
@@ -31,6 +36,7 @@ const COPY = {
     updating: 'Wird aktualisiert…', updated: 'Liste aktualisiert', failed: 'Aktualisierung fehlgeschlagen. Versuche es erneut.',
   },
   es: {
+    done: 'Listo', editHint: 'Toca un juego para añadirlo a tus favoritos o quitarlo de la lista.',
     buttons: 'Botones de juego',
     title: 'Mis juegos', favorites: 'Favoritos', catalog: 'Todos los juegos', recent: 'Último juego',
     empty: 'Aún no tienes favoritos. Elige un juego del catálogo o añádelo a tus favoritos.',
@@ -60,10 +66,12 @@ export function handleFavoritesWidget(update, env, ctx) {
     if (![LEGACY_QUERY, QUERY].includes(query.data) || !/^\d{1,24}$/.test(String(query.id))) return false;
     task = answerFavorites(env, userId, query);
   } else if (callback) {
-    const match = /^favorite_menu:(ru|en|de|es):(buttons|favorites|catalog):([0-9])$/.exec(callback.data);
+    const match = /^favorite_menu:(ru|en|de|es):(buttons|favorites|catalog|edit):(\d{1,2})(?::([01]):([a-z0-9-]{1,32}))?$/.exec(callback.data);
     if (!match || !Number.isSafeInteger(message.message_id) || message.message_id < 1) return false;
-    const [, lang, tab, page] = match;
-    task = updateFallback(env, userId, callback, { lang, tab, page: Number(page) });
+    const [, lang, tab, page, selected, game] = match;
+    if (game && (tab !== 'edit' || !PLAYER_GAMES.has(game))) return false;
+    const change = game ? { game, selected: selected === '1' } : undefined;
+    task = updateFallback(env, userId, callback, { lang, tab, page: Number(page) }, change);
   } else {
     const text = String(message.text || '').trim();
     const start = /^\/start(?:@[\w]+)?\s+favorites(?:_(ru|en|de|es))?$/i.exec(text);
@@ -77,8 +85,8 @@ export function handleFavoritesWidget(update, env, ctx) {
   return true;
 }
 
-async function getFavorites(env, userId) {
-  const { favorites, lastGame } = await accessStore(env, '/app-access/widget-favorites', { userId });
+async function getFavorites(env, userId, change) {
+  const { favorites, lastGame } = await accessStore(env, '/app-access/widget-favorites', { userId, ...change });
   return { favorites, lastGame };
 }
 
@@ -90,8 +98,8 @@ async function answerFavorites(env, userId, query) {
   });
 }
 
-async function getMenu(env, userId, lang) {
-  const [state, url] = await Promise.all([getFavorites(env, userId), getMainMiniAppUrl(env)]);
+async function getMenu(env, userId, lang, change) {
+  const [state, url] = await Promise.all([getFavorites(env, userId, change), getMainMiniAppUrl(env)]);
   const index = Object.keys(COPY).indexOf(lang);
   const games = Object.fromEntries([...PLAYER_GAMES].map(([id, names]) => [id, [names[index], GAME_MARKS[id]]]));
   return { state, games, lang, copy: COPY[lang], url };
@@ -101,6 +109,8 @@ async function sendFavorites(env, userId, lang, threadId) {
   const menu = await getMenu(env, userId, lang);
   const { state, copy, url } = menu;
   const recipient = { chat_id: userId, message_thread_id: threadId, protect_content: true };
+  if (Date.now() < retryWidgetAt) return telegramApi(env, 'sendMessage', { ...recipient, ...renderFallback(menu) });
+
   try {
     await telegramApi(env, 'sendWidget', {
       ...recipient,
@@ -116,15 +126,18 @@ async function sendFavorites(env, userId, lang, threadId) {
   } catch (error) {
     // A transport error has an unknown delivery outcome. Only fall back on an explicit refusal.
     if (![400, 403, 404, 501].includes(error.status)) throw error;
+    if (error.status === 400 && error.message.includes('INPUT_MEDIA_WIDGET_NOT_ALLOWED')) {
+      retryWidgetAt = Date.now() + WIDGET_RETRY_DELAY_MS;
+    }
     console.warn('Telegram sendWidget declined', { status: error.status, description: error.message.slice(0, 180) });
     await telegramApi(env, 'sendMessage', { ...recipient, ...renderFallback(menu) });
   }
 }
 
-async function updateFallback(env, userId, callback, view) {
+async function updateFallback(env, userId, callback, view, change) {
   let notice;
   try {
-    const menu = await getMenu(env, userId, view.lang);
+    const menu = await getMenu(env, userId, view.lang, change);
     if (view.tab === 'buttons') {
       const message = callback.message;
       await telegramApi(env, 'sendMessage', {
@@ -155,18 +168,35 @@ function renderFallback({ state, games, lang, copy, url }, { tab = state.favorit
   page = Math.min(page, pages - 1);
   const button = (text, view, index) => ({ text, callback_data: `favorite_menu:${lang}:${view}:${index}` });
   const gameButton = (id, text) => ({ text: text || `${games[id][1]} ${games[id][0]}`, url: `${url}=game_${id}` });
+  const editing = tab === 'edit';
   const keyboard = [];
-  if (state.lastGame) keyboard.push([gameButton(state.lastGame, `${copy.recent} · ${games[state.lastGame][0]}`)]);
-  keyboard.push([button(`★ ${copy.favorites}`, 'favorites', 0), button(copy.catalog, 'catalog', 0)]);
-  keyboard.push(...ids.slice(page * PER_PAGE, (page + 1) * PER_PAGE).map((id) => [gameButton(id)]));
+  if (!editing) {
+    if (state.lastGame) keyboard.push([gameButton(state.lastGame, `${copy.recent} · ${games[state.lastGame][0]}`)]);
+    keyboard.push([button(`★ ${copy.favorites}`, 'favorites', 0), button(copy.catalog, 'catalog', 0)]);
+  }
+  for (const id of ids.slice(page * PER_PAGE, (page + 1) * PER_PAGE)) {
+    if (!editing) {
+      keyboard.push([gameButton(id)]);
+      continue;
+    }
+    const selected = state.favorites.includes(id);
+    keyboard.push([{
+      text: `${selected ? '★' : '☆'} ${games[id][0]}`,
+      callback_data: `favorite_menu:${lang}:edit:${page}:${selected ? 0 : 1}:${id}`,
+    }]);
+  }
   const paging = [];
   if (page > 0) paging.push(button(`‹ ${copy.previous}`, tab, page - 1));
   if (page + 1 < pages) paging.push(button(`${copy.next} ›`, tab, page + 1));
   if (paging.length) keyboard.push(paging);
-  keyboard.push([{ text: copy.edit, url: `${url}=favorites` }, button(`↻ ${copy.refresh}`, tab, page)]);
+  keyboard.push([
+    editing ? button(copy.done, 'favorites', 0) : button(copy.edit, 'edit', 0),
+    button(`↻ ${copy.refresh}`, tab, page),
+  ]);
   const heading = pages > 1 ? `${copy[tab]} · ${page + 1}/${pages}` : copy[tab];
+  const description = editing ? copy.editHint : (ids.length ? copy.pin : copy.empty);
   return {
-    text: `★ ${copy.title}\n${heading}\n\n${ids.length ? copy.pin : copy.empty}`,
+    text: `★ ${copy.title}\n${heading}\n\n${description}`,
     reply_markup: { inline_keyboard: keyboard },
   };
 }
