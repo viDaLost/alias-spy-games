@@ -2,35 +2,37 @@ import { accessStore, cleanAccessId } from './app-access-auth.js';
 import { getMainMiniAppUrl, telegramApi } from './index-v10.js';
 import { PLAYER_GAMES } from './player-games.js';
 
-const QUERY = 'favorite_games_v1';
+const LEGACY_QUERY = 'favorite_games_v1';
+const QUERY = 'favorite_games_v2';
+const PER_PAGE = 4;
 const COPY = {
   ru: {
-    title: 'Мои игры', empty: 'Добавьте игры в избранное.', edit: 'Изменить избранное',
-    pin: 'Закрепите сообщение для быстрого запуска игр.', previous: 'Назад', next: 'Далее',
-    refresh: 'Обновить список', updating: 'Обновляем…', updated: 'Список обновлён', failed: 'Не удалось обновить',
-    open: 'Открыть избранное', widgetDenied: 'Telegram пока не разрешает этому боту отправлять HTML-виджеты.',
-    widgetUnavailable: 'Telegram не принял HTML-виджет.',
+    title: 'Мои игры', favorites: 'Избранное', catalog: 'Все игры', recent: 'Последняя игра',
+    empty: 'В избранном пока пусто. Выберите игру в каталоге или добавьте её в избранное.',
+    edit: 'Изменить избранное', open: 'Открыть приложение', pin: 'Закрепите сообщение, чтобы открывать игры из чата.',
+    previous: 'Назад', next: 'Далее', refresh: 'Обновить',
+    updating: 'Обновляем…', updated: 'Список обновлён', failed: 'Не удалось обновить. Попробуйте ещё раз.',
   },
   en: {
-    title: 'My games', empty: 'Add games to your favorites.', edit: 'Edit favorites',
-    pin: 'Pin this message to launch your games quickly.', previous: 'Previous', next: 'Next',
-    refresh: 'Refresh list', updating: 'Updating…', updated: 'List updated', failed: 'Could not refresh',
-    open: 'Open favorites', widgetDenied: 'Telegram currently does not allow this bot to send HTML widgets.',
-    widgetUnavailable: 'Telegram did not accept the HTML widget.',
+    title: 'My games', favorites: 'Favorites', catalog: 'All games', recent: 'Last played',
+    empty: 'No favorites yet. Pick a game from the catalog or add it to your favorites.',
+    edit: 'Edit favorites', open: 'Open app', pin: 'Pin this message to launch games from this chat.',
+    previous: 'Previous', next: 'Next', refresh: 'Refresh',
+    updating: 'Updating…', updated: 'List updated', failed: 'Could not refresh. Try again.',
   },
   de: {
-    title: 'Meine Spiele', empty: 'Füge Spiele zu deinen Favoriten hinzu.', edit: 'Favoriten bearbeiten',
-    pin: 'Hefte die Nachricht an, um deine Spiele schnell zu starten.', previous: 'Zurück', next: 'Weiter',
-    refresh: 'Liste aktualisieren', updating: 'Wird aktualisiert…', updated: 'Liste aktualisiert', failed: 'Aktualisierung fehlgeschlagen',
-    open: 'Favoriten öffnen', widgetDenied: 'Telegram erlaubt diesem Bot derzeit keine HTML-Widgets.',
-    widgetUnavailable: 'Telegram hat das HTML-Widget abgelehnt.',
+    title: 'Meine Spiele', favorites: 'Favoriten', catalog: 'Alle Spiele', recent: 'Zuletzt gespielt',
+    empty: 'Noch keine Favoriten. Wähle ein Spiel aus der Liste oder füge es zu deinen Favoriten hinzu.',
+    edit: 'Favoriten bearbeiten', open: 'App öffnen', pin: 'Hefte diese Nachricht an, um Spiele aus dem Chat zu öffnen.',
+    previous: 'Zurück', next: 'Weiter', refresh: 'Aktualisieren',
+    updating: 'Wird aktualisiert…', updated: 'Liste aktualisiert', failed: 'Aktualisierung fehlgeschlagen. Versuche es erneut.',
   },
   es: {
-    title: 'Mis juegos', empty: 'Añade juegos a tus favoritos.', edit: 'Editar favoritos',
-    pin: 'Fija este mensaje para abrir tus juegos rápidamente.', previous: 'Anterior', next: 'Siguiente',
-    refresh: 'Actualizar lista', updating: 'Actualizando…', updated: 'Lista actualizada', failed: 'No se pudo actualizar',
-    open: 'Abrir favoritos', widgetDenied: 'Telegram aún no permite que este bot envíe widgets HTML.',
-    widgetUnavailable: 'Telegram no aceptó el widget HTML.',
+    title: 'Mis juegos', favorites: 'Favoritos', catalog: 'Todos los juegos', recent: 'Último juego',
+    empty: 'Aún no tienes favoritos. Elige un juego del catálogo o añádelo a tus favoritos.',
+    edit: 'Editar favoritos', open: 'Abrir aplicación', pin: 'Fija este mensaje para abrir juegos desde el chat.',
+    previous: 'Anterior', next: 'Siguiente', refresh: 'Actualizar',
+    updating: 'Actualizando…', updated: 'Lista actualizada', failed: 'No se pudo actualizar. Inténtalo de nuevo.',
   },
 };
 const GAME_MARKS = {
@@ -41,191 +43,255 @@ const GAME_MARKS = {
 };
 
 export function handleFavoritesWidget(update, env, ctx) {
-  const owner = cleanAccessId(env.ADMIN_TELEGRAM_ID);
   const query = update?.widget_query;
-  const message = query || update?.message;
-  if (!owner || message?.from?.is_bot || String(message?.from?.id) !== owner
-    || message?.chat?.type !== 'private' || String(message.chat.id) !== owner) return false;
+  const callback = update?.callback_query;
+  const message = query || callback?.message || update?.message;
+  const sender = callback?.from || message?.from;
+  const userId = cleanAccessId(sender?.id);
+  if (!userId || sender.is_bot || message?.chat?.type !== 'private'
+    || String(message.chat.id) !== userId) return false;
 
   let task;
   if (query) {
-    if (query.data !== QUERY || !/^\d{1,24}$/.test(String(query.id || ''))) return false;
-    task = answerFavorites(env, owner, String(query.id));
+    if (![LEGACY_QUERY, QUERY].includes(query.data) || !/^\d{1,24}$/.test(String(query.id))) return false;
+    task = answerFavorites(env, userId, query);
+  } else if (callback) {
+    const match = /^favorite_menu:(ru|en|de|es):(favorites|catalog):([0-9])$/.exec(callback.data);
+    if (!match || !Number.isSafeInteger(message.message_id) || message.message_id < 1) return false;
+    const [, lang, tab, page] = match;
+    task = updateFallback(env, userId, callback, { lang, tab, page: Number(page) });
   } else {
     const text = String(message.text || '').trim();
     const start = /^\/start(?:@[\w]+)?\s+favorites(?:_(ru|en|de|es))?$/i.exec(text);
     if (!start && !/^\/favorites(?:@[\w]+)?$/i.test(text)) return false;
-    const locale = (start?.[1] || String(message.from.language_code || '')).toLowerCase().split(/[-_]/)[0];
-    task = sendFavorites(env, owner, Object.hasOwn(COPY, locale) ? locale : 'ru');
+    const locale = (start?.[1] || String(sender.language_code || '')).toLowerCase().split(/[-_]/)[0];
+    const lang = Object.hasOwn(COPY, locale) ? locale : 'ru';
+    const threadId = message.is_topic_message ? message.message_thread_id : undefined;
+    task = sendFavorites(env, userId, lang, threadId);
   }
   ctx.waitUntil(task.catch((error) => console.warn('Telegram favorites widget failed', error?.status || 'unknown')));
   return true;
 }
 
-async function getFavorites(env, owner) {
-  const { favorites } = await accessStore(env, '/app-access/widget-favorites', { userId: owner });
-  return favorites;
+async function getFavorites(env, userId) {
+  const { favorites, lastGame } = await accessStore(env, '/app-access/widget-favorites', { userId });
+  return { favorites, lastGame };
 }
 
-async function answerFavorites(env, owner, queryId) {
-  const favorites = await getFavorites(env, owner);
+async function answerFavorites(env, userId, query) {
+  const state = await getFavorites(env, userId).catch(() => null);
   await telegramApi(env, 'answerWidgetQuery', {
-    widget_query_id: queryId,
-    data: JSON.stringify(favorites),
+    widget_query_id: String(query.id),
+    data: state ? JSON.stringify(query.data === LEGACY_QUERY ? state.favorites : state) : undefined,
   });
 }
 
-async function sendFavorites(env, owner, lang) {
-  const [favorites, appUrl] = await Promise.all([getFavorites(env, owner), getMainMiniAppUrl(env)]);
-  const languageIndex = Object.keys(COPY).indexOf(lang);
-  const titles = Object.fromEntries([...PLAYER_GAMES].map(([id, names]) => [id, names[languageIndex]]));
-  const copy = COPY[lang];
-  const launchUrl = `${appUrl}=game_`;
-  const editUrl = `${appUrl}=favorites`;
+async function getMenu(env, userId, lang) {
+  const [state, url] = await Promise.all([getFavorites(env, userId), getMainMiniAppUrl(env)]);
+  const index = Object.keys(COPY).indexOf(lang);
+  const games = Object.fromEntries([...PLAYER_GAMES].map(([id, names]) => [id, [names[index], GAME_MARKS[id]]]));
+  return { state, games, lang, copy: COPY[lang], url };
+}
+
+async function sendFavorites(env, userId, lang, threadId) {
+  const menu = await getMenu(env, userId, lang);
+  const { state, copy, url } = menu;
+  const recipient = { chat_id: userId, message_thread_id: threadId, protect_content: true };
   try {
     await telegramApi(env, 'sendWidget', {
-      chat_id: Number(owner),
-      html: renderFavoritesHtml({ copy, titles, launchUrl, editUrl, lang }),
-      chat_data: JSON.stringify(favorites),
-      caption: `${copy.title} · ${favorites.length ? copy.pin : copy.empty}`,
+      ...recipient,
+      html: renderFavoritesHtml(menu),
+      chat_data: JSON.stringify(state),
+      caption: `★ ${copy.title} · ${copy.pin}`,
+      reply_markup: { inline_keyboard: [[{ text: copy.open, url: `${url}=lang_${lang}` }]] },
       allow_queries: true,
     });
   } catch (error) {
-    // Retry as a standard message only when Telegram explicitly refused the widget.
-    if (![400, 404, 501].includes(error.status)) throw error;
+    // A transport error has an unknown delivery outcome. Only fall back on an explicit refusal.
+    if (![400, 403, 404, 501].includes(error.status)) throw error;
     console.warn('Telegram sendWidget declined', { status: error.status, description: error.message.slice(0, 180) });
-    const notice = error.message.includes('INPUT_MEDIA_WIDGET_NOT_ALLOWED') ? copy.widgetDenied : copy.widgetUnavailable;
-    const games = favorites.map((id) => [{ text: `${GAME_MARKS[id] || '▶'} ${titles[id]}`, url: launchUrl + id }]);
-    await telegramApi(env, 'sendMessage', {
-      chat_id: owner,
-      text: `${copy.title}\n${notice}\n\n${favorites.length ? copy.pin : copy.empty}`,
-      protect_content: true,
-      reply_markup: { inline_keyboard: [[{ text: copy.open, url: editUrl }], ...games] },
-    });
+    await telegramApi(env, 'sendMessage', { ...recipient, ...renderFallback(menu) });
   }
 }
 
-function renderFavoritesHtml({ copy, titles, launchUrl, editUrl, lang }) {
+async function updateFallback(env, userId, callback, view) {
+  let notice;
+  try {
+    const menu = await getMenu(env, userId, view.lang);
+    await telegramApi(env, 'editMessageText', {
+      chat_id: userId,
+      message_id: callback.message.message_id,
+      ...renderFallback(menu, view),
+    });
+  } catch (error) {
+    if (error.status !== 400 || !error.message.includes('message is not modified')) {
+      notice = COPY[view.lang].failed;
+      console.warn('Telegram favorites menu update failed', error?.status || 'unknown');
+    }
+  }
+  await telegramApi(env, 'answerCallbackQuery', { callback_query_id: callback.id, text: notice });
+}
+
+function renderFallback({ state, games, lang, copy, url }, { tab = state.favorites.length ? 'favorites' : 'catalog', page = 0 } = {}) {
+  const ids = tab === 'favorites' ? state.favorites : Object.keys(games);
+  const pages = Math.max(1, Math.ceil(ids.length / PER_PAGE));
+  page = Math.min(page, pages - 1);
+  const button = (text, view, index) => ({ text, callback_data: `favorite_menu:${lang}:${view}:${index}` });
+  const gameButton = (id, text) => ({ text: text || `${games[id][1]} ${games[id][0]}`, url: `${url}=game_${id}` });
+  const keyboard = [];
+  if (state.lastGame) keyboard.push([gameButton(state.lastGame, `${copy.recent} · ${games[state.lastGame][0]}`)]);
+  keyboard.push([button(`★ ${copy.favorites}`, 'favorites', 0), button(copy.catalog, 'catalog', 0)]);
+  keyboard.push(...ids.slice(page * PER_PAGE, (page + 1) * PER_PAGE).map((id) => [gameButton(id)]));
+  const paging = [];
+  if (page > 0) paging.push(button(`‹ ${copy.previous}`, tab, page - 1));
+  if (page + 1 < pages) paging.push(button(`${copy.next} ›`, tab, page + 1));
+  if (paging.length) keyboard.push(paging);
+  keyboard.push([{ text: copy.edit, url: `${url}=favorites` }, button(`↻ ${copy.refresh}`, tab, page)]);
+  const heading = pages > 1 ? `${copy[tab]} · ${page + 1}/${pages}` : copy[tab];
+  return {
+    text: `★ ${copy.title}\n${heading}\n\n${ids.length ? copy.pin : copy.empty}`,
+    reply_markup: { inline_keyboard: keyboard },
+  };
+}
+
+function renderFavoritesHtml({ games, lang, copy, url }) {
   return `<!doctype html>
 <html lang="${lang}"><style>
   *{box-sizing:border-box}
-  body{margin:0;padding:0;color:var(--tg-theme-text-color,#202a4a);font:14px system-ui,sans-serif}
-  main{padding:12px}
-  header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-  h3{flex:1;margin:0;font-size:17px;line-height:1.15}
-  .star,.count{flex-shrink:0;padding:4px 7px;border-radius:8px;font-weight:700;background:#fff0c8;color:#694b19}
-  .star{font-size:17px}
-  .count{font-size:12px}
-  #games{display:grid;gap:4px}
-  a,button{font:inherit;border:0;border-radius:10px}
-  .game{display:grid;grid-template-columns:26px minmax(0,1fr) 18px;align-items:center;gap:6px;min-height:44px;padding:4px 8px;background:var(--tg-theme-secondary-bg-color,#edf0fc);color:inherit;text-decoration:none;font-weight:650;line-height:1.2}
-  .game:active,button:active{outline:1px solid var(--tg-theme-link-color,#4741a8)}
-  .game i{font-style:normal;text-align:center}
-  .game b{color:var(--tg-theme-link-color,#5347ba);font-size:12px;text-align:center}
-  .game span{overflow-wrap:break-word}
-  p{margin:0;padding:9px 2px;color:var(--tg-theme-hint-color,#546776)}
-  nav,footer{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:7px}
-  [hidden]{display:none}
-  button,.edit{min-height:38px;padding:6px 9px;background:var(--tg-theme-secondary-bg-color,#edf0fc);color:inherit}
-  button:disabled{color:var(--tg-theme-hint-color,#546776)}
-  .edit{display:flex;flex:1;align-items:center;justify-content:center;min-height:42px;text-align:center;background:var(--tg-theme-button-color,#4f46b5);color:var(--tg-theme-button-text-color,#fff);text-decoration:none;font-weight:680}
-  #refresh{min-width:42px;min-height:42px;font-size:20px}
-  #status{padding:5px 2px 0;font-size:12px}
+  body{margin:0;padding:0;color:var(--tg-theme-text-color,#222346);font:14px system-ui,sans-serif}
+  main{padding:10px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:14px;color:#fff;background:linear-gradient(120deg,#32266b,#5243ad)}
+  h3{margin:0;font-size:18px}
+  header span{padding:3px 7px;border-radius:7px;background:#fff0c9;color:#5b401a;font-weight:700}
+  button,a{font:inherit;border:0;border-radius:9px;color:inherit}
+  button{min-height:42px;background:var(--tg-theme-secondary-bg-color,#eef0fa)}
+  button:disabled{color:var(--tg-theme-hint-color,#526174)}
+  nav,footer{display:flex;align-items:center;gap:6px;margin-top:7px}
+  nav button,footer a{flex:1}
+  nav button[aria-pressed="true"],footer a{background:var(--tg-theme-button-color,#5144ad);color:var(--tg-theme-button-text-color,#fff);font-weight:700}
+  #games{display:grid;gap:4px;margin-top:7px}
+  .game,#recent{display:flex;align-items:center;gap:8px;min-height:43px;padding:4px 9px;background:var(--tg-theme-secondary-bg-color,#eef0fa);text-decoration:none;font-weight:650;line-height:1.15}
+  .game span{flex:1;overflow-wrap:break-word}
+  .game b{color:var(--tg-theme-link-color,#5144ad)}
+  .game i{width:20px;text-align:center;font-style:normal}
+  #recent{margin-top:7px;min-height:46px;border:1px solid var(--tg-theme-link-color,#6556b1)}
+  #recent small{display:block;font-size:11px;color:var(--tg-theme-hint-color,#526174)}
+  #pages{justify-content:space-between}
+  #pages button,#refresh{padding:4px 8px;min-width:42px}
+  footer a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:42px;padding:4px;text-decoration:none}
+  a:active,button:active{outline:1px solid var(--tg-theme-link-color,#5144ad)}
+  p{margin:0;padding:6px 2px;color:var(--tg-theme-hint-color,#526174)}
+  #status{font-size:12px}
+  [hidden]{display:none!important}
 </style><body><main>
-  <header><span class="star" aria-hidden="true">★</span><h3>${copy.title}</h3><span class="count" id="count" hidden></span></header>
+  <header><h3>${copy.title}</h3><span id="count"></span></header>
+  <a id="recent" hidden><span>↻</span><div><small>${copy.recent}</small><span id="lastGame"></span></div></a>
+  <nav><button id="favorites" type="button">${copy.favorites}</button><button id="catalog" type="button">${copy.catalog}</button></nav>
   <div id="games"></div>
-  <nav id="pages" hidden><button id="prev" type="button">${copy.previous}</button><span id="page"></span><button id="next" type="button">${copy.next}</button></nav>
-  <footer><a class="edit" href="${editUrl}">${copy.edit}</a><button id="refresh" type="button" aria-label="${copy.refresh}" title="${copy.refresh}" hidden>↻</button></footer>
+  <nav id="pages" hidden><button id="prev" type="button">‹ ${copy.previous}</button><span id="page"></span><button id="next" type="button">${copy.next} ›</button></nav>
+  <footer><a id="edit" href="${url}=favorites">${copy.edit}</a><button id="refresh" type="button" title="${copy.refresh}" aria-label="${copy.refresh}" hidden>↻</button></footer>
   <p id="status" role="status" hidden></p>
 </main><script>
   const widget = window.TelegramWidget;
-  const titles = ${JSON.stringify(titles)};
-  const marks = ${JSON.stringify(GAME_MARKS)};
+  const games = ${JSON.stringify(games)};
+  const launch = ${JSON.stringify(url + '=game_')};
+  const perPage = ${PER_PAGE};
   const get = id => document.getElementById(id);
   const list = get('games');
-  const previous = get('prev');
-  const next = get('next');
-  const refreshButton = get('refresh');
-  const status = get('status');
-  const perPage = 4;
-  let games = [];
+  const refresh = get('refresh');
+  const known = id => typeof id === 'string' && Object.prototype.hasOwnProperty.call(games, id);
+  let favorites = [];
+  let lastGame = '';
+  let tab = '';
   let page = 0;
-  let refreshing = false;
 
   function render() {
-    const total = Math.max(1, Math.ceil(games.length / perPage));
-    page = Math.max(0, Math.min(page, total - 1));
+    const ids = tab === 'catalog' ? Object.keys(games) : favorites;
+    const pages = Math.max(1, Math.ceil(ids.length / perPage));
+    page = Math.max(0, Math.min(page, pages - 1));
     list.textContent = '';
-    for (const id of games.slice(page * perPage, (page + 1) * perPage)) {
+    for (const id of ids.slice(page * perPage, (page + 1) * perPage)) {
       const link = document.createElement('a');
       link.className = 'game';
-      link.href = ${JSON.stringify(launchUrl)} + id;
-      const mark = document.createElement('i');
-      mark.textContent = marks[id] || '★';
-      const title = document.createElement('span');
-      title.textContent = titles[id];
-      const arrow = document.createElement('b');
-      arrow.textContent = '▶';
-      link.appendChild(mark);
-      link.appendChild(title);
-      link.appendChild(arrow);
+      link.href = launch + id;
+      for (const [tag, text] of [['i', games[id][1]], ['span', games[id][0]], ['b', '›']]) {
+        const part = document.createElement(tag);
+        part.textContent = text;
+        link.appendChild(part);
+      }
+      link.addEventListener('click', openLink);
       list.appendChild(link);
     }
-    if (!games.length) {
+    if (!ids.length) {
       const empty = document.createElement('p');
       empty.textContent = ${JSON.stringify(copy.empty)};
       list.appendChild(empty);
     }
-    get('count').textContent = String(games.length);
-    get('count').hidden = !games.length;
-    get('pages').hidden = total === 1;
-    previous.disabled = page === 0;
-    next.disabled = page === total - 1;
-    get('page').textContent = (page + 1) + ' / ' + total;
+    get('count').textContent = '★ ' + favorites.length;
+    get('favorites').setAttribute('aria-pressed', String(tab === 'favorites'));
+    get('catalog').setAttribute('aria-pressed', String(tab === 'catalog'));
+    get('recent').hidden = !lastGame;
+    if (lastGame) {
+      get('recent').href = launch + lastGame;
+      get('lastGame').textContent = games[lastGame][0];
+    }
+    get('pages').hidden = pages === 1;
+    get('prev').disabled = page === 0;
+    get('next').disabled = page === pages - 1;
+    get('page').textContent = (page + 1) + ' / ' + pages;
   }
 
   function apply(data) {
     try {
-      const value = JSON.parse(data);
-      if (!Array.isArray(value)) return false;
-      games = [...new Set(value.filter(id => typeof id === 'string' && Object.prototype.hasOwnProperty.call(titles, id)))];
+      const state = JSON.parse(data);
+      if (!Array.isArray(state?.favorites)) return false;
+      favorites = [...new Set(state.favorites.filter(known))];
+      lastGame = known(state.lastGame) ? state.lastGame : '';
     } catch { return false; }
-    render();
     return true;
   }
 
-  function showStatus(text) {
-    status.textContent = text;
-    status.hidden = !text;
+  function openLink(event) {
+    if (!widget?.openTelegramLink) return;
+    event.preventDefault();
+    widget.openTelegramLink(this.href);
   }
 
-  async function refresh(manual) {
-    if (refreshing || !widget || widget.isPreview) return;
-    refreshing = true;
-    refreshButton.disabled = true;
-    if (manual) showStatus(${JSON.stringify(copy.updating)});
-    try {
-      const answer = await widget.request(${JSON.stringify(QUERY)});
-      if (!apply(answer.result)) throw new Error('Invalid favorites');
-      if (manual) showStatus(${JSON.stringify(copy.updated)});
-    } catch {
-      if (manual) showStatus(${JSON.stringify(copy.failed)});
-    } finally {
-      refreshing = false;
-      refreshButton.disabled = false;
-    }
+  function status(text) {
+    get('status').textContent = text;
+    get('status').hidden = !text;
   }
 
-  previous.addEventListener('click', () => { page -= 1; render(); });
-  next.addEventListener('click', () => { page += 1; render(); });
-  refreshButton.addEventListener('click', () => refresh(true));
-  if (!apply(widget?.chatData)) render();
-  if (widget) {
-    refreshButton.hidden = !!widget.isPreview;
-    widget.onEvent('activated', () => refresh(false));
-    widget.onEvent('chatDataChanged', () => apply(widget.chatData));
-    widget.ready();
-    refresh(false);
+  get('recent').addEventListener('click', openLink);
+  get('edit').addEventListener('click', openLink);
+  get('prev').addEventListener('click', () => { page -= 1; render(); });
+  get('next').addEventListener('click', () => { page += 1; render(); });
+  for (const name of ['favorites', 'catalog']) {
+    get(name).addEventListener('click', () => { tab = name; page = 0; render(); });
   }
+  apply(widget?.chatData);
+  try { apply(localStorage.getItem('games-state')); } catch {}
+  tab = favorites.length ? 'favorites' : 'catalog';
+  render();
+  if (widget && !widget.isPreview && !widget.isForward && typeof widget.request === 'function') {
+    refresh.hidden = false;
+    refresh.addEventListener('click', async () => {
+      if (refresh.disabled) return;
+      refresh.disabled = true;
+      status(${JSON.stringify(copy.updating)});
+      try {
+        const answer = await widget.request(${JSON.stringify(QUERY)});
+        if (!apply(answer.result)) throw new Error('Invalid favorites');
+        try { localStorage.setItem('games-state', answer.result); } catch {}
+        render();
+        status(${JSON.stringify(copy.updated)});
+      } catch {
+        status(${JSON.stringify(copy.failed)});
+      } finally {
+        refresh.disabled = false;
+      }
+    });
+  }
+  widget?.ready?.();
 </script></body></html>`;
 }

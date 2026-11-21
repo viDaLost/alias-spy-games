@@ -82,13 +82,13 @@ jobs:
           // с ним не было ничего.
           const publicCommands = [
             { command: 'start', description: 'Открыть приложение' },
+            { command: 'favorites', description: 'Мои игры' },
             { command: 'support', description: 'Написать в техподдержку' },
             { command: 'cancel', description: 'Отменить отправку обращения' },
             { command: 'help', description: 'Список команд' },
           ];
           const adminCommands = [
             ...publicCommands,
-            { command: 'favorites', description: 'Мои игры' },
             { command: 'write', description: 'Написать пользователю по его ID' },
           ];
 

@@ -117,8 +117,11 @@ export class UserStore extends V17UserStore {
     if (url.pathname === '/app-access/game-wallet') return json(await this.syncGameWallet({ userId: cleanAccessId(body.userId) }));
     if (url.pathname === '/app-access/widget-favorites') {
       const userId = cleanAccessId(body.userId);
-      if (!userId || userId !== this.ownerId()) return json({ ok: false, error: 'Owner only' }, 403);
-      return json({ ok: true, favorites: this.readProfile(userId).favorites });
+      if (!userId || !(await this.applicationAccess(userId)).allowed) {
+        return json({ ok: false, error: 'Application access denied' }, 403);
+      }
+      const { favorites, lastGame } = this.readProfile(userId);
+      return json({ ok: true, favorites, lastGame });
     }
     if (url.pathname === '/app-access/bot-reply') {
       const userId = cleanAccessId(body.userId);

@@ -66,6 +66,6 @@ for(const id of ['123','456'])for(const lang of ['ru','en','de','es']) {
   assert.deepEqual(languageButtons.map(button=>button.text),['Русский','English','Deutsch','Español'],`${id}/${lang}: language buttons`);
   assert.ok(buttonBlocks.flatMap(block=>block.buttons).some(button=>button.callback_data==='support:start'),`${id}/${lang}: support button`);
   const favorites=blocks.find(block=>block.type==='buttons').buttons.find(button=>button.url?.includes('start=favorites'));
-  assert.equal(favorites?.url,id===env.ADMIN_TELEGRAM_ID?`https://t.me/BibleTestBot?start=favorites_${lang}`:undefined);
+  assert.equal(favorites?.url,`https://t.me/BibleTestBot?start=favorites_${lang}`);
 }
 console.log('Localized dictionaries, playable letters, online answers and the bot welcome for every visitor passed.');
