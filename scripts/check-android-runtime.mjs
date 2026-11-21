@@ -205,6 +205,23 @@ if (catalog.graphics !== 'high' || catalog.transformStyle !== 'flat' || catalog.
   throw new Error(`Android catalog rendering regression: ${JSON.stringify({ catalog, heavyStartupRequests })}`);
 }
 
+stage = 'lightweight transitions';
+const transitions = await page.evaluate(() => {
+  window.GameDisplay.set({ animations: 'low' });
+  const node = document.createElement('span');
+  document.body.append(node);
+  const before = getComputedStyle(node).backgroundColor;
+  node.style.backgroundColor = '#c0392b';
+  const after = getComputedStyle(node).backgroundColor;
+  const duration = getComputedStyle(node).transitionDuration;
+  node.remove();
+  window.GameDisplay.set({ animations: 'high' });
+  return { before, after, duration };
+});
+if (transitions.before === transitions.after || transitions.duration !== '0s') {
+  throw new Error(`Lightweight mode synthesized a transition: ${JSON.stringify(transitions)}`);
+}
+
 stage = 'profile rendering';
 await page.locator('#open-profile').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-hero', { timeout: 8_000 });
