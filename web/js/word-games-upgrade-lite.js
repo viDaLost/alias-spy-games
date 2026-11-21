@@ -177,10 +177,9 @@
     const state = runtime.wsState;
     const level = $('#ws-lvl-label', wrap)?.textContent || '';
     const progress = parseWsProgress(wrap);
-    const selected = $$('.ws-cell--sel', wrap).map((cell) => cell.textContent || '').join('');
-    setText($('.ws-live-word', wrap), selected || 'Проведите по буквам');
-
     const board = $('#ws-board', wrap);
+    setText($('.ws-live-word', wrap), board?.dataset.wsSelection || 'Проведите по буквам');
+
     if (board) {
       const cols = Number.parseInt(getComputedStyle(board).getPropertyValue('--ws-cols'), 10) || 8;
       const density = cols >= 13 ? 'dense' : cols >= 11 ? 'compact' : 'normal';

@@ -278,9 +278,15 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function keyOf(r, c) { return `${r},${c}`; }
 
+  function selectionText() {
+    return selected.map(({ el }) => el.textContent).join("");
+  }
+
   function drawLines() {
     const board = document.getElementById("ws-board");
     if (!board) return;
+    const word = selectionText();
+    if (board.dataset.wsSelection !== word) board.dataset.wsSelection = word;
 
     const levelIndex = progress.currentLevel;
     const level = LEVELS[levelIndex];
@@ -370,6 +376,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
     selecting = false;
     selected = [];
+    board.dataset.wsSelection = "";
     solvedCells.clear();
 
     const byText = new Map(level.words.map(w => [w.text, w]));
@@ -459,34 +466,26 @@ function startBibleWordSearchGame(levelsUrl) {
     drawLines();
   }
 
+  function pathsMatch(a, b) {
+    return a.length === b.length && a.every(([r, c], i) => r === b[i][0] && c === b[i][1]);
+  }
+
   function tryCommitSelection(level, levelState) {
     if (selected.length < 2) {
       clearSelection();
       return;
     }
-    const text = selected.map(x => x.el.textContent).join("");
-    const rev = text.split("").reverse().join("");
-
-    const remaining = new Set(level.words.map(w => w.text));
-    (levelState.found || []).forEach(t => remaining.delete(t));
-
-    let matched = null;
-    let matchIndex = -1;
-    for (let i = 0; i < level.words.length; i++) {
-      const w = level.words[i];
-      if (!remaining.has(w.text)) continue;
-      if (w.text === text || w.text === rev) {
-        const coords = selected.map(x => [x.r, x.c]);
-        const p = w.path;
-        const same = p.length === coords.length && p.every((pc, idx) => pc[0] === coords[idx][0] && pc[1] === coords[idx][1]);
-        const sameRev = p.length === coords.length && p.every((pc, idx) => pc[0] === coords[coords.length - 1 - idx][0] && pc[1] === coords[coords.length - 1 - idx][1]);
-        if (same || sameRev) {
-          matched = w;
-          matchIndex = i;
-          break;
-        }
-      }
-    }
+    const text = selectionText();
+    const reversed = [...text].reverse().join("");
+    const path = selected.map(({ r, c }) => [r, c]);
+    const reversePath = [...path].reverse();
+    const snake = level.words === levelState.generatedWords;
+    const found = levelState.found || [];
+    const matchIndex = level.words.findIndex((word) => {
+      if (found.includes(word.text) || (word.text !== text && word.text !== reversed)) return false;
+      return snake || pathsMatch(word.path, path) || pathsMatch(word.path, reversePath);
+    });
+    const matched = level.words[matchIndex];
 
     if (!matched) {
       const board = document.getElementById("ws-board");
@@ -497,6 +496,14 @@ function startBibleWordSearchGame(levelsUrl) {
       }
       clearSelection();
       return;
+    }
+
+    const chosenPath = matched.text === text ? path : reversePath;
+    if (snake && !pathsMatch(matched.path, chosenPath)) {
+      // Keep the chosen path when it leaves every other word reachable.
+      const reserved = new Set(level.words.filter(word => word !== matched)
+        .flatMap(word => word.path.map(([r, c]) => keyOf(r, c))));
+      if (chosenPath.every(([r, c]) => !reserved.has(keyOf(r, c)))) matched.path = chosenPath;
     }
 
     const wasAlreadyFound = (levelState.found || []).includes(matched.text);
