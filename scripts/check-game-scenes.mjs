@@ -69,7 +69,8 @@ await page.addInitScript(() => {
     машины проверки ядер может оказаться сколько угодно, и без этой подмены
     проверка то видела бы анимацию, то нет.
   */
-  Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { get: () => 8, configurable: true });
+  Object.defineProperty(navigator, 'hardwareConcurrency', { value: 8 });
+  Object.defineProperty(navigator, 'deviceMemory', { value: 8 });
   try {
     const seen = {};
     for (const key of ['alias', 'spy', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs',

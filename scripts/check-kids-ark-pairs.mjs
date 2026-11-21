@@ -61,6 +61,7 @@ try {
   });
   await context.addInitScript(() => {
     window.__APP_TELEMETRY_DISABLED__ = true;
+    localStorage.setItem('bible_game_display_v1', JSON.stringify({ graphics: 'normal', animations: 'low' }));
     localStorage.removeItem('kids_ark_pairs_records_v1');
     localStorage.removeItem('kids_ark_pairs_stats_v2');
     localStorage.removeItem('kids_ark_pairs_prefs_v2');
@@ -209,10 +210,11 @@ try {
     outerAnimation: getComputedStyle(card).animationName,
     innerAnimation: getComputedStyle(card.querySelector('.kids-card-inner')).animationName,
     innerTransitions: getComputedStyle(card.querySelector('.kids-card-inner')).transitionProperty,
+    highlight: getComputedStyle(card.querySelector('.kids-card-inner')).boxShadow,
   })));
   check(matchedMotion.every((motion) => !/kidsMatched|kidsShake/.test(motion.outerAnimation)), 'Совпавшие карточки всё ещё двигаются после хода');
   check(matchedMotion.every((motion) => motion.innerAnimation === 'none'), 'Совпавшая пара не должна запускать дополнительное движение');
-  check(matchedMotion.every((motion) => motion.innerTransitions.includes('box-shadow')), 'Совпавшая пара должна подтверждаться плавной подсветкой');
+  check(matchedMotion.every((motion) => motion.innerTransitions === 'none' && motion.highlight.includes('34, 197, 94')), 'Совпавшая пара должна сразу подсвечиваться зелёным в режиме минимальных анимаций');
   check((await page.evaluate(() => window.__kidsQaHaptics)).length === 0, 'Выбор и совпадение карточек не должны вызывать виброотклик');
   check(await page.locator('#kids-moves').textContent() === '1', 'Найденная пара должна считаться одним ходом');
   check(await page.locator('#kids-pairs').textContent() === '1/12', 'Счётчик найденных пар не обновился');
@@ -229,10 +231,11 @@ try {
     outerAnimation: getComputedStyle(card).animationName,
     innerAnimation: getComputedStyle(card.querySelector('.kids-card-inner')).animationName,
     innerTransitions: getComputedStyle(card.querySelector('.kids-card-inner')).transitionProperty,
+    highlight: getComputedStyle(card.querySelector('.kids-card-inner')).boxShadow,
   })));
   check(wrongMotion.every((motion) => !/kidsMatched|kidsShake/.test(motion.outerAnimation)), 'Неподходящие карточки всё ещё подрагивают');
   check(wrongMotion.every((motion) => motion.innerAnimation === 'none'), 'Неподходящая пара не должна запускать дополнительное движение');
-  check(wrongMotion.every((motion) => motion.innerTransitions.includes('box-shadow')), 'Ошибка должна показываться только плавной подсветкой');
+  check(wrongMotion.every((motion) => motion.innerTransitions === 'none' && motion.highlight.includes('239, 68, 68')), 'Несовпавшая пара должна сразу подсвечиваться красным в режиме минимальных анимаций');
   checkStableBoard(boardBeforeMismatch, await boardGeometry(), 'несовпавшей пары');
   check((await page.evaluate(() => window.__kidsQaHaptics)).length === 0, 'Несовпавшая пара не должна вызывать виброотклик');
   await page.waitForFunction(() => document.querySelectorAll('.kids-card.flipped').length === 0, null, { timeout: 3_000 });
