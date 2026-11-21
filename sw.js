@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '9121b55aca';
+const VERSION = '6fcaeb3588';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -30,7 +30,7 @@ const PRECACHE = [
   'web/assets/twelve-tribes/art.json',
   'web/assets/bible-geography/map.json',
   'web/assets/bible-geography/art.json',
-  'web/dist/app.029ffa6d93.css',
+  'web/dist/app.191131a11a.css',
   'web/dist/app.73203353af.js',
   'web/games/alias.js',
   'web/games/bible-geography-logic.js',

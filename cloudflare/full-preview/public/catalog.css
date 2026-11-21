@@ -25,6 +25,8 @@ html[data-full-preview] body:not([data-mode="game"]) {
   --catalog-brand-color: #4f46e5;
   --catalog-line: #ccd6f4;
   font: 500 16px/1.4 Onest, system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 .catalog *, .catalog-dialog * { box-sizing: border-box; }
 .catalog [hidden], .catalog-dialog [hidden] { display: none !important; }
@@ -554,7 +556,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   .catalog-brand img { width: 34px; height: 34px; border-radius: 10px; box-shadow: none; }
   .catalog-tools { flex: none; gap: 4px; }
   .catalog-tool-label { display: none; }
-  .catalog-tool { padding: 0; border-radius: 12px; box-shadow: none; }
+  .catalog-tool { width: 44px; padding: 0; border-radius: 12px; box-shadow: none; }
 }
 @media (max-width: 510px) {
   .catalog-collections { gap: 16px; }
@@ -579,7 +581,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
 }
 @media (max-width: 360px) {
   .catalog { padding-inline: 6px; }
-  .catalog-top { gap: 3px; padding: 3px; }
+  .catalog-top { flex-wrap: nowrap; gap: 3px; padding: 3px; }
   .catalog-tools { gap: 2px; }
   .catalog-game strong { font-size: 14px; }
 }
