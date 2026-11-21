@@ -75,7 +75,7 @@
 
   /** Сцена нужна там, где открыта игра и для неё есть картина. */
   function wantedKey() {
-    if (document.body.dataset.mode !== 'game') return '';
+    if (document.body.dataset.mode !== 'game' || window.GameDisplay?.lowGraphics()) return '';
     const key = document.body.dataset.currentGame || '';
     return CATALOG[key] ? key : '';
   }
@@ -241,7 +241,7 @@
   const lowPower = () => Boolean(navigator.connection?.saveData
     || (Number(navigator.hardwareConcurrency || 0) > 0 && Number(navigator.hardwareConcurrency) <= 4)
     || (Number(navigator.deviceMemory || 0) > 0 && Number(navigator.deviceMemory) <= 3));
-  const motionLimited = () => reducedMotion() || lowPower();
+  const motionLimited = () => reducedMotion() || lowPower() || window.GameDisplay?.reducedMotion();
 
   function startDrift() {
     if (motionLimited()) return;
@@ -388,6 +388,7 @@
     mount(key);
   }
 
+  window.addEventListener('game-display:change', sync);
   window.addEventListener('scroll', () => { target.scroll = window.scrollY || 0; schedule(); }, { passive: true });
   window.addEventListener('resize', () => {
     target.scroll = window.scrollY || 0;

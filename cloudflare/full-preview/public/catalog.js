@@ -33,7 +33,7 @@
   const gameObserver = typeof IntersectionObserver === 'function' ? new IntersectionObserver((entries, observer) => {
     for (const { target, isIntersecting } of entries) {
       if (!isIntersecting) continue;
-      if (!window.GameDisplay.reducedMotion()) target.classList.add('is-revealed');
+      if (!window.GameDisplay.staticMenu() && !window.GameDisplay.reducedMotion()) target.classList.add('is-revealed');
       observer.unobserve(target);
     }
   }, { threshold: .13 }) : null;
@@ -61,13 +61,16 @@
     return '?' + new URLSearchParams({ ...(preview ? {} : { menu: 'catalog' }), game, ...params }).toString();
   }
 
+  function thumbnail(game) {
+    return game.art.replace('icons/unified-v1/', 'icons/catalog-v1/');
+  }
+
   function artwork(game) {
-    if (!preview || !window.GameDisplay.lowGraphics()) return game.art;
-    return game.art.replace('icons/unified-v1/', 'catalog-low/');
+    return window.GameDisplay.staticMenu() ? thumbnail(game) : game.art;
   }
 
   function icon(game) {
-    return `<img src="${artwork(game)}" alt="" width="68" height="68" loading="lazy" decoding="async">`;
+    return `<img src="${thumbnail(game)}" alt="" width="68" height="68" loading="lazy" decoding="async">`;
   }
 
   function card(game) {
@@ -93,7 +96,7 @@
       const list = scoped.filter((game) => game.group === id);
       return list.length ? `<section class="catalog-collection" aria-labelledby="collection-${id}"><h2 id="collection-${id}">${title}</h2><div class="catalog-games">${list.map(card).join('')}</div></section>` : '';
     }).join('');
-    if (entering && !window.GameDisplay.reducedMotion()) {
+    if (entering && !window.GameDisplay.staticMenu() && !window.GameDisplay.reducedMotion()) {
       for (const item of gamesGrid.querySelectorAll('.catalog-game')) {
         if (gameObserver) gameObserver.observe(item);
         else item.classList.add('is-revealed');
@@ -376,7 +379,7 @@
       raised = null;
     }
     function moveCard(event) {
-      if (window.GameDisplay.lowGraphics() || window.GameDisplay.reducedMotion()) return;
+      if (window.GameDisplay.staticMenu() || window.GameDisplay.reducedMotion()) return;
       const card = event.target.closest('.catalog-game');
       if (raised !== card) release();
       if (!card) return;

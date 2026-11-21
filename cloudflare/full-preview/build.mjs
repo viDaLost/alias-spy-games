@@ -143,6 +143,5 @@ await Promise.all([
     'web/styles/game-scene-parallax.css',
     'web/styles/sabbath-access.css',
   ], 'css', 'web/styles/full-games.css'),
-  thumbnails('web/assets/icons/unified-v1', 'web/assets/catalog-low', '100x100'),
   thumbnails('web/assets/quartet/cards', 'web/assets/quartet/thumbs', '140x175'),
 ]);

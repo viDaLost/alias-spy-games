@@ -3,6 +3,7 @@ package com.vidalost.biblegames
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -139,6 +140,9 @@ private fun AndroidWebExperience(
     val context = LocalContext.current
     val appContext = context.applicationContext
     val activity = context as? Activity
+    val isLowRam = remember(appContext) {
+        appContext.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true
+    }
     val assetLoader = remember(appContext) {
         WebViewAssetLoader.Builder()
             .setDomain(WEB_APP_ORIGIN)
@@ -167,6 +171,15 @@ private fun AndroidWebExperience(
 
         delay(WEB_LOAD_TIMEOUT_MS - WEB_REVEAL_WATCHDOG_MS)
         if (webView === view && screen == WebScreen.Loading) screen = WebScreen.LoadError
+    }
+
+    // The failed state first removes the dead AndroidView from composition.
+    // The first failure gets one automatic restart with lighter graphics.
+    LaunchedEffect(screen) {
+        if (screen == WebScreen.RendererGone && reloadKey == 0) {
+            reloadKey += 1
+            screen = WebScreen.Loading
+        }
     }
 
     BackHandler(enabled = true) {
@@ -276,6 +289,7 @@ private fun AndroidWebExperience(
                             activity = activity,
                             userId = session.userId,
                             sessionToken = session.token,
+                            isLowRam = isLowRam,
                             onLogout = {
                                 if (isLive(appWebView)) onLogout()
                             },
@@ -439,8 +453,10 @@ private class AndroidParityChromeClient(
     }
 }
 
-private fun webUrl(reloadKey: Int): String =
-    "$WEB_APP_URL?android=1&apk=${BuildConfig.VERSION_CODE}&native=bundled-web&r=$reloadKey"
+private fun webUrl(reloadKey: Int): String {
+    val safety = if (reloadKey > 0) "&safeDisplay=1" else ""
+    return "$WEB_APP_URL?android=1&apk=${BuildConfig.VERSION_CODE}&native=bundled-web&r=$reloadKey$safety"
+}
 
 private fun openExternal(activity: Activity?, uri: Uri): Boolean {
     if (activity == null) return false
@@ -454,6 +470,7 @@ private class AndroidWebBridge(
     private val activity: Activity?,
     private val userId: String,
     private val sessionToken: String,
+    private val isLowRam: Boolean,
     private val onLogout: () -> Unit,
 ) {
     @JavascriptInterface
@@ -464,6 +481,9 @@ private class AndroidWebBridge(
 
     @JavascriptInterface
     fun isAndroidApp(): Boolean = true
+
+    @JavascriptInterface
+    fun isLowRamDevice(): Boolean = isLowRam
 
     @JavascriptInterface
     fun getAppVersion(): String = BuildConfig.VERSION_NAME

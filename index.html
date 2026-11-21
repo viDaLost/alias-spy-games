@@ -53,7 +53,15 @@
        представляться репозиторием. -->
   <meta name="app-shell" content="https://alias-spy-games-app.vitaledanilov.workers.dev" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net; frame-src 'self' https://*.workers.dev; font-src 'self' data:;" />
-  <script id="telegram-web-app-sdk" src="https://telegram.org/js/telegram-web-app.js?63" async></script>
+  <script>
+    if (!window.AndroidApp) {
+      const sdk = document.createElement('script');
+      sdk.id = 'telegram-web-app-sdk';
+      sdk.src = 'https://telegram.org/js/telegram-web-app.js?63';
+      sdk.async = true;
+      document.head.appendChild(sdk);
+    }
+  </script>
   <script src="web/js/telegram-launch-context.js?v=4"></script>
   <script>
     (() => {
@@ -123,7 +131,7 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.632e21df05.css" />
+  <link rel="stylesheet" href="web/dist/app.029ffa6d93.css" />
   <!-- /build:css -->
 </head>
 <body>
@@ -139,13 +147,7 @@
       <div class="gamehub-boot__portal" aria-hidden="true">
         <div class="gamehub-boot__ring"></div>
         <div class="gamehub-boot__crystal"></div>
-        <div class="gamehub-boot__icons">
-          <img class="gamehub-boot__icon" src="web/assets/icons/alias.webp?v=1" alt="" decoding="async" />
-          <img class="gamehub-boot__icon" src="web/assets/icons/spy.webp?v=1" alt="" decoding="async" />
-          <img class="gamehub-boot__icon" src="web/assets/icons/quartet.webp?v=1" alt="" decoding="async" />
-          <img class="gamehub-boot__icon" src="web/assets/icons/idea.webp?v=1" alt="" decoding="async" />
-          <img class="gamehub-boot__icon" src="web/assets/icons/words.webp?v=1" alt="" decoding="async" />
-        </div>
+        <div class="gamehub-boot__icons"></div>
       </div>
       <p class="gamehub-boot__eyebrow">Игровой мир</p>
       <h1 class="gamehub-boot__title" data-gamehub-boot-title>Библейские игры</h1>
@@ -310,7 +312,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.e5c7410ab3.js","en":"web/dist/app.en.05503ae386.js","de":"web/dist/app.de.2ede3ee70c.js","es":"web/dist/app.es.b8b9e7cb5e.js"}</script>
+  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.73203353af.js","en":"web/dist/app.en.526641048a.js","de":"web/dist/app.de.a4e4d8f0d6.js","es":"web/dist/app.es.1819247149.js"}</script>
   <script src="web/i18n/bootstrap.js" defer></script>
   <!-- /build:js -->
 </body>

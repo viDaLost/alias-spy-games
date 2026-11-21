@@ -207,3 +207,10 @@ html:not(.theme-dark).home-gamehub-parallax.home-gamehub-parallax-active .menu-s
   .home-gamehub-parallax__scene { transition: none; }
   .home-gamehub-parallax__layer { will-change: auto !important; }
 }
+
+html[data-static-menu] .home-gamehub-parallax__layer {
+  backface-visibility: visible;
+}
+html[data-static-menu] .home-gamehub-parallax__scene {
+  transition: none;
+}

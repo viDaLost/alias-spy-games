@@ -51,7 +51,9 @@
     (Number(navigator.hardwareConcurrency || 0) > 0 && Number(navigator.hardwareConcurrency) <= 4) ||
     (Number(navigator.deviceMemory || 0) > 0 && Number(navigator.deviceMemory) <= 3)
   );
-  const minFrameDelta = lowPower ? 32 : 15;
+  const staticMenu = (window.GameDisplay?.staticMenu() ?? lowPower) || reducedMotion
+    || window.GameDisplay?.reducedMotion();
+  scene.classList.toggle('gamehub-boot--rich', !staticMenu);
 
   function later(fn, ms) {
     const id = window.setTimeout(() => {
@@ -123,10 +125,7 @@
     if (!iconsHost) return;
     const fragment = document.createDocumentFragment();
 
-    // The boot animation is decorative. Avoid decoding every game icon on
-    // limited devices; the menu loads its own icons when it appears.
-    const icons = lowPower ? GAME_ICONS.slice(0, 8) : GAME_ICONS;
-    icons.forEach((icon, index) => {
+    GAME_ICONS.forEach((icon, index) => {
       const image = document.createElement('img');
       image.className = 'gamehub-boot__icon';
       image.src = icon.src;
@@ -178,7 +177,7 @@
     orbitRaf = 0;
     if (finished || failed || !scene.isConnected || reducedMotion || !iconImages.length) return;
 
-    if (now - lastFrameAt < minFrameDelta) {
+    if (now - lastFrameAt < 15) {
       orbitRaf = requestAnimationFrame(renderOrbit);
       return;
     }
@@ -237,20 +236,6 @@
     orbitRaf = 0;
   }
 
-  function layoutReducedMotionIcons() {
-    if (!reducedMotion || !iconImages.length) return;
-    const total = iconImages.length;
-    const radiusX = 128;
-    const radiusY = 94;
-    iconImages.forEach((image, index) => {
-      const angle = (Math.PI * 2 * index) / total;
-      const x = Math.cos(angle) * radiusX;
-      const y = Math.sin(angle) * radiusY;
-      image.style.opacity = '1';
-      image.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(1)`;
-    });
-  }
-
   function removeScene() {
     stopOrbit();
     if (!scene.isConnected) return;
@@ -261,7 +246,12 @@
   function finish() {
     if (finished || failed) return;
     finished = true;
-    if (staticMenu) { removeScene(); return; }
+    if (staticMenu) {
+      timers.forEach((id) => window.clearTimeout(id));
+      timers.clear();
+      removeScene();
+      return;
+    }
     setStatus('Всё готово!');
 
     const elapsed = performance.now() - startedAt;
@@ -289,21 +279,13 @@
 
   retry?.addEventListener('click', () => window.location.reload());
 
-  const staticMenu = window.GameDisplay?.staticMenu() ?? lowPower;
-  mountPortalArtwork();
-  if (!staticMenu) buildOrbitIcons();
-
-  // Load the same source-resolution assets as the home parallax. They stay in
-  // the browser cache, so the menu reuses them rather than downloading twice.
-  if (staticMenu) {
-    if (layerImages[0]) {
-      layerImages[0].dataset.gamehubLayerFile = 'menu-still.webp';
-      warmLayer(layerImages[0]);
-    }
-  } else layerImages.forEach((image) => warmLayer(image));
-  warmIcons();
-  if (reducedMotion) layoutReducedMotionIcons();
-  else startOrbit();
+  if (!staticMenu) {
+    mountPortalArtwork();
+    buildOrbitIcons();
+    layerImages.forEach((image) => warmLayer(image));
+    warmIcons();
+    startOrbit();
+  }
 
   later(() => setStatus('Готовим игры…'), 760);
   later(() => setStatus('Собираем игровое пространство…'), 1500);

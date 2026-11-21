@@ -1,1 +1,1 @@
-3.0.16: reduce startup image decoding and offscreen menu work
+3.0.17: stabilize Android catalog rendering and recover the WebView once in safe display mode

@@ -1,5 +1,5 @@
 (() => {
-  if (window.__ANDROID_APK__ !== true) return;
+  if (window.__ANDROID_APK__ !== true || window.GameDisplay?.lowGraphics()) return;
 
   const HEALTH_WARMUP_KEY = 'worker_health_warmup_at_v1';
   const HEALTH_WARMUP_TTL_MS = 6 * 60 * 60 * 1000;

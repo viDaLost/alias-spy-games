@@ -25,12 +25,13 @@ const server = http.createServer((req, res) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const baseURL = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+const context = await browser.newContext({ viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true });
 
 await context.addInitScript(() => {
   // Telemetry is intentionally disabled in CI. Product functionality such as
   // Profile/Favorites must remain enabled independently from that preference.
   window.__APP_TELEMETRY_DISABLED__ = true;
+  localStorage.setItem('bible_game_display_v1', JSON.stringify({ graphics: 'high', animations: 'high' }));
   window.AndroidApp = {
     getTelegramId() { return '555555555'; },
     getSessionToken() { return 'bgs_android_runtime_test_token'; },
@@ -145,6 +146,13 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
   await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'APK must not use Telegram compat route' }) });
 });
 
+const heavyStartupRequests = [];
+page.on('request', (request) => {
+  if (/telegram-web-app\.js|home-gamehub-parallax-v1\/0[1-5]-|startup-loader\//.test(request.url())) {
+    heavyStartupRequests.push(request.url());
+  }
+});
+
 stage = 'app startup';
 await page.goto(`${baseURL}/?android=1&apk=33&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
@@ -168,6 +176,34 @@ if (state.adminVisible) throw new Error('Admin button must never be visible in s
 if (state.source !== 'cloudflare') throw new Error(`Cloudflare bridge is missing: ${state.source}`);
 if (!state.authenticated) throw new Error('Android Web bridge did not expose an authenticated session state.');
 if (!state.socialMounted) throw new Error('Android social dock did not mount while telemetry was disabled.');
+
+stage = 'Android catalog layout';
+const catalog = await page.evaluate(() => {
+  const face = document.querySelector('#catalog-games .catalog-game-face');
+  const labels = [...document.querySelectorAll('.catalog-system-action > span, .catalog-filters button, .catalog-options span')];
+  const originalSizes = labels.map((node) => parseFloat(getComputedStyle(node).fontSize));
+  // Simulate the enlarged labels visible in the Android report.
+  labels.forEach((node, index) => { node.style.fontSize = `${originalSizes[index] * 1.4}px`; });
+  const settings = document.getElementById('settings-dialog');
+  settings.showModal();
+  const overflow = labels.filter((node) => node.clientWidth && node.scrollWidth > node.clientWidth + 1)
+    .map((node) => node.textContent.trim());
+  settings.close();
+  labels.forEach((node) => node.style.removeProperty('font-size'));
+  return {
+    graphics: window.GameDisplay.get().graphics,
+    transformStyle: getComputedStyle(face).transformStyle,
+    transform: getComputedStyle(face).transform,
+    icon: face.querySelector('.catalog-game-emblem img').getAttribute('src'),
+    bootStillVisible: Boolean(document.getElementById('gamehub-boot-scene')),
+    overflow,
+  };
+});
+if (catalog.graphics !== 'high' || catalog.transformStyle !== 'flat' || catalog.transform !== 'none'
+  || catalog.bootStillVisible || !catalog.icon.includes('/icons/catalog-v1/') || catalog.overflow.length
+  || heavyStartupRequests.length) {
+  throw new Error(`Android catalog rendering regression: ${JSON.stringify({ catalog, heavyStartupRequests })}`);
+}
 
 stage = 'profile rendering';
 await page.locator('#open-profile').click();

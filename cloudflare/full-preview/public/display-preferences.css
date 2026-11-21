@@ -42,3 +42,19 @@ html[data-graphics="low"] body[data-match-three] .bmt-board-wrap,
 html[data-graphics="low"] body[data-match-three] .bmt-board-wrap::before {
   background-image: none !important;
 }
+
+/* Keep catalog cards in one painting plane on Android and constrained devices. */
+html[data-static-menu] .catalog-game { perspective: none; }
+html[data-static-menu] :is(.catalog-game-face, .catalog-game a) { transform-style: flat; }
+html[data-static-menu] :is(.catalog-game-emblem, .catalog-save, .catalog-promo-stage img) { transform: none; }
+html[data-static-menu] :is(.catalog-game img, .catalog-promo-stage img) { filter: none; }
+html[data-static-menu] .catalog-game-face::before,
+html[data-static-menu] .catalog-promo-scene { display: none; }
+html[data-static-menu] .catalog-game-face {
+  background: #f7f9ff;
+  box-shadow: 0 2px 0 #c5cfee;
+}
+html[data-static-menu].theme-dark .catalog-game-face {
+  background: #252b4b;
+  box-shadow: 0 2px 0 #171c35;
+}
