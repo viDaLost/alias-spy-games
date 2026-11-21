@@ -120,6 +120,10 @@ export class UserStore extends V17UserStore {
       if (!userId || !(await this.applicationAccess(userId)).allowed) {
         return json({ ok: false, error: 'Application access denied' }, 403);
       }
+      if (body.game !== undefined) {
+        const result = await this.profileSetFavorites({ userId, game: body.game, selected: body.selected });
+        if (!result.success) return json(result, 400);
+      }
       const { favorites, lastGame } = this.readProfile(userId);
       return json({ ok: true, favorites, lastGame });
     }
