@@ -82,13 +82,13 @@ jobs:
           // с ним не было ничего.
           const publicCommands = [
             { command: 'start', description: 'Открыть приложение' },
-            { command: 'favorites', description: 'Мои игры' },
             { command: 'support', description: 'Написать в техподдержку' },
             { command: 'cancel', description: 'Отменить отправку обращения' },
             { command: 'help', description: 'Список команд' },
           ];
+          const privateCommands = [...publicCommands, { command: 'favorites', description: 'Мои игры' }];
           const adminCommands = [
-            ...publicCommands,
+            ...privateCommands,
             { command: 'write', description: 'Написать пользователю по его ID' },
           ];
 
@@ -96,7 +96,7 @@ jobs:
           // случай клиента, который не спросил про личные чаты; all_private_chats
           // старше её по важности и отвечает за то, что человек видит в боте.
           await telegram('setMyCommands', { commands: publicCommands });
-          await telegram('setMyCommands', { commands: publicCommands, scope: { type: 'all_private_chats' } });
+          await telegram('setMyCommands', { commands: privateCommands, scope: { type: 'all_private_chats' } });
 
           // /write видит только главный администратор: команда пишет человеку от
           // имени приложения, и показывать её всем в меню бота незачем. Область
@@ -119,14 +119,14 @@ jobs:
           // деплой должен падать, а не оставлять бота без команд.
           const names = (list) => (list || []).map((item) => item.command).join(',');
           const seenPublic = await telegram('getMyCommands', { scope: { type: 'all_private_chats' } });
-          if (names(seenPublic) !== names(publicCommands)) {
-            throw new Error(`Bot commands mismatch: expected ${names(publicCommands)}, got ${names(seenPublic) || 'empty'}`);
+          if (names(seenPublic) !== names(privateCommands)) {
+            throw new Error(`Bot commands mismatch: expected ${names(privateCommands)}, got ${names(seenPublic) || 'empty'}`);
           }
           const seenAdmin = await telegram('getMyCommands', { scope: { type: 'chat', chat_id: Number(adminId) } });
           if (names(seenAdmin) !== names(adminCommands)) {
             throw new Error(`Admin bot commands mismatch: expected ${names(adminCommands)}, got ${names(seenAdmin) || 'empty'}`);
           }
-          console.log(`Bot commands: ${names(publicCommands)}; admin ${adminId}: ${names(adminCommands)}`);
+          console.log(`Bot commands: ${names(privateCommands)}; admin ${adminId}: ${names(adminCommands)}`);
 
           const configured = await telegram('getWebhookInfo');
           if (configured?.url !== webhookUrl) {

@@ -319,6 +319,14 @@ try {
 
   const callback = { id: 'favorite-callback', from: ownerChat.from,
     message: { chat: ownerChat.chat, message_id: 42 }, data: 'favorite_menu:ru:catalog:1' };
+  await botUpdate({ callback_query: { ...callback, data: 'favorite_menu:ru:buttons:0',
+    message: { ...callback.message, is_topic_message: true, message_thread_id: 3 } } });
+  const [buttons, buttonsAnswer] = replies.slice(-2);
+  assert(buttons.url.endsWith('/sendMessage'));
+  assert.equal(buttons.body.message_thread_id, 3);
+  assert.equal(buttons.body.protect_content, true);
+  assert.equal(buttons.body.reply_markup.inline_keyboard[2][0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
+  assert(buttonsAnswer.url.endsWith('/answerCallbackQuery'));
   await botUpdate({ callback_query: callback });
   const [edit, answer] = replies.slice(-2);
   assert(edit.url.endsWith('/editMessageText'));

@@ -7,6 +7,7 @@ const QUERY = 'favorite_games_v2';
 const PER_PAGE = 4;
 const COPY = {
   ru: {
+    buttons: 'Игры кнопками',
     title: 'Мои игры', favorites: 'Избранное', catalog: 'Все игры', recent: 'Последняя игра',
     empty: 'В избранном пока пусто. Выберите игру в каталоге или добавьте её в избранное.',
     edit: 'Изменить избранное', open: 'Открыть приложение', pin: 'Закрепите сообщение, чтобы открывать игры из чата.',
@@ -14,6 +15,7 @@ const COPY = {
     updating: 'Обновляем…', updated: 'Список обновлён', failed: 'Не удалось обновить. Попробуйте ещё раз.',
   },
   en: {
+    buttons: 'Game buttons',
     title: 'My games', favorites: 'Favorites', catalog: 'All games', recent: 'Last played',
     empty: 'No favorites yet. Pick a game from the catalog or add it to your favorites.',
     edit: 'Edit favorites', open: 'Open app', pin: 'Pin this message to launch games from this chat.',
@@ -21,6 +23,7 @@ const COPY = {
     updating: 'Updating…', updated: 'List updated', failed: 'Could not refresh. Try again.',
   },
   de: {
+    buttons: 'Spiele als Buttons',
     title: 'Meine Spiele', favorites: 'Favoriten', catalog: 'Alle Spiele', recent: 'Zuletzt gespielt',
     empty: 'Noch keine Favoriten. Wähle ein Spiel aus der Liste oder füge es zu deinen Favoriten hinzu.',
     edit: 'Favoriten bearbeiten', open: 'App öffnen', pin: 'Hefte diese Nachricht an, um Spiele aus dem Chat zu öffnen.',
@@ -28,6 +31,7 @@ const COPY = {
     updating: 'Wird aktualisiert…', updated: 'Liste aktualisiert', failed: 'Aktualisierung fehlgeschlagen. Versuche es erneut.',
   },
   es: {
+    buttons: 'Botones de juego',
     title: 'Mis juegos', favorites: 'Favoritos', catalog: 'Todos los juegos', recent: 'Último juego',
     empty: 'Aún no tienes favoritos. Elige un juego del catálogo o añádelo a tus favoritos.',
     edit: 'Editar favoritos', open: 'Abrir aplicación', pin: 'Fija este mensaje para abrir juegos desde el chat.',
@@ -56,7 +60,7 @@ export function handleFavoritesWidget(update, env, ctx) {
     if (![LEGACY_QUERY, QUERY].includes(query.data) || !/^\d{1,24}$/.test(String(query.id))) return false;
     task = answerFavorites(env, userId, query);
   } else if (callback) {
-    const match = /^favorite_menu:(ru|en|de|es):(favorites|catalog):([0-9])$/.exec(callback.data);
+    const match = /^favorite_menu:(ru|en|de|es):(buttons|favorites|catalog):([0-9])$/.exec(callback.data);
     if (!match || !Number.isSafeInteger(message.message_id) || message.message_id < 1) return false;
     const [, lang, tab, page] = match;
     task = updateFallback(env, userId, callback, { lang, tab, page: Number(page) });
@@ -103,7 +107,10 @@ async function sendFavorites(env, userId, lang, threadId) {
       html: renderFavoritesHtml(menu),
       chat_data: JSON.stringify(state),
       caption: `★ ${copy.title} · ${copy.pin}`,
-      reply_markup: { inline_keyboard: [[{ text: copy.open, url: `${url}=lang_${lang}` }]] },
+      reply_markup: { inline_keyboard: [[
+        { text: copy.open, url: `${url}=lang_${lang}` },
+        { text: copy.buttons, callback_data: `favorite_menu:${lang}:buttons:0` },
+      ]] },
       allow_queries: true,
     });
   } catch (error) {
@@ -118,11 +125,21 @@ async function updateFallback(env, userId, callback, view) {
   let notice;
   try {
     const menu = await getMenu(env, userId, view.lang);
-    await telegramApi(env, 'editMessageText', {
-      chat_id: userId,
-      message_id: callback.message.message_id,
-      ...renderFallback(menu, view),
-    });
+    if (view.tab === 'buttons') {
+      const message = callback.message;
+      await telegramApi(env, 'sendMessage', {
+        chat_id: userId,
+        protect_content: true,
+        message_thread_id: message.is_topic_message ? message.message_thread_id : undefined,
+        ...renderFallback(menu),
+      });
+    } else {
+      await telegramApi(env, 'editMessageText', {
+        chat_id: userId,
+        message_id: callback.message.message_id,
+        ...renderFallback(menu, view),
+      });
+    }
   } catch (error) {
     if (error.status !== 400 || !error.message.includes('message is not modified')) {
       notice = COPY[view.lang].failed;
