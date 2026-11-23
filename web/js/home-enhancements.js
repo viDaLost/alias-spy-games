@@ -26,7 +26,7 @@
     spy: `web/assets/icons/unified-v1/spy.webp?v=${ICON_VERSION}`, quartet: `web/assets/icons/unified-v1/quartet.webp?v=${ICON_VERSION}`,
     bibleSketch: `web/assets/icons/unified-v1/bible-sketch.webp?v=${ICON_VERSION}`,
     words: `web/assets/icons/unified-v1/words.webp?v=${ICON_VERSION}`,
-    azbuka: `web/assets/icons/bible-azbuka.webp?v=1`, search: `web/assets/icons/unified-v1/search.webp?v=${ICON_VERSION}`,
+    azbuka: `web/assets/icons/unified-v1/bible-azbuka.webp?v=1`, search: `web/assets/icons/unified-v1/search.webp?v=${ICON_VERSION}`,
     matchThree: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39',
     sacred: `web/assets/icons/unified-v1/sacred.webp?v=${ICON_VERSION}`, ark: `web/assets/icons/unified-v1/ark.webp?v=${ICON_VERSION}`,
     'moses-nile': `web/assets/icons/unified-v1/moses-nile.webp?v=${ICON_VERSION}`,
@@ -40,7 +40,10 @@
   function history() {
     try {
       const value = JSON.parse(localStorage.getItem('last_games_history') || '[]');
-      return Array.isArray(value) ? value.filter((title) => GAMES[title]).slice(0, 3) : [];
+      return Array.isArray(value) ? value.filter((title) => {
+        const game = GAMES[title];
+        return game && (game.key !== 'bible-azbuka' || window.canPlayBibleAzbuka?.());
+      }).slice(0, 3) : [];
     } catch { return []; }
   }
 

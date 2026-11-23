@@ -80,7 +80,7 @@ const MENU_ICON_SOURCES = {
   spy: "web/assets/icons/unified-v1/spy.webp",
   quartet: "web/assets/icons/unified-v1/quartet.webp",
   words: "web/assets/icons/unified-v1/words.webp",
-  azbuka: "web/assets/icons/bible-azbuka.webp",
+  azbuka: "web/assets/icons/unified-v1/bible-azbuka.webp",
   search: "web/assets/icons/unified-v1/search.webp",
   sacred: "web/assets/icons/unified-v1/sacred.webp",
   ark: "web/assets/icons/unified-v1/ark.webp",
@@ -467,16 +467,28 @@ function renderGameButton(item) {
   `;
 }
 
+function canPlayBibleAzbuka() {
+  const access = window.AppAccess?.state();
+  return !fullCatalogPreview && access?.isRoot === true && access.userId === ADMIN_ID;
+}
+window.canPlayBibleAzbuka = canPlayBibleAzbuka;
+
+function canShowGame(game) {
+  return game.key !== 'bible-azbuka' || canPlayBibleAzbuka();
+}
+
 function renderMainMenu() {
   if (fullCatalogPreview) {
-    window.FullPreviewMenu.mount(GAME_GROUPS, MENU_ICON_SOURCES);
+    const groups = GAME_GROUPS.map(group => ({ ...group, items: group.items.filter(canShowGame) }));
+    window.FullPreviewMenu.mount(groups, MENU_ICON_SOURCES);
     return;
   }
   GAME_GROUPS.forEach((group) => {
     const root = document.getElementById(group.id);
-    if (!root || root.dataset.ready === "1") return;
-    root.innerHTML = group.items.map(renderGameButton).join("");
-    root.dataset.ready = "1";
+    const access = group.id === 'word-games' && canPlayBibleAzbuka() ? 'root' : '1';
+    if (!root || root.dataset.ready === access) return;
+    root.innerHTML = group.items.filter(canShowGame).map(renderGameButton).join("");
+    root.dataset.ready = access;
   });
 
   const systemRoot = document.getElementById("system-actions");
@@ -492,8 +504,10 @@ function renderMainMenu() {
     `;
     systemRoot.dataset.ready = "1";
   }
-  window.GameCatalog?.mount(GAME_GROUPS, MENU_ICON_SOURCES);
+  window.GameCatalog?.mount(GAME_GROUPS, MENU_ICON_SOURCES, canShowGame);
 }
+
+window.addEventListener('app-access:allowed', renderMainMenu);
 
 function renderAdminButton() {
   const systemRoot = document.getElementById("system-actions");
@@ -690,6 +704,11 @@ function startGameSafely(callback, expectedGame = activeGameName, expectedEntry 
 let gameLaunchEntry = 0;
 function showGame(gameName) {
   if (window.AppAccess && !window.AppAccess.allowed()) return;
+  if (gameName === "bible-azbuka" && !canPlayBibleAzbuka()) {
+    window.RoomInvite?.consume('bible-azbuka');
+    window.showToast?.('«Библейская азбука» доступна только главному администратору');
+    return;
+  }
   if (gameName === "moses-nile") {
     if (window.SabbathAccess?.status().mandatory) {
       window.SabbathAccess.authorize(gameName);
@@ -742,6 +761,7 @@ function showGame(gameName) {
       машиной без браузера, а оболочка умеет загружать только один файл.
     */
     "twelve-tribes": ["web/games/twelve-tribes.js", () => window.startTwelveTribesGame?.()],
+    "bible-azbuka": ["web/games/bible-azbuka.js", () => window.startBibleAzbukaGame?.()],
     "bible-wow": ["web/games/bible-wow.js", () => window.startBibleWowGame?.("web/data/bible_wow_levels.json")],
     "bible-wordsearch": ["web/games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("web/data/bible_wordsearch_levels.json")],
     "sacred-word": ["web/games/sacred-word.js", () => window.startSacredWordGame?.("web/data/sacred_words.json")],
@@ -795,26 +815,6 @@ function showGame(gameName) {
                   loading="eager"></iframe>
           <button type="button" class="back-button game-frame-exit" onclick="goToMainMenu()">Главное меню</button>
         </div>`;
-    }
-    return;
-  }
-
-  if (gameName === "bible-azbuka") {
-    // The online game is hosted on a Durable Object Worker, within the app.
-    if (menu) menu.classList.add("hidden");
-    document.body.dataset.mode = "game";
-    document.body.dataset.currentGame = gameName;
-    activeGameName = gameName;
-    window.scrollTo({top:0,behavior:"auto"});
-    const url = new URL("https://alias-spy-games-bible-azbuka.vitaledanilov.workers.dev/");
-    url.searchParams.set("parentOrigin",location.origin);
-    const roomCode = new URLSearchParams(location.search).get("room") || "";
-    if (/^[A-HJ-NP-Z2-9]{6}$/i.test(roomCode)) url.searchParams.set("room",roomCode.toUpperCase());
-    if (container) {
-      container.innerHTML = '<div class="game-frame-wrap game-frame-wrap--azbuka">' +
-        '<iframe class="game-frame" src="' + escapeHTML(url.href) +
-        '" title="Библейская азбука" allow="camera; fullscreen" loading="eager"></iframe>' +
-        '</div>';
     }
     return;
   }
@@ -916,6 +916,7 @@ function cleanupActiveGame() {
   try { if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval); } catch {}
   try { window.__aliasCleanup?.(); } catch {}
   try { window.__wsCleanup?.(); } catch {}
+  window.BibleAzbuka?.cleanup();
   try { window.__sacredWordCleanup?.(); } catch {}
   try { window.__kidsArkPairsCleanup?.(); } catch {}
   try { window.__quartetCleanup?.(); } catch {}
@@ -1371,34 +1372,3 @@ function sendPromisedLandInvite() {
   window.RoomInvite.consume('promised-land');
 }
 window.addEventListener('roominvitechange', sendPromisedLandInvite);
-
-// Bridge QR scanning and the home button to the trusted «Библейская азбука» iframe.
-// Telegram native QR scanning belongs to the parent Mini App.
-window.addEventListener('message', event => {
-  if (document.body.dataset.currentGame !== 'bible-azbuka') return;
-  const frame = document.querySelector('.game-frame-wrap--azbuka iframe.game-frame');
-  if (!frame || event.source !== frame.contentWindow) return;
-  let frameOrigin;
-  try { frameOrigin = new URL(frame.src).origin; } catch { return; }
-  if (event.origin !== frameOrigin || !event.data || typeof event.data !== 'object') return;
-  if (event.data.type === 'bible-azbuka:exit') {
-    goToMainMenu();
-    return;
-  }
-  if (event.data.type !== 'bible-azbuka:scan-request') return;
-  const telegram = window.Telegram?.WebApp;
-  if (typeof telegram?.showScanQrPopup !== 'function') {
-    frame.contentWindow?.postMessage({type:'bible-azbuka:scan-error'},frameOrigin);
-    return;
-  }
-  try {
-    telegram.showScanQrPopup({text:'Наведите камеру на QR-код комнаты'}, value => {
-      if (typeof value !== 'string' || !value.trim()) return false;
-      frame.contentWindow?.postMessage({type:'bible-azbuka:scan-result',text:value},frameOrigin);
-      telegram.closeScanQrPopup?.();
-      return true;
-    });
-  } catch {
-    frame.contentWindow?.postMessage({type:'bible-azbuka:scan-error'},frameOrigin);
-  }
-});

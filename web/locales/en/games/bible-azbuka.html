@@ -1,0 +1,43 @@
+<main aria-label="Biblical Alphabet">
+<header class="top"><div class="brand"><img src="web/assets/icons/unified-v1/bible-azbuka.webp" alt=""><div><strong>Biblical Alphabet</strong><small id="hero-info">Словесная игра • online</small></div></div><div class="top-actions"><button class="soft" id="rules" type="button">Rules</button><button class="soft" id="home" type="button">Главная</button></div></header>
+
+<div class="shell"><div class="content">
+<section class="pane" id="welcome" hidden>
+<h2>Online game</h2>
+<label class="field-label" for="nickname">Как тебя зовут?</label><input id="nickname" maxlength="28" autocomplete="nickname" placeholder="Player name">
+<label class="field-label">Выбери режим</label><div class="option-row"><label class="option"><input type="radio" name="mode" value="stop" checked><span><b>Первый СТОП</b><small>Кто первым проверил все ответы, останавливает раунд</small></span></label><label class="option"><input type="radio" name="mode" value="timed"><span><b>Timed</b><small>Все пишут до общего сигнала таймера</small></span></label></div>
+<div id="duration-wrap" hidden><label class="field-label" for="duration">Round duration</label><select id="duration"><option value="30">30 seconds</option><option value="60" selected>1 минута</option><option value="90">1 минута 30 секунд</option></select></div>
+<div style="margin-top:14px"><button class="primary large" id="create" type="button">＋ Create room</button></div>
+<div style="border-top:1px solid var(--line);margin:22px 0 14px"></div><h2>Join room</h2>
+<form id="join-form"><label class="field-label" for="join-code">Room code</label><div class="actions"><input id="join-code" maxlength="6" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="A2B3C4" style="text-transform:uppercase;flex:2"><button class="soft" id="join" type="submit">Sign in</button></div></form>
+<button type="button" class="soft scan-button" id="scan-qr">▣ Отсканировать QR-code</button>
+</section>
+<section class="room-id" id="lobby" hidden aria-label="Приглашение в комнату">
+  <div><small>Room code</small><strong id="room-code"></strong></div>
+  <div class="invite-actions">
+    <button type="button" class="soft invite-share" id="share-room">Share and QR</button>
+    <button type="button" class="soft invite-copy" id="copy-code">Copy code</button>
+  </div>
+</section>
+<section class="pane" id="players-pane" hidden><h2>Участники <span id="player-count" class="muted"></span></h2><div class="player-list" id="players"></div><p class="help" id="players-help">Нужно минимум 2 игрока.</p><div id="start-wrap" style="margin-top:14px"><button class="primary large" id="start">Start match</button></div></section>
+<section class="pane" id="settings-pane" hidden><h2>Настройки партии</h2><div class="setting-row"><div><label class="field-label" for="lobby-mode">Режим</label><select id="lobby-mode"><option value="stop">Первый СТОП</option><option value="timed">Timed</option></select></div><div id="lobby-duration-wrap"><label class="field-label" for="lobby-duration">Продолжительность</label><select id="lobby-duration"><option value="30">30 sec</option><option value="60">1 мин.</option><option value="90">1,5 мин.</option></select></div><button class="soft" id="save-settings">Save</button></div><p class="help">Только ведущий меняет настройки и запускает партию. В партии пять раундов.</p></section>
+<div class="leave-row" id="leave-row" hidden><button type="button" id="leave-room">Leave room</button></div>
+<section class="pane" id="playing" hidden><div class="board-meta"><span class="pill letter-pill" id="letter">Б</span><span class="pill" id="round-label">Раунд 1 из 5</span><span class="pill timer" id="time-label">Режим СТОП</span><span class="pill" id="save-label">Черновик сохранён</span></div><h2>Твои ответы на букву <span id="letter-caption">Б</span></h2><p class="subnote">Можно написать до трёх вариантов в каждой категории. Система выберет тот, который не повторяется у соперников.</p><div class="categories" id="categories"></div><div class="notice" id="game-notice">Ответы сохраняются автоматически. Другие игроки не видят их до конца раунда.</div><div class="game-actions"><button class="soft" id="check">✓ Проверить ответы</button><button class="primary" id="stop" disabled hidden>■ СТОП</button></div></section>
+<section class="pane" id="results" hidden><div class="kicker" id="result-kicker">Итоги раунда</div><h2 id="result-title">Очки игроков</h2><p id="result-reason" class="muted"></p><table class="score-table"><thead><tr><th>Player</th><th>Round</th><th>Total</th></tr></thead><tbody id="result-rows"></tbody></table><div id="result-details"></div><button class="primary large" id="next-round" style="margin-top:16px" hidden>▶ Следующий раунд</button><p class="help" id="wait-next">Следующий раунд запускает ведущий.</p></section>
+</div>
+<aside class="aside" id="aside" hidden><section class="pane chat" id="chat-pane" hidden><h3>Room chat <span class="muted" id="chat-counter"></span></h3><div class="chat-log" id="chat-log" role="log" aria-live="polite"></div><form class="chat-form" id="chat-form"><input id="chat-input" aria-label="Message" maxlength="240" placeholder="Написать в чат…"><button type="submit" class="soft">➤</button></form></section>
+</aside></div>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+<dialog id="scan-dialog" aria-labelledby="scan-title">
+<div class="scan-dialog-body">
+<h2 id="scan-title">Отсканировать QR-code</h2>
+<p class="muted">Point your camera at QR-код комнаты.</p>
+<div class="scan-camera"><video id="scan-video" playsinline autoplay muted></video><div class="scan-guide" aria-hidden="true"></div></div>
+<p id="scan-status" class="muted" role="status">Подготавливаем камеру…</p>
+<label class="scan-file-label" for="scan-file">Или выберите изображение с QR-кодом</label>
+<input type="file" id="scan-file" accept="image/*">
+<button type="button" id="scan-close" class="soft large">Закрыть сканер</button>
+</div>
+</dialog>
+<dialog id="rules-dialog"><div class="rules"><h2>Правила «Библейской азбуки»</h2><p>Все участники получают одну букву и заполняют пять категорий: имя, город или местность, растение, предмет, животное. Подходят библейские названия, подтверждённые словарём Синодального перевода.</p><p>Можно указать до <b>трёх разных слов</b> в каждой категории. Система автоматически выбирает лучший правильный вариант: если слово не встречается в предложениях других игроков, даёт <b>10 points</b>; если встречается — <b>5 points</b>. Ошибки и пустые поля дают 0. Даже если соперник предложил одинаковое слово среди запасных вариантов, оно считается совпадением.</p><p><b>«Первый СТОП»:</b> игрок проверяет правильность всех пяти категорий, затем нажимает СТОП. Раунд завершается для всех одновременно. <b>«На время»:</b> ответы сохраняются автоматически, окончание через 30, 60 или 90 секунд.</p><p>Ведущий запускает следующий раунд. Всего пять раундов. Все ответы и очки проверяет сервер, черновики соперников до конца раунда скрыты.</p><button class="primary large" id="close-rules">Got it</button></div></dialog>

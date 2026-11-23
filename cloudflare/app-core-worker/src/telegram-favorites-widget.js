@@ -1,6 +1,7 @@
 import { accessStore, cleanAccessId } from './app-access-auth.js';
 import { getMainMiniAppUrl, telegramApi } from './index-v10.js';
 import { PLAYER_GAMES } from './player-games.js';
+import { azbukaAvailableTo } from './bible-azbuka.js';
 
 const LEGACY_QUERY = 'favorite_games_v1';
 const QUERY = 'favorite_games_v2';
@@ -47,7 +48,7 @@ const COPY = {
 };
 const GAME_MARKS = {
   alias: '⏳', coimaginarium: '💡', guess: '❓', describe: '💬', spy: '🕵️', quartet: '🃏',
-  'bible-sketch': '🎨', 'bible-wow': '🔤', 'bible-wordsearch': '🔍', 'sacred-word': '📖',
+  'bible-sketch': '🎨', 'bible-wow': '🔤', 'bible-azbuka': '🔠', 'bible-wordsearch': '🔍', 'sacred-word': '📖',
   'kids-ark-pairs': '🐾', 'biblical-match-three': '💎', 'moses-nile': '🧺', 'twelve-tribes': '⛺',
   'promised-land': '🧱', 'bible-geography': '🧭',
 };
@@ -101,7 +102,9 @@ async function answerFavorites(env, userId, query) {
 async function getMenu(env, userId, lang, change) {
   const [state, url] = await Promise.all([getFavorites(env, userId, change), getMainMiniAppUrl(env)]);
   const index = Object.keys(COPY).indexOf(lang);
-  const games = Object.fromEntries([...PLAYER_GAMES].map(([id, names]) => [id, [names[index], GAME_MARKS[id]]]));
+  const games = Object.fromEntries([...PLAYER_GAMES]
+    .filter(([id]) => id !== 'bible-azbuka' || azbukaAvailableTo(userId, env))
+    .map(([id, names]) => [id, [names[index], GAME_MARKS[id]]]));
   return { state, games, lang, copy: COPY[lang], url };
 }
 

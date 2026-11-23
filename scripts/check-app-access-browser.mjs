@@ -83,6 +83,7 @@ try {
     await page.goto(base);
     await page.waitForFunction(() => window.AppAccess?.state().checked);
     await page.locator('#main-catalog').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#catalog-games [data-launch*="bible-azbuka"]').count(), 0);
     assert.equal(await page.locator('#app-access-screen').count(), 0);
     assert.equal(await page.evaluate(() => window.AppAccess.allowed()), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
@@ -168,7 +169,8 @@ try {
   const currentPromo = await hero.getAttribute('data-active-promo');
   await catalog.waitForFunction((key) => document.querySelector('#catalog-feature')?.dataset.activePromo !== key, currentPromo, { timeout: 5000 });
   await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '999953');
-  await catalog.waitForFunction(() => document.querySelectorAll('#catalog-games [data-launch]').length === 16);
+  await catalog.waitForFunction(() => document.querySelectorAll('#catalog-games [data-launch]').length === 17);
+  assert.equal(await catalog.locator('#catalog-games [data-launch*="bible-azbuka"]').count(), 1);
   assert.equal((await catalog.locator('#main-catalog h1').textContent()).trim(), 'Библейские игры');
   assert.equal(await catalog.locator('#main-catalog').getByText('Во что сыграем?', { exact: true }).count(), 0);
   for (const width of [320, 375, 390, 667, 820]) {

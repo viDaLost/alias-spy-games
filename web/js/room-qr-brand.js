@@ -159,9 +159,14 @@
     const qrPayload = invite?.buildQrPayload?.(canonical, normalizedRoom);
     if (!canonical || !normalizedRoom || !qrPayload) return;
 
-    // The QR always contains the short in-app payload. This makes it denser,
-    // faster to recognize and prevents a phone camera from opening a browser.
+    // Azbuka also opens from the phone's camera via the bot's Mini App link.
     const inviteUrl = await invite.getShareUrl?.(canonical, normalizedRoom);
+    if (canonical === 'bible-azbuka' && document.body.dataset.currentGame !== canonical) return;
+    if (canonical === 'bible-azbuka' && !inviteUrl) {
+      window.showToast?.('Не удалось получить ссылку Telegram. Попробуйте ещё раз.');
+      return;
+    }
+    const qrValue = canonical === 'bible-azbuka' ? inviteUrl : qrPayload;
 
     closeQr();
     const overlay = document.createElement('div');
@@ -231,7 +236,7 @@
     document.body.classList.add('room-invite-open');
 
     try {
-      await renderBrandedQr(overlay.querySelector('#room-invite-qr'), qrPayload);
+      await renderBrandedQr(overlay.querySelector('#room-invite-qr'), qrValue);
     } catch {
       const qrNode = overlay.querySelector('#room-invite-qr');
       if (qrNode) qrNode.innerHTML = '<div class="room-invite-qr-error">QR не удалось загрузить. Используйте код комнаты.</div>';

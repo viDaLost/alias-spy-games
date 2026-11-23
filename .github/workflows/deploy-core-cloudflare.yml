@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'cloudflare/app-core-worker/**'
+      - 'cloudflare/bible-azbuka-online/**'
       - '.github/workflows/deploy-core-cloudflare.yml'
 
 permissions:
@@ -24,6 +25,15 @@ jobs:
           node-version: 22
       - name: Install Worker tooling
         run: npm install --no-audit --no-fund
+      - name: Validate Bible Azbuka room service
+        run: |
+          node ../bible-azbuka-online/scripts/test.mjs
+          npx --no-install wrangler deploy --config ../bible-azbuka-online/wrangler.jsonc --dry-run --outdir /tmp/bible-azbuka-build
+      - name: Deploy private Bible Azbuka room service
+        run: npx --no-install wrangler deploy --config ../bible-azbuka-online/wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Validate Worker bundle
         run: npx wrangler deploy --dry-run --outdir /tmp/app-core-worker-build
       - name: Create or update Worker
@@ -244,6 +254,40 @@ jobs:
             return { response, data: await response.json().catch(() => ({})) };
           }
 
+          async function azbuka(path, telegramInitData, payload = {}) {
+            const response = await fetch(`${workerUrl}/azbuka/${path}`, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ telegramInitData, payload }),
+            });
+            return { status: response.status, data: await response.json() };
+          }
+
+          async function verifyAzbuka() {
+            const proof = createInitData();
+            const others = createInitData('999999999');
+            const unauthorized = await azbuka('create', '', { name: 'Verification' });
+            const forbidden = await azbuka('create', others, { name: 'Verification' });
+            if (unauthorized.status !== 401 || forbidden.status !== 403) {
+              throw new Error(`Azbuka access boundary: expected 401/403, got ${unauthorized.status}/${forbidden.status}`);
+            }
+            const room = await azbuka('create', proof, { name: 'Verification', mode: 'stop' });
+            const code = room.data.code;
+            if (room.status !== 200 || !/^[A-HJ-NP-Z2-9]{6}$/.test(code || '')) {
+              throw new Error(`Azbuka owner could not create a lobby: HTTP ${room.status} ${room.data.error || ''}`);
+            }
+            try {
+              const guest = await azbuka(`${code}/join`, others, { name: 'Verification guest' });
+              const owner = await azbuka(`${code}/join`, proof, { name: 'Verification' });
+              if (guest.status !== 403 || owner.status !== 200 || owner.data.selfId !== room.data.selfId) {
+                throw new Error(`Azbuka invite authorization failed: HTTP ${guest.status}/${owner.status}`);
+              }
+            } finally {
+              const left = await azbuka(`${code}/leave`, proof);
+              if (left.status !== 200) throw new Error(`Azbuka verification room cleanup failed: HTTP ${left.status}`);
+            }
+          }
+
           async function verify() {
             let result = await compat({
               telegramInitData: createInitData(),
@@ -268,6 +312,7 @@ jobs:
             if (result.response.status !== 401) {
               throw new Error(`Forged Telegram signature reached role mutation: HTTP ${result.response.status}`);
             }
+            await verifyAzbuka();
           }
 
           // Первый запрос после развёртывания приходит в хранилище, которое
@@ -281,7 +326,7 @@ jobs:
           for (let attempt = 1; attempt <= 5; attempt += 1) {
             try {
               await verify();
-              console.log('Admin RBAC boundary verified: root is server-derived and forged/client-only identity cannot authorize admin actions.');
+            console.log('Admin RBAC and Bible Azbuka lobby access verified on the deployed Worker.');
               process.exit(0);
             } catch (error) {
               lastError = error;
