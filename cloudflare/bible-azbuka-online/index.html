@@ -367,6 +367,18 @@ function closeScan(){
 }
 scanDialog.addEventListener('close',closeScan);
 $('scan-close').onclick=closeScan;
+async function openCameraScanner(){
+  if(scanDialog.open)return;
+  scanStatus.textContent='Подготавливаем камеру…';scanDialog.showModal();
+  try{
+    if(!navigator.mediaDevices?.getUserMedia)throw Error('Доступ к камере отсутствует. Выбери изображение QR-кода.');
+    scanStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'}}});
+    if(!scanDialog.open){closeScan();return}
+    scanVideo.srcObject=scanStream;await scanVideo.play();
+    scanStatus.textContent='Поместите QR-код в рамку камеры.';
+    void cameraLoop();
+  }catch(e){scanStatus.textContent='Не удалось открыть камеру. Разрешите доступ или выберите изображение ниже.';}
+}
 $('scan-qr').onclick=async()=>{
   const tg=window.Telegram?.WebApp;
   if(window.parent!==window && window.parentOrigin){
@@ -379,15 +391,7 @@ $('scan-qr').onclick=async()=>{
       return false;
     });return}catch{}
   }
-  scanStatus.textContent='Подготавливаем камеру…';scanDialog.showModal();
-  try{
-    if(!navigator.mediaDevices?.getUserMedia)throw Error('Доступ к камере отсутствует. Выбери изображение QR-кода.');
-    scanStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'}}});
-    if(!scanDialog.open){closeScan();return}
-    scanVideo.srcObject=scanStream;await scanVideo.play();
-    scanStatus.textContent='Поместите QR-код в рамку камеры.';
-    void cameraLoop();
-  }catch(e){scanStatus.textContent='Не удалось открыть камеру. Разрешите доступ или выберите изображение ниже.';}
+  await openCameraScanner();
 };
 $('scan-file').addEventListener('change',async event=>{
   const file=event.target.files?.[0];if(!file)return;
@@ -405,7 +409,7 @@ window.parentOrigin=parentOrigin&&/^https:\/\/[a-zA-Z0-9.-]+$/.test(parentOrigin
 window.addEventListener('message',event=>{
   if(!window.parentOrigin||event.source!==window.parent||event.origin!==window.parentOrigin)return;
   if(event.data?.type==='bible-azbuka:scan-result')acceptQR(event.data.text);
-  if(event.data?.type==='bible-azbuka:scan-error')toast('Не удалось открыть сканер. Введи код вручную.');
+  if(event.data?.type==='bible-azbuka:scan-error')void openCameraScanner();
 });
 window.addEventListener('pagehide',closeScan);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)closeScan()});
