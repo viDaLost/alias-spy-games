@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "alias-spy-games-bible-azbuka-online-preview",
+  "name": "alias-spy-games-bible-azbuka",
   "main": "dist/worker.mjs",
   "compatibility_date": "2026-11-20",
   "workers_dev": true,
