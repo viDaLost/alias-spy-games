@@ -4,7 +4,8 @@
 <meta name="theme-color" content="#edf2ff"><meta name="description" content="Библейская азбука — игра на общую букву по Синодальному переводу, с комнатами и друзьями.">
 <link rel="icon" href="/icon.webp" type="image/webp"><title>Библейская азбука • Библейские игры</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&display=swap');
+@font-face{font-family:Onest;src:url('/branding/onest-cyrillic.woff2') format('woff2');font-display:swap;font-weight:100 900;unicode-range:U+0400-045F,U+0490-0491,U+2116}
+@font-face{font-family:Onest;src:url('/branding/onest-latin.woff2') format('woff2');font-display:swap;font-weight:100 900;unicode-range:U+0000-00FF,U+2000-206F}
 :root{color-scheme:light;--navy:#1c2856;--indigo:#4f46e5;--deep:#312e81;--violet:#7c6dff;--mute:#596486;--line:#d8e1f4;--glass:#ffffffec;--ok:#15835c;--bad:#b03f62;font:500 16px/1.4 Onest,system-ui,-apple-system,sans-serif}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100dvh;color:var(--navy);background:radial-gradient(ellipse at 5% 0%,#fff 0%,transparent 37%),radial-gradient(ellipse at 99% 4%,#ccd7ff 0%,transparent 40%),linear-gradient(155deg,#f6fbff 0%,#e7edff 56%,#d9ecff 100%);background-attachment:fixed}
 body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.32;background-image:radial-gradient(circle at 12% 37%,#988bff 1px,transparent 2px),radial-gradient(circle at 80% 74%,#a1b6fd 1px,transparent 2px);background-size:80px 80px,110px 110px}
@@ -79,7 +80,7 @@ const emoji=['📜','🗺️','🌿','💎','🦁'];
 const key='bible-azbuka-session-v1';
 let room=null,token='',code='',view='',round=-1,pollBusy=false,lastMsg='',saveTimer=0,verified=false,timeoutAt=0;
 const esc=x=>String(x??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-const norm=x=>String(x??'').normalize('NFC').toLocaleLowerCase('ru').replaceAll('ё','е').replace(/\\u0301/g,'').trim().replace(/\\s+/g,' ');
+const norm=x=>String(x??'').normalize('NFC').toLocaleLowerCase('ru').replaceAll('ё','е').replace(/\u0301/g,'').trim().replace(/\s+/g,' ');
 function toast(msg){const e=$('toast');e.textContent=msg;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,4200)}
 function show(ids){['welcome','lobby','settings-pane','players-pane','playing','results','intro-side','chat-pane'].forEach(id=>$(id).hidden=!ids.includes(id))}
 function saved(){try{return JSON.parse(localStorage.getItem(key)||'{}')}catch{return {}}}
@@ -206,7 +207,7 @@ function paint(r){
  if(r.phase==='lobby'){
   ids.push('lobby');if(host)ids.push('settings-pane');
   $('room-code').textContent=code;$('share-url').textContent=link();
-  $('lobby-mode').value=r.mode;$('lobby-duration').value=String(r.duration);
+  if(view!=='lobby'){$('lobby-mode').value=r.mode;$('lobby-duration').value=String(r.duration);}
   $('start-wrap').hidden=!host;$('players-help').textContent=host?'Дождись второго игрока и начинай':'Ожидаем, когда ведущий запустит игру.';
   $('letter').textContent='Б';$('hero-info').textContent='Комната '+code+' • выберите режим и пригласите друзей.';
   if(view!=='lobby')renderQR();
@@ -222,7 +223,7 @@ function paint(r){
  } else {
   ids.push('results');$('letter').textContent=r.letter||'Б';
   $('hero-info').textContent='Пять категорий · '+(r.finished?'победитель определён!':'раунд завершён!');
-  resultTable(r);
+  if(view!==r.phase||round!==r.round){resultTable(r);round=r.round;}
  }
  view=r.phase;show(ids);
 }
