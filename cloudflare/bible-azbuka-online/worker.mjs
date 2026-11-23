@@ -124,7 +124,7 @@ export class AzbukaRoom {
       await this.store();return json(publicRoom(this.room,this.room.players[0]));
     }
     const r=this.room;
-    if(!r)return error('Комната не найдена',404);
+    if(!r||!r.players.some(player=>player.accountId))return error('Комната не найдена',404);
     const member=r.players.find(p=>p.accountId===accountId);
     if(member&&r.phase==='playing'&&r.deadline&&Date.now()>=r.deadline)await this.finish('time');
     if(action==='join'){

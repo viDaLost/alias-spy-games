@@ -349,7 +349,7 @@ try {
   const [edit, answer] = replies.slice(-2);
   assert(edit.url.endsWith('/editMessageText'));
   assert.equal(edit.body.message_id, 42);
-  assert(edit.body.text.includes('Все игры · 2/4'));
+  assert(edit.body.text.includes('Все игры · 2/5'));
   assert.equal(edit.body.reply_markup.inline_keyboard[2][0].url, 'https://t.me/FavoritesTestBot?startapp=game_spy');
   assert(answer.url.endsWith('/answerCallbackQuery'));
   assert.equal(answer.body.callback_query_id, callback.id);

@@ -126,9 +126,17 @@ assert.equal(start.mode, 'stop');
 assert.equal(start.players.length, 2);
 assert.equal((await invoke(room, 'join', '123456789', { name: 'Третий' })).status, 409);
 const letter = start.letter.toLocaleLowerCase('ru');
-const choices = dictionary.categories.map(category => category.options
-  .filter(word => word.toLocaleLowerCase('ru').replaceAll('ё', 'е').startsWith(letter))
-  .slice(0, 2));
+const normalize = value => value.normalize('NFC').toLocaleLowerCase('ru')
+  .replaceAll('ё', 'е').replace(/\u0301/g, '').replace(/[‐‑–—]/g, '-').trim().replace(/\s+/g, ' ');
+const choices = dictionary.categories.map(category => {
+  const distinct = new Map();
+  for (const word of category.options) {
+    const key = normalize(word);
+    const entry = category.answers[key];
+    if (key.startsWith(letter) && entry) distinct.set(normalize(entry[0]), word);
+  }
+  return [...distinct.values()].slice(0, 2);
+});
 assert(choices.every(words => words.length));
 const theirAnswers = choices.map(words => words.slice(0, 1));
 const invalid = await invoke(room, 'check', ADMIN, { answers: Array.from({ length: 5 }, () => ['123']) });
@@ -169,4 +177,8 @@ const leave = makeRoom();
 await invoke(leave, 'init', ADMIN, { code: 'LEAV42', name: 'Мария' });
 assert.equal((await invoke(leave, 'leave', ADMIN)).ok, true);
 assert.equal((await invoke(leave, 'state', ADMIN)).status, 404);
+const legacy = makeRoom();
+await legacy.ready;
+legacy.room = { code: 'OLD234', phase: 'lobby', players: [{ token: 'preview-token' }] };
+assert.equal((await invoke(legacy, 'join', ADMIN, { name: 'Мария' })).status, 404);
 console.log('PASS: signed owner gate, room rejoin, lobby and chat, private drafts, Synodal scoring, rounds and timers');
