@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#edf2ff"><meta name="description" content="Библейская азбука — игра на общую букву по Синодальному переводу, с комнатами и друзьями.">
+<link rel="icon" href="/icon.webp" type="image/webp"><title>Библейская азбука • Библейские игры</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&display=swap');
+:root{color-scheme:light;--navy:#1c2856;--indigo:#4f46e5;--deep:#312e81;--violet:#7c6dff;--mute:#596486;--line:#d8e1f4;--glass:#ffffffec;--ok:#15835c;--bad:#b03f62;font:500 16px/1.4 Onest,system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100dvh;color:var(--navy);background:radial-gradient(ellipse at 5% 0%,#fff 0%,transparent 37%),radial-gradient(ellipse at 99% 4%,#ccd7ff 0%,transparent 40%),linear-gradient(155deg,#f6fbff 0%,#e7edff 56%,#d9ecff 100%);background-attachment:fixed}
+body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.32;background-image:radial-gradient(circle at 12% 37%,#988bff 1px,transparent 2px),radial-gradient(circle at 80% 74%,#a1b6fd 1px,transparent 2px);background-size:80px 80px,110px 110px}
+button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #53a6ff;outline-offset:2px}[hidden]{display:none!important}
+main{width:min(100%,950px);margin:auto;padding:max(12px,env(safe-area-inset-top)) clamp(12px,3vw,26px) max(36px,env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #d3ddf5;border-radius:20px;padding:8px 11px;background:#fcfdfff0;box-shadow:0 4px 25px #3945980d}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}.brand img{width:44px;height:44px;object-fit:cover;border-radius:12px;box-shadow:0 3px 10px #4f46e52b}.brand strong{display:block;font-size:13px}.brand small{display:block;font-size:11px;color:var(--mute)}.top-actions{display:flex;gap:6px}
+button.soft,.soft{background:#f1f4ff;border:1px solid #d2daf6;border-radius:11px;color:#3942a0;font-weight:800;padding:10px 13px;min-height:42px}button.soft:hover{background:#e3e7ff}
+.hero{display:flex;justify-content:space-between;gap:12px;align-items:center;min-height:162px;margin:14px 0;padding:clamp(16px,4vw,32px);border:1px solid #bec9ff;border-radius:25px;background:radial-gradient(circle at 88% 11%,#b5afff 0%,transparent 39%),linear-gradient(125deg,#faffff,#e6e8ff 68%,#dadfff);box-shadow:0 18px 45px #5563bb24,inset 0 1px #fff;overflow:hidden;position:relative}
+.hero:before{position:absolute;content:"";right:-32px;top:-115px;width:300px;height:300px;border:1px solid #716ad233;border-radius:50%;box-shadow:0 0 0 32px #776bff10,0 0 0 65px #776bff08}
+.eyebrow{font-size:12px;color:#4f46b8;letter-spacing:.09em;text-transform:uppercase;font-weight:900}.hero h1{margin:5px 0 7px;font-size:clamp(29px,5.5vw,48px);letter-spacing:-.055em;line-height:1.06}.hero p{max-width:490px;font-size:14px;color:var(--mute);margin:0}.glyph{position:relative;display:grid;place-items:center;flex-shrink:0;width:clamp(64px,18vw,110px);height:clamp(64px,18vw,110px);font-weight:900;font-size:clamp(39px,9vw,72px);color:#fff;text-shadow:0 2px #27228855;border-radius:26px;background:linear-gradient(145deg,#8279ff,#463fc6);border:1px solid #4940ca;box-shadow:0 7px 0 #413ba9,0 14px 24px #312e8140,inset 0 2px #ffffff77;transform:rotate(7deg)}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 276px;gap:14px;align-items:start}.content{min-width:0}.pane{background:var(--glass);border:1px solid var(--line);border-radius:21px;padding:clamp(14px,3vw,22px);box-shadow:0 10px 30px #384b8b10}.pane+.pane{margin-top:12px}.pane h2{font-size:19px;letter-spacing:-.025em;margin:0 0 13px}.pane h3{font-size:15px;margin:0 0 9px}.muted{font-size:13px;color:var(--mute)}.kicker{font-size:12px;font-weight:900;color:#4c43a9;letter-spacing:.08em;text-transform:uppercase}
+.field-label{display:block;font-size:12px;font-weight:900;margin:12px 0 5px;color:#394672}
+input,select{min-width:0;max-width:100%;width:100%;border:1px solid #cbd6f1;border-radius:12px;background:#fff;color:#1c2856;padding:12px;outline:none;min-height:44px;box-shadow:inset 0 1px 3px #1c285608}
+input:focus,select:focus{border-color:#7c76f1;box-shadow:0 0 0 3px #8278ff23}
+input::placeholder{color:#a3aecb}
+.primary{border:0;border-radius:13px;min-height:48px;padding:13px 16px;background:linear-gradient(135deg,#695eef,#453cc0);color:#fff;font-weight:900;box-shadow:0 5px 0 #37309a,0 10px 18px #4f46e52d}
+.primary:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 #37309a}
+.large{width:100%;font-size:16px}.actions{display:flex;flex-wrap:wrap;gap:8px}.actions>*{flex:1 1 auto}.option-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.option{display:flex;gap:9px;align-items:flex-start;border:1.5px solid #d5def2;border-radius:15px;background:#f9fbff;padding:12px;cursor:pointer}.option:has(input:checked){border-color:#837bfd;background:#f0efff;box-shadow:0 0 0 2px #8881ff1b}.option input{width:17px;height:17px;min-height:0;accent-color:var(--indigo);margin:2px 0}.option b{display:block;font-size:14px}.option small{display:block;color:var(--mute);font-size:11px}.help{font-size:12px;color:var(--mute);margin:8px 0 0}
+.steps{display:grid;gap:9px;margin:14px 0 0}.step{border:1px solid #e0e5f6;border-radius:14px;padding:11px 12px;display:flex;gap:10px;align-items:center;background:#fafbff}.step b{display:grid;place-items:center;flex:none;width:29px;height:29px;border-radius:9px;background:#e9e8ff;color:#4a40b6}.step span{font-size:12px}
+.room-id{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px;border:1px solid #c6c9ff;border-radius:17px;background:linear-gradient(135deg,#f2f1ff,#eef5ff)}
+.room-id strong{font-size:clamp(24px,5vw,34px);letter-spacing:.22em;line-height:1.2;color:#4037b6}.room-id small{display:block;margin-bottom:4px;color:var(--mute);font-size:12px}.room-id button{flex:none}
+.share{display:grid;grid-template-columns:1fr 146px;gap:14px;margin-top:13px;align-items:center}.share p{font-size:12px;color:var(--mute);overflow-wrap:anywhere;margin:0 0 9px}.qr{width:146px;min-height:146px;padding:6px;border:1px solid #d2dcf3;border-radius:13px;background:#fff;display:grid;place-items:center}.qr canvas,.qr img{display:block;max-width:100%;height:auto}
+.player-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}.player{display:flex;gap:8px;align-items:center;border:1px solid #d8e1f4;background:#f9fbff;border-radius:13px;padding:9px}.avatar{width:31px;height:31px;border-radius:10px;background:linear-gradient(140deg,#aca4ff,#6b61da);display:grid;place-items:center;font-size:14px;font-weight:900;color:#fff;flex:none}.player strong{font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.player small{font-size:11px;color:var(--mute);display:block}.dot{width:7px;height:7px;border-radius:50%;background:#b7bfd1;margin-left:auto;flex:none}.dot.on{background:#1cbf7c;box-shadow:0 0 0 3px #23c68721}.setting-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+.board-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}.pill{background:#edeaff;color:#4c43b0;border:1px solid #d9d5ff;border-radius:50px;padding:5px 11px;font-size:12px;font-weight:850}.timer{background:#e7f9f3;color:#086849;border-color:#bde9d9}.timer.urgent{background:#fff0ec;color:#b73e39;border-color:#faccc2}.subnote{font-size:13px;color:var(--mute);margin:0 0 12px}
+.categories{display:grid;gap:10px}.cat{border:1px solid #d8e0f2;border-radius:15px;background:#f9fbff;padding:12px;transition:border-color .15s}.cat:focus-within{border-color:#8d83fa;background:white}
+.cat-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}.cat-emoji{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#eeebff;font-size:18px}.cat-head b{font-size:14px}.cat-head small{font-size:11px;color:var(--mute);margin-left:auto}.answers-input{display:grid;gap:6px}.answer-line{display:flex;align-items:center;gap:8px}.answer-line small{min-width:13px;color:#929bbb;font-size:11px}.answer-line input{height:41px;min-height:41px;padding:10px 12px}.add-answer{border:0;background:transparent;color:#4d45ba;font-size:12px;font-weight:850;padding:6px 2px;text-align:left}.review{font-size:12px;margin-top:6px;line-height:1.45}.review.ok{color:#0c8456}.review.bad{color:#b33f59}.review button{border:1px solid #b7b7ed;background:#efefff;color:#4f42b0;border-radius:7px;margin:4px 4px 0 0;padding:4px 7px;font-size:11px}
+.game-actions{position:sticky;bottom:max(7px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:8px;margin-top:13px;padding:9px;border:1px solid #d8ddf6;border-radius:16px;background:#ffffffef;backdrop-filter:blur(12px);box-shadow:0 10px 30px #1f2b5f22}.game-actions>*{flex:1}.notice{padding:9px 12px;border-radius:12px;background:#eaf6ff;font-size:12px;color:#394b76;margin:10px 0}
+.score-table{width:100%;border-collapse:collapse}.score-table th,.score-table td{padding:11px 7px;text-align:left;border-bottom:1px solid #e2e7f5;font-size:13px}.score-table th{color:var(--mute);font-size:11px}.score-table .points{font-weight:900;color:#4c43c5}.details{border:1px solid #e0e6f4;border-radius:12px;margin-top:8px;overflow:hidden}.details summary{padding:10px 12px;cursor:pointer;font-weight:800;font-size:13px;background:#f7f9ff}.details table{width:100%;border-collapse:collapse}.details td{border-top:1px solid #e4e9f7;font-size:12px;padding:8px}.details td:last-child{text-align:right}.best{color:#0b895b;font-weight:800}
+.aside{position:sticky;top:10px}.chat{display:flex;flex-direction:column;height:min(58dvh,490px);min-height:260px}.chat-log{flex:1;overflow:auto;overscroll-behavior:contain;min-height:0;padding:4px 0;display:flex;flex-direction:column;gap:7px}.message{background:#f5f7ff;border:1px solid #e3e7fa;border-radius:11px;padding:8px 10px;word-break:break-word}.message.mine{background:#efedff;border-color:#d7d0ff}.message.system{background:#fff7df;border-color:#ffedba}.message .by{font-size:10px;color:#665eb4;font-weight:900;margin-bottom:2px}.message p{font-size:12px;margin:0;white-space:pre-wrap}.chat-form{display:flex;gap:7px;border-top:1px solid #e2e6f4;padding-top:10px;margin-top:10px}.chat-form input{flex:1;width:0;min-width:0}.chat-form button{flex:none}
+.toast{position:fixed;z-index:30;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);max-width:min(92%,420px);padding:12px 17px;border-radius:13px;background:#23255be8;color:white;font-weight:800;font-size:13px;box-shadow:0 10px 45px #14225744;text-align:center}
+dialog{border:1px solid #d8dcf7;border-radius:20px;max-width:min(92%,510px);padding:20px;color:var(--navy);box-shadow:0 30px 70px #1a265a60}dialog::backdrop{background:#1c275d85}dialog h2{margin:0 0 12px}.rules p,.rules li{font-size:13px;line-height:1.6}
+@media(max-width:720px){.shell{grid-template-columns:1fr}.aside{position:static}.chat{height:260px}.share{grid-template-columns:1fr 126px}.qr{width:126px;min-height:126px}.setting-row{grid-template-columns:1fr 1fr}.setting-row button{grid-column:1/-1}.hero{min-height:132px}.hero h1{font-size:clamp(27px,7vw,40px)}}
+@media(max-width:390px){.top{padding:6px}.brand strong{font-size:12px}.hero{padding:14px}.hero p{font-size:12px}.glyph{border-radius:17px}.share{grid-template-columns:1fr 112px}.qr{width:112px;min-height:112px}.top-actions button{font-size:12px;padding:8px}.room-id{padding:11px}.room-id strong{font-size:23px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+</style></head><body>
+<main>
+<header class="top"><div class="brand"><img src="/icon.webp" alt=""><div><strong>БИБЛЕЙСКИЕ ИГРЫ</strong><small>Играй, изучай, запоминай</small></div></div><div class="top-actions"><button class="soft" id="rules" type="button">Правила</button><button class="soft" id="home" type="button">Главная</button></div></header>
+<section class="hero"><div><div class="eyebrow" id="tagline">СЛОВЕСНАЯ ИГРА • ОНЛАЙН</div><h1>Библейская азбука</h1><p id="hero-info">Пять категорий, общая буква и настоящие друзья. Все ответы проверяются по Синодальному переводу.</p></div><div class="glyph" id="letter">Б</div></section>
+<div class="shell"><div class="content">
+<section class="pane" id="welcome">
+<div class="kicker">Начни играть</div><h2>Создай комнату</h2>
+<label class="field-label" for="nickname">Как тебя зовут?</label><input id="nickname" maxlength="28" autocomplete="nickname" placeholder="Имя игрока">
+<label class="field-label">Выбери режим</label><div class="option-row"><label class="option"><input type="radio" name="mode" value="stop" checked><span><b>Первый СТОП</b><small>Кто первым проверил все ответы, останавливает раунд</small></span></label><label class="option"><input type="radio" name="mode" value="timed"><span><b>На время</b><small>Все пишут до общего сигнала таймера</small></span></label></div>
+<div id="duration-wrap" hidden><label class="field-label" for="duration">Время раунда</label><select id="duration"><option value="30">30 секунд</option><option value="60" selected>1 минута</option><option value="90">1 минута 30 секунд</option></select></div>
+<div style="margin-top:14px"><button class="primary large" id="create" type="button">＋ Создать комнату</button></div>
+<div style="border-top:1px solid var(--line);margin:22px 0 14px"></div><h2>Присоединиться к друзьям</h2>
+<label class="field-label" for="join-code">Код комнаты</label><div class="actions"><input id="join-code" maxlength="6" inputmode="text" autocomplete="off" placeholder="НАПРИМЕР A2B3C4" style="text-transform:uppercase;flex:2"><button class="soft" id="join" type="button">Войти →</button></div>
+</section>
+<section class="pane" id="lobby" hidden>
+<div class="kicker">Комната ожидания</div><h2>Пригласи участников</h2>
+<div class="room-id"><div><small>Код комнаты</small><strong id="room-code">••••••</strong></div><button class="soft" id="copy-code">Копировать</button></div>
+<div class="share"><div><b style="display:block;margin-bottom:6px;font-size:13px">Ссылка-приглашение</b><p id="share-url"></p><button class="soft" id="copy-link">Поделиться ссылкой</button><p class="help">Отсканируй QR-код другим телефоном, чтобы сразу открыть комнату.</p></div><div class="qr" id="qr"><span class="muted">Загрузка QR…</span></div></div>
+</section>
+<section class="pane" id="settings-pane" hidden><h2>Настройки партии</h2><div class="setting-row"><div><label class="field-label" for="lobby-mode">Режим</label><select id="lobby-mode"><option value="stop">Первый СТОП</option><option value="timed">На время</option></select></div><div><label class="field-label" for="lobby-duration">Продолжительность</label><select id="lobby-duration"><option value="30">30 сек.</option><option value="60">1 мин.</option><option value="90">1,5 мин.</option></select></div><button class="soft" id="save-settings">Сохранить</button></div><p class="help">Только ведущий меняет настройки и запускает партию. По умолчанию пять раундов.</p></section>
+<section class="pane" id="players-pane" hidden><h2>Участники <span id="player-count" class="muted"></span></h2><div class="player-list" id="players"></div><p class="help" id="players-help">Нужно минимум 2 игрока.</p><div id="start-wrap" style="margin-top:14px"><button class="primary large" id="start">▶ Начать игру</button></div></section>
+<section class="pane" id="playing" hidden><div class="board-meta"><span class="pill" id="round-label">Раунд 1 из 5</span><span class="pill timer" id="time-label">Режим СТОП</span><span class="pill" id="save-label">Черновик сохранён</span></div><h2>Твои ответы на букву <span id="letter-caption">Б</span></h2><p class="subnote">Можно написать до трёх вариантов в каждой категории. Система выберет тот, который не повторяется у соперников.</p><div class="categories" id="categories"></div><div class="notice" id="game-notice">Ответы сохраняются автоматически. Другие игроки не видят их до конца раунда.</div><div class="game-actions"><button class="soft" id="check">✓ Проверить ответы</button><button class="primary" id="stop" disabled hidden>■ СТОП — завершить раунд</button></div></section>
+<section class="pane" id="results" hidden><div class="kicker" id="result-kicker">Итоги раунда</div><h2 id="result-title">Очки игроков</h2><p id="result-reason" class="muted"></p><table class="score-table"><thead><tr><th>Игрок</th><th>Раунд</th><th>Всего</th></tr></thead><tbody id="result-rows"></tbody></table><div id="result-details"></div><button class="primary large" id="next-round" style="margin-top:16px" hidden>▶ Следующий раунд</button><p class="help" id="wait-next">Следующий раунд запускает ведущий.</p></section>
+</div>
+<aside class="aside" id="aside"><section class="pane" id="intro-side"><h3>Как играть?</h3><div class="steps"><div class="step"><b>1</b><span>Ведущий создаёт комнату, друзья заходят по коду или QR.</span></div><div class="step"><b>2</b><span>Все получают одинаковую случайную букву и пять категорий.</span></div><div class="step"><b>3</b><span>Три варианта на пункт помогают найти уникальный правильный ответ.</span></div><div class="step"><b>4</b><span>Уникальный ответ — 10 очков, совпадение — 5.</span></div></div><div class="notice">Словарь Синодального перевода · 66 книг · 43 039 словоформ</div></section>
+<section class="pane chat" id="chat-pane" hidden><h3>Чат комнаты <span class="muted" id="chat-counter"></span></h3><div class="chat-log" id="chat-log" role="log" aria-live="polite"></div><form class="chat-form" id="chat-form"><input id="chat-input" aria-label="Сообщение" maxlength="240" placeholder="Написать в чат…"><button type="submit" class="soft">➤</button></form></section>
+</aside></div>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+<dialog id="rules-dialog"><div class="rules"><h2>Правила «Библейской азбуки»</h2><p>Все участники получают одну букву и заполняют пять категорий: имя, город или местность, растение, предмет, животное. Подходят библейские названия, подтверждённые словарём Синодального перевода.</p><p>Можно указать до <b>трёх разных слов</b> в каждой категории. Система автоматически выбирает лучший правильный вариант: если слово не встречается в предложениях других игроков, даёт <b>10 очков</b>; если встречается — <b>5 очков</b>. Ошибки и пустые поля дают 0. Даже если соперник предложил одинаковое слово среди запасных вариантов, оно считается совпадением.</p><p><b>«Первый СТОП»:</b> игрок проверяет правильность всех пяти категорий, затем нажимает СТОП. Раунд завершается для всех одновременно. <b>«На время»:</b> ответы сохраняются автоматически, окончание через 30, 60 или 90 секунд.</p><p>Ведущий запускает следующий раунд. Всего пять раундов. Все ответы и очки проверяет сервер, черновики соперников до конца раунда скрыты.</p><button class="primary large" id="close-rules">Понятно</button></div></dialog>
+<script src="/vendor/qrcode.min.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const cats=['Имя','Город или местность','Растение','Предмет','Животное'];
+const emoji=['📜','🗺️','🌿','💎','🦁'];
+const key='bible-azbuka-session-v1';
+let room=null,token='',code='',view='',round=-1,pollBusy=false,lastMsg='',saveTimer=0,verified=false,timeoutAt=0;
+const esc=x=>String(x??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+const norm=x=>String(x??'').normalize('NFC').toLocaleLowerCase('ru').replaceAll('ё','е').replace(/\\u0301/g,'').trim().replace(/\\s+/g,' ');
+function toast(msg){const e=$('toast');e.textContent=msg;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,4200)}
+function show(ids){['welcome','lobby','settings-pane','players-pane','playing','results','intro-side','chat-pane'].forEach(id=>$(id).hidden=!ids.includes(id))}
+function saved(){try{return JSON.parse(localStorage.getItem(key)||'{}')}catch{return {}}}
+function remember(){try{localStorage.setItem(key,JSON.stringify({code,token,nick:$('nickname').value.trim()}))}catch{}}
+async function api(action,data,method='POST',withToken=true){
+ const url=action==='create'?'/api/create':'/api/'+code+'/'+action;
+ const headers={'content-type':'application/json'};
+ if(withToken&&token)headers.Authorization='Bearer '+token;
+ const response=await fetch(url,{method,headers,body:method==='POST'?JSON.stringify(data||{}):undefined,cache:'no-store'});
+ let result;try{result=await response.json()}catch{throw Error('Сервер не ответил. Проверь соединение.')}
+ if(!response.ok)throw Error(result.error||'Ошибка '+response.status);
+ return result;
+}
+function setBusy(id,busy){$(id).disabled=busy}
+function modeWelcome(){const timed=document.querySelector('input[name="mode"]:checked').value==='timed';$('duration-wrap').hidden=!timed}
+document.querySelectorAll('input[name="mode"]').forEach(x=>x.addEventListener('change',modeWelcome));
+$('rules').onclick=()=>$('rules-dialog').showModal();$('close-rules').onclick=()=>$('rules-dialog').close();
+$('home').onclick=()=>{if(code&&!confirm('Выйти из комнаты? Ты сможешь вернуться по тому же коду.'))return;code='';token='';room=null;round=-1;localStorage.removeItem(key);history.replaceState(null,'',location.pathname);show(['welcome','intro-side']);$('hero-info').textContent='Пять категорий, общая буква и настоящие друзья. Все ответы проверяются по Синодальному переводу.';$('letter').textContent='Б'};
+async function copy(text){try{await navigator.clipboard.writeText(text);toast('Скопировано')}catch{const t=document.createElement('textarea');t.value=text;document.body.append(t);t.select();document.execCommand('copy');t.remove();toast('Скопировано')}}
+$('copy-code').onclick=()=>copy(code);$('copy-link').onclick=()=>copy(link());
+function link(){return location.origin+location.pathname+'?room='+encodeURIComponent(code)}
+function renderQR(){
+ const host=$('qr');host.replaceChildren();
+ try{if(!window.QRCode)throw Error('Библиотека QR недоступна');
+ new window.QRCode(host,{text:link(),width:126,height:126,correctLevel:window.QRCode.CorrectLevel.M});
+ }catch{host.textContent='Используй код комнаты'}
+}
+function enter(result){token=result.token;room=result.room;code=room.code;remember();history.replaceState(null,'',location.pathname+'?room='+code);paint(room);toast('Ты в комнате '+code)}
+$('create').onclick=async()=>{const name=$('nickname').value.trim();if(name.length<2)return toast('Введи имя не короче двух символов');
+ setBusy('create',true);try{const mode=document.querySelector('input[name="mode"]:checked').value;enter(await api('create',{name,mode,duration:Number($('duration').value)},'POST',false))}catch(e){toast(e.message)}finally{setBusy('create',false)}};
+$('join').onclick=async()=>{const name=$('nickname').value.trim();if(name.length<2)return toast('Введи имя не короче двух символов');
+ const target=$('join-code').value.toUpperCase().trim().replace(/[^A-Z2-9]/g,'');if(target.length!==6)return toast('Нужен шестизначный код');
+ code=target;setBusy('join',true);try{enter(await api('join',{name},'POST',false))}catch(e){toast(e.message)}finally{setBusy('join',false)}};
+$('save-settings').onclick=async()=>{try{const r=await api('settings',{mode:$('lobby-mode').value,duration:Number($('lobby-duration').value)});paint(r);toast('Настройки сохранены')}catch(e){toast(e.message)}};
+$('start').onclick=$('next-round').onclick=async()=>{try{const r=await api('start');paint(r)}catch(e){toast(e.message)}};
+$('chat-form').addEventListener('submit',async e=>{e.preventDefault();const input=$('chat-input'),txt=input.value.trim();if(!txt)return;
+ input.disabled=true;try{const r=await api('chat',{text:txt});input.value='';paint(r)}catch(e){toast(e.message)}finally{input.disabled=false;input.focus()}});
+function playerCards(r){
+ $('player-count').textContent='('+r.players.length+'/16)';
+ $('players').innerHTML=r.players.map(p=>'<div class="player"><div class="avatar">'+esc(p.name.slice(0,1).toUpperCase())+'</div><div style="min-width:0"><strong>'+esc(p.name)+(p.id===r.hostId?' 👑':'')+'</strong><small>'+p.score+' очков</small></div><span class="dot '+(p.online?'on':'')+'" title="'+(p.online?'Онлайн':'Нет связи')+'"></span></div>').join('');
+}
+function renderChat(r){
+ const messages=r.messages||[],last=messages.at(-1)?.id||'';
+ if(last!==lastMsg){const log=$('chat-log'),atBottom=log.scrollTop+log.clientHeight>=log.scrollHeight-45;
+ log.innerHTML=messages.map(m=>'<div class="message '+(m.system?'system':m.from===r.selfId?'mine':'')+'"><div class="by">'+esc(m.system?'Система':m.name)+'</div><p>'+esc(m.text)+'</p></div>').join('');
+ if(atBottom||lastMsg==='')log.scrollTop=log.scrollHeight;lastMsg=last;}
+ $('chat-counter').textContent='('+messages.length+')';
+}
+function readAnswers(){return cats.map((_,i)=>[...document.querySelectorAll('[data-cat="'+i+'"] input')].map(el=>el.value.trim()).filter(Boolean).slice(0,3))}
+function ensureInputs(i,count){
+ const node=$('entry-'+i);
+ for(let j=node.children.length;j<count;j++){
+  const line=document.createElement('div');line.className='answer-line';
+  const index=document.createElement('small');index.textContent=String(j+1);
+  const input=document.createElement('input');input.maxLength=80;input.placeholder=j?'Запасной вариант':'Слово на букву '+room.letter;
+  input.autocomplete='off';input.spellcheck=false;input.setAttribute('aria-label',cats[i]+' — вариант '+(j+1));
+  input.addEventListener('input',changed);line.append(index,input);node.append(line);
+ }
+ $('add-'+i).hidden=node.children.length>=3;
+}
+function buildForm(r){
+ $('categories').replaceChildren();
+ cats.forEach((cat,i)=>{
+  const item=document.createElement('div');item.className='cat';item.dataset.cat=i;
+  item.innerHTML='<div class="cat-head"><span class="cat-emoji">'+emoji[i]+'</span><b>'+cat+'</b><small>до 3 слов</small></div><div class="answers-input" id="entry-'+i+'"></div><button type="button" class="add-answer" id="add-'+i+'">＋ Ещё вариант</button><div class="review" id="review-'+i+'" aria-live="polite"></div>';
+  $('categories').append(item);
+  const words=r.ownDraft[i]||[];ensureInputs(i,Math.max(1,words.length));
+  [...$('entry-'+i).querySelectorAll('input')].forEach((input,j)=>input.value=words[j]||'');
+  $('add-'+i).onclick=()=>{ensureInputs(i,$('entry-'+i).children.length+1);$('entry-'+i).lastElementChild.querySelector('input').focus()};
+ });
+ verified=false;$('stop').disabled=true;$('game-notice').textContent='Ответы сохраняются автоматически. Соперники увидят их только по окончании раунда.';
+}
+function changed(){verified=false;$('stop').disabled=true;cats.forEach((_,i)=>{$('review-'+i).replaceChildren()});
+ $('save-label').textContent='Сохраняем…';clearTimeout(saveTimer);
+ saveTimer=setTimeout(async()=>{if(!room||room.phase!=='playing')return;try{await api('draft',{answers:readAnswers()});$('save-label').textContent='Черновик сохранён'}catch(e){$('save-label').textContent='Нет связи';toast(e.message)}},550);
+}
+async function check(){
+ if(!room||room.phase!=='playing')return;
+ clearTimeout(saveTimer);$('check').disabled=true;
+ const submitted=readAnswers();
+ try{
+  await api('draft',{answers:submitted});
+  const r=await api('check',{answers:submitted});
+  if(JSON.stringify(readAnswers())!==JSON.stringify(submitted))return toast('Ответы изменились — проверь ещё раз');
+  cats.forEach((_,i)=>{
+   const node=$('review-'+i),list=r.rows[i];
+   node.replaceChildren();
+   if(!list.length){node.className='review bad';node.textContent='Нет ответа';return;}
+   list.forEach((answer,j)=>{
+    const p=document.createElement('div');p.className=answer.valid?'review ok':'review bad';
+    p.textContent=(answer.valid?'✓ ':'✕ ')+answer.word+' — '+(answer.valid?'подтверждено по Библии':answer.reason);
+    if(!answer.valid&&answer.suggestions?.length)answer.suggestions.forEach(s=>{
+     const b=document.createElement('button');b.type='button';b.textContent='Исправить: '+s;b.onclick=()=>{
+      const input=$('entry-'+i).children[j]?.querySelector('input');if(input){input.value=s;changed();input.focus()}
+     };p.append(b);
+    });
+    node.append(p);
+   });
+  });
+  verified=r.complete;
+  $('stop').disabled=!r.complete;
+  $('game-notice').textContent=r.complete?'Все категории проверены. '+(room.mode==='stop'?'Можешь нажать СТОП!':'Ответы сохраняются до сигнала таймера.'):'Исправь ошибки или добавь правильные ответы. Отмеченные варианты не засчитываются.';
+  toast(r.complete?'Проверка пройдена!':'Есть ошибки — смотри подсказки');
+ }catch(e){toast(e.message)}finally{$('check').disabled=false}
+}
+$('check').onclick=check;
+$('stop').onclick=async()=>{if(!verified||!room||room.mode!=='stop')return;clearTimeout(saveTimer);
+ setBusy('stop',true);try{const r=await api('stop',{answers:readAnswers()});paint(r);toast('СТОП! Подводим итоги')}catch(e){toast(e.message)}finally{setBusy('stop',false)}};
+function resultTable(r){
+ const res=r.results;if(!res)return;
+ $('result-kicker').textContent=r.finished?'Партия завершена':'Итоги раунда '+(r.round+1);
+ $('result-title').textContent=r.finished?'🏆 Победитель — '+res.players[0]?.name:'Результаты раунда';
+ $('result-reason').textContent=res.reason==='stop'?'СТОП нажал '+(res.stopper||'игрок')+'. Все ответы закрыты.':'Время вышло. Все ответы закрыты.';
+ $('result-rows').innerHTML=res.players.map((p,i)=>'<tr><td>'+(i===0?'🥇 ':'')+esc(p.name)+'</td><td class="points">+'+p.added+'</td><td><b>'+p.total+'</b></td></tr>').join('');
+ $('result-details').innerHTML=res.players.map(p=>'<details class="details"><summary>'+esc(p.name)+' — показать ответы</summary><table><tbody>'+p.answers.map(x=>'<tr><td>'+esc(x.category)+'</td><td><b>'+esc(x.word)+'</b>'+(x.reference?'<br><small>'+esc(x.reference)+'</small>':'')+'</td><td class="best">+'+x.points+'</td></tr>').join('')+'</tbody></table></details>').join('');
+ $('next-round').hidden=r.selfId!==r.hostId;
+ $('next-round').textContent=r.finished?'↻ Новая партия':'▶ Следующий раунд';
+ $('wait-next').hidden=r.selfId===r.hostId;
+}
+function paint(r){
+ room=r;code=r.code;
+ const ids=['players-pane','chat-pane'];const host=r.selfId===r.hostId;
+ playerCards(r);renderChat(r);
+ if(r.phase==='lobby'){
+  ids.push('lobby');if(host)ids.push('settings-pane');
+  $('room-code').textContent=code;$('share-url').textContent=link();
+  $('lobby-mode').value=r.mode;$('lobby-duration').value=String(r.duration);
+  $('start-wrap').hidden=!host;$('players-help').textContent=host?'Дождись второго игрока и начинай':'Ожидаем, когда ведущий запустит игру.';
+  $('letter').textContent='Б';$('hero-info').textContent='Комната '+code+' • выберите режим и пригласите друзей.';
+  if(view!=='lobby')renderQR();
+ } else if(r.phase==='playing'){
+  ids.push('playing');
+  if(view!=='playing'||round!==r.round){buildForm(r);round=r.round;window.scrollTo({top:0,behavior:'smooth'})}
+  $('letter').textContent=r.letter;$('letter-caption').textContent=r.letter;
+  $('round-label').textContent='Раунд '+(r.round+1)+' из '+r.rounds;
+  $('stop').hidden=r.mode!=='stop';
+  $('time-label').textContent=r.mode==='stop'?'Первый СТОП':'Осталось '+r.remaining+' сек.';
+  timeoutAt=r.mode==='timed'?Date.now()+r.remaining*1000:0;
+  $('hero-info').textContent=r.mode==='stop'?'Проверь пять категорий и первым нажми СТОП.':'Успей вписать ответы до истечения времени!';
+ } else {
+  ids.push('results');$('letter').textContent=r.letter||'Б';
+  $('hero-info').textContent='Пять категорий · '+(r.finished?'победитель определён!':'раунд завершён!');
+  resultTable(r);
+ }
+ view=r.phase;show(ids);
+}
+function clock(){
+ if(!room||room.phase!=='playing'||room.mode!=='timed')return;
+ const left=Math.max(0,Math.ceil((timeoutAt-Date.now())/1000));
+ const el=$('time-label');el.textContent=left>0?'⏱ Осталось '+left+' сек.':'⏱ Время истекло';
+ el.classList.toggle('urgent',left<=10);
+ if(!left){$('game-notice').textContent='Время истекло. Ждём итогов с сервера…';$('categories').querySelectorAll('input').forEach(i=>i.disabled=true);$('check').disabled=true;}
+}
+async function poll(){if(!code||!token||pollBusy)return;pollBusy=true;try{const r=await api('state',undefined,'GET');paint(r)}catch(e){
+ if(!room||!room.phase)toast(e.message);
+ if(/Требуется вход|не найдена/i.test(e.message)){code='';token='';localStorage.removeItem(key);show(['welcome','intro-side']);toast('Комната недоступна — войди заново')}
+ }finally{pollBusy=false}}
+function init(){
+ const session=saved();$('nickname').value=session.nick||'';
+ const fromUrl=(new URL(location.href)).searchParams.get('room')||'';
+ const incoming=fromUrl.toUpperCase().replace(/[^A-Z2-9]/g,'').slice(0,6);
+ $('join-code').value=incoming;
+ if(session.code&&session.token&&(!incoming||session.code===incoming)){
+  code=session.code;token=session.token;poll();
+ }else show(['welcome','intro-side']);
+}
+setInterval(poll,1400);setInterval(clock,220);init();
+</script></body></html>
