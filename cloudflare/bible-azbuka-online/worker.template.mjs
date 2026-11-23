@@ -217,6 +217,16 @@ export default {
       const h=new Headers(remote.headers);h.set('cache-control','public,max-age=3600');
       return new Response(remote.body,{status:remote.status,headers:h});
     }
+    if(url.pathname.startsWith('/branding/')) {
+      const remote=await fetch(SOURCE+url.pathname);
+      const h=new Headers(remote.headers);h.set('cache-control','public,max-age=86400');
+      return new Response(remote.body,{status:remote.status,headers:h});
+    }
+    if(url.pathname==='/vendor/qrcode.min.js'){
+      const remote=await fetch('https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/cloudflare/full-preview/public/vendor/qrcode.min.js');
+      if(!remote.ok)return new Response('QR unavailable',{status:503});
+      return new Response(remote.body,{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'public,max-age=86400'}});
+    }
     if(url.pathname==='/icon.webp'){
       const remote=await fetch('https://raw.githubusercontent.com/viDaLost/alias-spy-games/feat/bible-azbuka-online-lobby/web/assets/icons/bible-azbuka.webp');
       if(remote.ok)return new Response(remote.body,{headers:{'content-type':'image/webp','cache-control':'public,max-age=86400'}});
