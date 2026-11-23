@@ -1,0 +1,55 @@
+name: Build Bible Azbuka catalog
+
+on:
+  push:
+    branches: [feat/bible-azbuka-online-lobby]
+    paths:
+      - 'web/js/app.js'
+      - 'web/js/home-enhancements.js'
+      - 'web/js/game-card-details.js'
+      - 'web/styles/game-shell.css'
+      - 'scripts/i18n/translations.tsv'
+      - 'scripts/check-web-android-game-parity.mjs'
+      - '.github/workflows/build-bible-azbuka-catalog.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bible-azbuka-catalog-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build web catalog and four languages
+        run: npm run build
+      - name: Verify build freshness
+        run: npm run check:build
+      - name: Check expected web/Android routes
+        run: node scripts/check-web-android-game-parity.mjs
+      - name: Validate online Worker and game rules
+        run: |
+          node cloudflare/bible-azbuka-online/scripts/build.mjs
+          node --check cloudflare/bible-azbuka-online/dist/worker.mjs
+          node cloudflare/bible-azbuka-online/scripts/test.mjs
+      - name: Commit generated catalog build
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html sw.js web/dist web/locales
+          if ! git diff --cached --quiet; then
+            git commit -m "build: publish Biblical Alphabet catalog assets"
+            git push origin HEAD:feat/bible-azbuka-online-lobby
+          fi

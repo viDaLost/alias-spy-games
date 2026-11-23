@@ -35,10 +35,11 @@ const expectedNativeRoutes = new Set([
 // открывается фреймом. Нативной реализации у неё нет и не планируется. Здесь
 // сверяется только то, что маршрут заведён намеренно, а не завёлся сам.
 // «Двенадцать колен» работает в общей веб-оболочке с отдельным сервером комнат.
+// «Библейская азбука» запускается как встроенный онлайн-кадр, и нативная версия её не дублирует.
 // «Библейская география» — тоже только веб: карта, её жесты и данные со
 // стихами живут в web/ и попадают в APK вместе с упакованным деревом.
 const expectedWebRoutes = new Set([...expectedNativeRoutes,
-  'moses-nile', 'promised-land', 'twelve-tribes', 'bible-geography']);
+  'moses-nile', 'promised-land', 'twelve-tribes', 'bible-geography', 'bible-azbuka']);
 
 const sorted = (values) => [...values].sort();
 assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedWebRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);

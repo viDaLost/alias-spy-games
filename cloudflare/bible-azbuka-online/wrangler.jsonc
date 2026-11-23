@@ -1,0 +1,29 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "alias-spy-games-bible-azbuka",
+  "main": "dist/worker.mjs",
+  "compatibility_date": "2026-11-20",
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOMS",
+        "class_name": "AzbukaRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "AzbukaRoom"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "binding": "SYNODAL_SOURCE",
+      "service": "alias-spy-games-bible-words-preview"
+    }
+  ]
+}

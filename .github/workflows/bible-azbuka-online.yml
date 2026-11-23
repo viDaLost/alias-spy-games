@@ -1,0 +1,27 @@
+name: Bible Azbuka Online
+
+on:
+  push:
+    branches:
+      - feat/bible-azbuka-online-lobby
+    paths:
+      - 'cloudflare/bible-azbuka-online/**'
+  pull_request:
+    paths:
+      - 'cloudflare/bible-azbuka-online/**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build worker
+        run: node cloudflare/bible-azbuka-online/scripts/build.mjs
+      - name: Syntax check
+        run: node --check cloudflare/bible-azbuka-online/dist/worker.mjs
+      - name: Multiplayer rules tests
+        run: node cloudflare/bible-azbuka-online/scripts/test.mjs
