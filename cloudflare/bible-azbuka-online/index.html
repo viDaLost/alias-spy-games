@@ -41,10 +41,26 @@ dialog{border:1px solid #d8dcf7;border-radius:20px;max-width:min(92%,510px);padd
 @media(max-width:720px){.shell{grid-template-columns:1fr}.aside{position:static}.chat{height:260px}.share{grid-template-columns:1fr 126px}.qr{width:126px;min-height:126px}.setting-row{grid-template-columns:1fr 1fr}.setting-row button{grid-column:1/-1}.hero{min-height:132px}.hero h1{font-size:clamp(27px,7vw,40px)}}
 @media(max-width:390px){.top{padding:6px}.brand strong{font-size:12px}.hero{padding:14px}.hero p{font-size:12px}.glyph{border-radius:17px}.share{grid-template-columns:1fr 112px}.qr{width:112px;min-height:112px}.top-actions button{font-size:12px;padding:8px}.room-id{padding:11px}.room-id strong{font-size:23px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+
+/* Compact in-game top bar; the former hero and tutorial panel were deliberately removed. */
+.top{margin-bottom:13px;padding:9px 12px;min-height:66px}
+.brand strong{font-size:clamp(15px,3.7vw,19px);font-weight:900;letter-spacing:-.035em}
+.brand small{font-size:11px;max-width:205px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shell:has(.aside[hidden]){grid-template-columns:minmax(0,1fr)}
+.scan-button{display:block;width:100%;margin-top:9px;color:#443ab8;border-color:#bab7f4;background:#efedff}
+.letter-pill{background:linear-gradient(135deg,#736afa,#453bc0);border-color:#453bc0;color:white;font-size:20px;min-width:48px;text-align:center;padding:5px 13px;box-shadow:0 3px 0 #342e91}
+.scan-camera{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:14px;background:#101425;margin:12px 0}
+.scan-camera video{width:100%;height:100%;object-fit:cover}
+.scan-guide{position:absolute;inset:16%;border:3px solid #fbfcffff;border-radius:20px;box-shadow:0 0 0 900px #00000026;pointer-events:none}
+.scan-file-label{display:block;font-size:13px;font-weight:850;color:#5045ba;margin:10px 0 6px}
+#scan-file{font-size:12px;margin-bottom:12px;width:100%}
+#scan-status{min-height:18px;margin:6px 0}
+#scan-dialog{width:min(94vw,460px);max-height:calc(100dvh - 32px);overflow-y:auto}
+@media(max-width:390px){.top{gap:6px}.brand{gap:7px}.brand img{width:37px;height:37px}.top-actions{gap:4px}.top-actions button{padding:7px 9px;min-height:39px}.brand small{max-width:140px}}
 </style></head><body>
 <main>
-<header class="top"><div class="brand"><img src="/icon.webp" alt=""><div><strong>БИБЛЕЙСКИЕ ИГРЫ</strong><small>Играй, изучай, запоминай</small></div></div><div class="top-actions"><button class="soft" id="rules" type="button">Правила</button><button class="soft" id="home" type="button">Главная</button></div></header>
-<section class="hero"><div><div class="eyebrow" id="tagline">СЛОВЕСНАЯ ИГРА • ОНЛАЙН</div><h1>Библейская азбука</h1><p id="hero-info">Пять категорий, общая буква и настоящие друзья. Все ответы проверяются по Синодальному переводу.</p></div><div class="glyph" id="letter">Б</div></section>
+<header class="top"><div class="brand"><img src="/icon.webp" alt=""><div><strong>Библейская азбука</strong><small id="hero-info">Словесная игра • онлайн</small></div></div><div class="top-actions"><button class="soft" id="rules" type="button">Правила</button><button class="soft" id="home" type="button">Главная</button></div></header>
+
 <div class="shell"><div class="content">
 <section class="pane" id="welcome">
 <div class="kicker">Начни играть</div><h2>Создай комнату</h2>
@@ -54,6 +70,7 @@ dialog{border:1px solid #d8dcf7;border-radius:20px;max-width:min(92%,510px);padd
 <div style="margin-top:14px"><button class="primary large" id="create" type="button">＋ Создать комнату</button></div>
 <div style="border-top:1px solid var(--line);margin:22px 0 14px"></div><h2>Присоединиться к друзьям</h2>
 <label class="field-label" for="join-code">Код комнаты</label><div class="actions"><input id="join-code" maxlength="6" inputmode="text" autocomplete="off" placeholder="НАПРИМЕР A2B3C4" style="text-transform:uppercase;flex:2"><button class="soft" id="join" type="button">Войти →</button></div>
+<button type="button" class="soft scan-button" id="scan-qr">▣ Отсканировать QR-код</button>
 </section>
 <section class="pane" id="lobby" hidden>
 <div class="kicker">Комната ожидания</div><h2>Пригласи участников</h2>
@@ -62,14 +79,24 @@ dialog{border:1px solid #d8dcf7;border-radius:20px;max-width:min(92%,510px);padd
 </section>
 <section class="pane" id="settings-pane" hidden><h2>Настройки партии</h2><div class="setting-row"><div><label class="field-label" for="lobby-mode">Режим</label><select id="lobby-mode"><option value="stop">Первый СТОП</option><option value="timed">На время</option></select></div><div><label class="field-label" for="lobby-duration">Продолжительность</label><select id="lobby-duration"><option value="30">30 сек.</option><option value="60">1 мин.</option><option value="90">1,5 мин.</option></select></div><button class="soft" id="save-settings">Сохранить</button></div><p class="help">Только ведущий меняет настройки и запускает партию. По умолчанию пять раундов.</p></section>
 <section class="pane" id="players-pane" hidden><h2>Участники <span id="player-count" class="muted"></span></h2><div class="player-list" id="players"></div><p class="help" id="players-help">Нужно минимум 2 игрока.</p><div id="start-wrap" style="margin-top:14px"><button class="primary large" id="start">▶ Начать игру</button></div></section>
-<section class="pane" id="playing" hidden><div class="board-meta"><span class="pill" id="round-label">Раунд 1 из 5</span><span class="pill timer" id="time-label">Режим СТОП</span><span class="pill" id="save-label">Черновик сохранён</span></div><h2>Твои ответы на букву <span id="letter-caption">Б</span></h2><p class="subnote">Можно написать до трёх вариантов в каждой категории. Система выберет тот, который не повторяется у соперников.</p><div class="categories" id="categories"></div><div class="notice" id="game-notice">Ответы сохраняются автоматически. Другие игроки не видят их до конца раунда.</div><div class="game-actions"><button class="soft" id="check">✓ Проверить ответы</button><button class="primary" id="stop" disabled hidden>■ СТОП</button></div></section>
+<section class="pane" id="playing" hidden><div class="board-meta"><span class="pill letter-pill" id="letter">Б</span><span class="pill" id="round-label">Раунд 1 из 5</span><span class="pill timer" id="time-label">Режим СТОП</span><span class="pill" id="save-label">Черновик сохранён</span></div><h2>Твои ответы на букву <span id="letter-caption">Б</span></h2><p class="subnote">Можно написать до трёх вариантов в каждой категории. Система выберет тот, который не повторяется у соперников.</p><div class="categories" id="categories"></div><div class="notice" id="game-notice">Ответы сохраняются автоматически. Другие игроки не видят их до конца раунда.</div><div class="game-actions"><button class="soft" id="check">✓ Проверить ответы</button><button class="primary" id="stop" disabled hidden>■ СТОП</button></div></section>
 <section class="pane" id="results" hidden><div class="kicker" id="result-kicker">Итоги раунда</div><h2 id="result-title">Очки игроков</h2><p id="result-reason" class="muted"></p><table class="score-table"><thead><tr><th>Игрок</th><th>Раунд</th><th>Всего</th></tr></thead><tbody id="result-rows"></tbody></table><div id="result-details"></div><button class="primary large" id="next-round" style="margin-top:16px" hidden>▶ Следующий раунд</button><p class="help" id="wait-next">Следующий раунд запускает ведущий.</p></section>
 </div>
-<aside class="aside" id="aside"><section class="pane" id="intro-side"><h3>Как играть?</h3><div class="steps"><div class="step"><b>1</b><span>Ведущий создаёт комнату, друзья заходят по коду или QR.</span></div><div class="step"><b>2</b><span>Все получают одинаковую случайную букву и пять категорий.</span></div><div class="step"><b>3</b><span>Три варианта на пункт помогают найти уникальный правильный ответ.</span></div><div class="step"><b>4</b><span>Уникальный ответ — 10 очков, совпадение — 5.</span></div></div><div class="notice">Словарь Синодального перевода · 66 книг · 43 039 словоформ</div></section>
-<section class="pane chat" id="chat-pane" hidden><h3>Чат комнаты <span class="muted" id="chat-counter"></span></h3><div class="chat-log" id="chat-log" role="log" aria-live="polite"></div><form class="chat-form" id="chat-form"><input id="chat-input" aria-label="Сообщение" maxlength="240" placeholder="Написать в чат…"><button type="submit" class="soft">➤</button></form></section>
+<aside class="aside" id="aside" hidden><section class="pane chat" id="chat-pane" hidden><h3>Чат комнаты <span class="muted" id="chat-counter"></span></h3><div class="chat-log" id="chat-log" role="log" aria-live="polite"></div><form class="chat-form" id="chat-form"><input id="chat-input" aria-label="Сообщение" maxlength="240" placeholder="Написать в чат…"><button type="submit" class="soft">➤</button></form></section>
 </aside></div>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
+<dialog id="scan-dialog" aria-labelledby="scan-title">
+<div class="scan-dialog-body">
+<h2 id="scan-title">Отсканировать QR-код</h2>
+<p class="muted">Наведите камеру на QR-код комнаты. Код подставится автоматически.</p>
+<div class="scan-camera"><video id="scan-video" playsinline autoplay muted></video><div class="scan-guide" aria-hidden="true"></div></div>
+<p id="scan-status" class="muted" role="status">Подготавливаем камеру…</p>
+<label class="scan-file-label" for="scan-file">Или выберите изображение с QR-кодом</label>
+<input type="file" id="scan-file" accept="image/*">
+<button type="button" id="scan-close" class="soft large">Закрыть сканер</button>
+</div>
+</dialog>
 <dialog id="rules-dialog"><div class="rules"><h2>Правила «Библейской азбуки»</h2><p>Все участники получают одну букву и заполняют пять категорий: имя, город или местность, растение, предмет, животное. Подходят библейские названия, подтверждённые словарём Синодального перевода.</p><p>Можно указать до <b>трёх разных слов</b> в каждой категории. Система автоматически выбирает лучший правильный вариант: если слово не встречается в предложениях других игроков, даёт <b>10 очков</b>; если встречается — <b>5 очков</b>. Ошибки и пустые поля дают 0. Даже если соперник предложил одинаковое слово среди запасных вариантов, оно считается совпадением.</p><p><b>«Первый СТОП»:</b> игрок проверяет правильность всех пяти категорий, затем нажимает СТОП. Раунд завершается для всех одновременно. <b>«На время»:</b> ответы сохраняются автоматически, окончание через 30, 60 или 90 секунд.</p><p>Ведущий запускает следующий раунд. Всего пять раундов. Все ответы и очки проверяет сервер, черновики соперников до конца раунда скрыты.</p><button class="primary large" id="close-rules">Понятно</button></div></dialog>
 <script src="/vendor/qrcode.min.js"></script>
 <script>
@@ -82,7 +109,7 @@ let room=null,token='',code='',view='',round=-1,pollBusy=false,lastMsg='',saveTi
 const esc=x=>String(x??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 const norm=x=>String(x??'').normalize('NFC').toLocaleLowerCase('ru').replaceAll('ё','е').replace(/\u0301/g,'').trim().replace(/\s+/g,' ');
 function toast(msg){const e=$('toast');e.textContent=msg;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,4200)}
-function show(ids){['welcome','lobby','settings-pane','players-pane','playing','results','intro-side','chat-pane'].forEach(id=>$(id).hidden=!ids.includes(id))}
+function show(ids){['welcome','lobby','settings-pane','players-pane','playing','results','chat-pane'].forEach(id=>$(id).hidden=!ids.includes(id));$('aside').hidden=!ids.includes('chat-pane')}
 function saved(){try{return JSON.parse(localStorage.getItem(key)||'{}')}catch{return {}}}
 function remember(){try{localStorage.setItem(key,JSON.stringify({code,token,nick:$('nickname').value.trim()}))}catch{}}
 async function api(action,data,method='POST',withToken=true){
@@ -98,7 +125,7 @@ function setBusy(id,busy){$(id).disabled=busy}
 function modeWelcome(){const timed=document.querySelector('input[name="mode"]:checked').value==='timed';$('duration-wrap').hidden=!timed}
 document.querySelectorAll('input[name="mode"]').forEach(x=>x.addEventListener('change',modeWelcome));
 $('rules').onclick=()=>$('rules-dialog').showModal();$('close-rules').onclick=()=>$('rules-dialog').close();
-$('home').onclick=()=>{if(code&&!confirm('Выйти из комнаты? Ты сможешь вернуться по тому же коду.'))return;code='';token='';room=null;round=-1;localStorage.removeItem(key);history.replaceState(null,'',location.pathname);show(['welcome','intro-side']);$('hero-info').textContent='Пять категорий, общая буква и настоящие друзья. Все ответы проверяются по Синодальному переводу.';$('letter').textContent='Б'};
+$('home').onclick=()=>{if(window.parent!==window&&window.parentOrigin){window.parent.postMessage({type:'bible-azbuka:exit'},window.parentOrigin);return}if(code&&!confirm('Выйти из комнаты? Ты сможешь вернуться по тому же коду.'))return;code='';token='';room=null;round=-1;localStorage.removeItem(key);history.replaceState(null,'',location.pathname);show(['welcome']);$('hero-info').textContent='Словесная игра • онлайн';$('letter').textContent='Б'};
 async function copy(text){try{await navigator.clipboard.writeText(text);toast('Скопировано')}catch{const t=document.createElement('textarea');t.value=text;document.body.append(t);t.select();document.execCommand('copy');t.remove();toast('Скопировано')}}
 $('copy-code').onclick=()=>copy(code);$('copy-link').onclick=()=>copy(link());
 function link(){return location.origin+location.pathname+'?room='+encodeURIComponent(code)}
@@ -211,7 +238,7 @@ function paint(r){
   $('room-code').textContent=code;$('share-url').textContent=link();
   if(view!=='lobby'){$('lobby-mode').value=r.mode;$('lobby-duration').value=String(r.duration);}
   $('start-wrap').hidden=!host;$('players-help').textContent=host?'Дождись второго игрока и начинай':'Ожидаем, когда ведущий запустит игру.';
-  $('letter').textContent='Б';$('hero-info').textContent='Комната '+code+' • выберите режим и пригласите друзей.';
+  $('letter').textContent='Б';$('hero-info').textContent='Комната '+code+' • ждём друзей';
   if(view!=='lobby')renderQR();
  } else if(r.phase==='playing'){
   ids.push('playing');
@@ -221,10 +248,10 @@ function paint(r){
   $('stop').hidden=r.mode!=='stop';
   $('time-label').textContent=r.mode==='stop'?'Первый СТОП':'Осталось '+r.remaining+' сек.';
   timeoutAt=r.mode==='timed'?Date.now()+r.remaining*1000:0;
-  $('hero-info').textContent=r.mode==='stop'?'Проверь пять категорий и первым нажми СТОП.':'Успей вписать ответы до истечения времени!';
+  $('hero-info').textContent=r.mode==='stop'?'Первый СТОП':'Режим на время';
  } else {
   ids.push('results');$('letter').textContent=r.letter||'Б';
-  $('hero-info').textContent='Пять категорий · '+(r.finished?'победитель определён!':'раунд завершён!');
+  $('hero-info').textContent=r.finished?'Партия завершена':'Итоги раунда';
   if(view!==r.phase||round!==r.round){resultTable(r);round=r.round;}
  }
  view=r.phase;show(ids);
@@ -238,7 +265,7 @@ function clock(){
 }
 async function poll(){if(!code||!token||pollBusy)return;pollBusy=true;try{const r=await api('state',undefined,'GET');paint(r)}catch(e){
  if(!room||!room.phase)toast(e.message);
- if(/Требуется вход|не найдена/i.test(e.message)){code='';token='';localStorage.removeItem(key);show(['welcome','intro-side']);toast('Комната недоступна — войди заново')}
+ if(/Требуется вход|не найдена/i.test(e.message)){code='';token='';localStorage.removeItem(key);show(['welcome']);toast('Комната недоступна — войди заново')}
  }finally{pollBusy=false}}
 function init(){
  const session=saved();$('nickname').value=session.nick||'';
@@ -247,7 +274,142 @@ function init(){
  $('join-code').value=incoming;
  if(session.code&&session.token&&(!incoming||session.code===incoming)){
   code=session.code;token=session.token;poll();
- }else show(['welcome','intro-side']);
+ }else show(['welcome']);
 }
+
+/* Rules are shown only once per browser profile; the Rules button remains available. */
+const RULES_SEEN_KEY='bible-azbuka-rules-seen-v1';
+$('rules-dialog').addEventListener('close',()=>{
+  try{localStorage.setItem(RULES_SEEN_KEY,'1')}catch{}
+});
+function showRulesOnce(){
+  let seen=false;
+  try{seen=localStorage.getItem(RULES_SEEN_KEY)==='1'}catch{}
+  if(!seen&&typeof $('rules-dialog').showModal==='function'&& !$('rules-dialog').open)
+    $('rules-dialog').showModal();
+}
+/* QR camera: Telegram native scanner when available; browser BarcodeDetector or jsQR fallback. */
+let scanStream=null,scanFrame=0,scanReading=false,qrDecoderPromise=null;
+const scanDialog=$('scan-dialog'),scanVideo=$('scan-video'),scanStatus=$('scan-status');
+function scanCode(raw){
+  const value=String(raw||'').trim();
+  if(/^[A-HJ-NP-Z2-9]{6}$/.test(value.toUpperCase())) return value.toUpperCase();
+  try{
+    const url=new URL(value);
+    if(url.protocol!=='https:'||![
+      location.host,
+      'alias-spy-games-bible-azbuka-online-preview.vitaledanilov.workers.dev',
+      'alias-spy-games-bible-azbuka.vitaledanilov.workers.dev'
+    ].includes(url.host))return '';
+    const next=String(url.searchParams.get('room')||'').toUpperCase();
+    if(/^[A-HJ-NP-Z2-9]{6}$/.test(next))return next;
+  }catch{}
+  return '';
+}
+function acceptQR(raw){
+  const id=scanCode(raw);
+  if(!id){scanStatus.textContent='Этот QR-код не содержит приглашение в «Библейскую азбуку».';return false}
+  $('join-code').value=id;
+  closeScan();
+  toast('Код '+id+' считан. Укажи имя и нажми «Войти».');
+  $('join-code').focus();
+  return true;
+}
+async function qrDecodeLibrary(){
+  if(typeof window.jsQR==='function')return window.jsQR;
+  if(!qrDecoderPromise)qrDecoderPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='/vendor/jsqr.min.js';script.async=true;
+    script.onload=()=>typeof window.jsQR==='function'?resolve(window.jsQR):reject(Error('QR-декодер не загрузился'));
+    script.onerror=()=>reject(Error('Не удалось загрузить QR-декодер'));
+    document.head.append(script);
+  }).catch(e=>{qrDecoderPromise=null;throw e});
+  return qrDecoderPromise;
+}
+let imageCanvas;
+function cameraCanvas(){
+  if(!imageCanvas)imageCanvas=document.createElement('canvas');
+  return imageCanvas;
+}
+async function decodeImage(image){
+  const canvas=cameraCanvas(),w=image.videoWidth||image.naturalWidth||image.width,h=image.videoHeight||image.naturalHeight||image.height;
+  if(!w||!h)return '';
+  const scale=Math.min(1,720/Math.max(w,h));
+  canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0,canvas.width,canvas.height);
+  if('BarcodeDetector' in window){
+    try{
+      const decoder=new BarcodeDetector({formats:['qr_code']});
+      const codes=await decoder.detect(canvas);
+      if(codes.length)return codes[0].rawValue||'';
+    }catch{}
+  }
+  const fn=await qrDecodeLibrary();
+  const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+  return fn(pixels.data,pixels.width,pixels.height,{inversionAttempts:'attemptBoth'})?.data||'';
+}
+async function cameraLoop(){
+  if(!scanDialog.open||!scanStream)return;
+  if(scanReading){scanFrame=requestAnimationFrame(cameraLoop);return}
+  scanReading=true;
+  try{
+    const found=await decodeImage(scanVideo);
+    if(found&&acceptQR(found))return;
+  }catch(e){scanStatus.textContent=e.message||'Не удалось прочитать QR-код';}
+  finally{scanReading=false}
+  if(scanDialog.open&&scanStream)scanFrame=setTimeout(cameraLoop,170);
+}
+function closeScan(){
+  if(scanDialog.open)scanDialog.close();
+  clearTimeout(scanFrame);cancelAnimationFrame(scanFrame);
+  if(scanStream){scanStream.getTracks().forEach(track=>track.stop());scanStream=null}
+  scanVideo.srcObject=null;
+}
+scanDialog.addEventListener('close',closeScan);
+$('scan-close').onclick=closeScan;
+$('scan-qr').onclick=async()=>{
+  const tg=window.Telegram?.WebApp;
+  if(window.parent!==window && window.parentOrigin){
+    window.parent.postMessage({type:'bible-azbuka:scan-request'},window.parentOrigin);
+    return;
+  }
+  if(typeof tg?.showScanQrPopup==='function'){
+    try{tg.showScanQrPopup({text:'Наведите камеру на QR-код комнаты'},txt=>{
+      if(acceptQR(txt)){tg.closeScanQrPopup?.();return true}
+      return false;
+    });return}catch{}
+  }
+  scanStatus.textContent='Подготавливаем камеру…';scanDialog.showModal();
+  try{
+    if(!navigator.mediaDevices?.getUserMedia)throw Error('Доступ к камере отсутствует. Выбери изображение QR-кода.');
+    scanStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'}}});
+    if(!scanDialog.open){closeScan();return}
+    scanVideo.srcObject=scanStream;await scanVideo.play();
+    scanStatus.textContent='Поместите QR-код в рамку камеры.';
+    void cameraLoop();
+  }catch(e){scanStatus.textContent='Не удалось открыть камеру. Разрешите доступ или выберите изображение ниже.';}
+};
+$('scan-file').addEventListener('change',async event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  try{
+    const bitmap=await createImageBitmap(file);
+    const value=await decodeImage(bitmap);
+    bitmap.close?.();
+    if(!value)scanStatus.textContent='QR-код на изображении не найден.';
+    else acceptQR(value);
+  }catch(e){scanStatus.textContent='Не удалось распознать изображение QR-кода.'}
+  finally{event.target.value=''}
+});
+const parentOrigin=new URL(location.href).searchParams.get('parentOrigin');
+window.parentOrigin=parentOrigin&&/^https:\/\/[a-zA-Z0-9.-]+$/.test(parentOrigin)?parentOrigin:null;
+window.addEventListener('message',event=>{
+  if(!window.parentOrigin||event.source!==window.parent||event.origin!==window.parentOrigin)return;
+  if(event.data?.type==='bible-azbuka:scan-result')acceptQR(event.data.text);
+  if(event.data?.type==='bible-azbuka:scan-error')toast('Не удалось открыть сканер. Введи код вручную.');
+});
+window.addEventListener('pagehide',closeScan);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)closeScan()});
+
 setInterval(poll,1400);setInterval(clock,220);init();
+setTimeout(showRulesOnce,250);
 </script></body></html>
