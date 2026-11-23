@@ -106,6 +106,14 @@ for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   }
 }
 
+// The catalog substitutes the thumbnail directory in every unified game icon path.
+const iconRoot = path.join(root, 'web/assets/icons');
+for (const name of fs.readdirSync(path.join(iconRoot, 'unified-v1'))) {
+  if (name.endsWith('.webp') && !fs.existsSync(path.join(iconRoot, 'catalog-v1', name))) {
+    failures.push(`Missing catalog thumbnail: web/assets/icons/catalog-v1/${name}`);
+  }
+}
+
 // A path built with a template literal -- `web/assets/icons/${name}.webp` -- is invisible
 // to the check above, which skips anything containing a placeholder. That is how a whole
 // set of icon preloads kept 404ing after the files were converted to WebP: no literal

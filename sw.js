@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '9f1c6cf7a9';
+const VERSION = '5c2bf078b8';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -105,6 +105,7 @@ const PRECACHE = [
   'web/assets/icons/biblical-treasures-v38.webp',
   'web/assets/icons/catalog-v1/alias.webp',
   'web/assets/icons/catalog-v1/ark.webp',
+  'web/assets/icons/catalog-v1/bible-azbuka.webp',
   'web/assets/icons/catalog-v1/bible-geography.webp',
   'web/assets/icons/catalog-v1/bible-sketch.webp',
   'web/assets/icons/catalog-v1/biblical-treasures.webp',
