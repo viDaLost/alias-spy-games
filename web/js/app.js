@@ -49,6 +49,7 @@ const GAME_GROUPS = [
     id: "word-games",
     items: [
       { key: "bible-wow", title: "Библейские слова", desc: "Собери слова из букв", icon: "words" },
+      { key: "bible-azbuka", title: "Библейская азбука", desc: "Играй онлайн на общую букву", icon: "azbuka" },
       { key: "bible-wordsearch", title: "Поиск библейских слов", desc: "Найди скрытые слова", icon: "search" },
       { key: "sacred-word", title: "Священное слово", desc: "Открой слово по подсказкам", icon: "sacred" },
       {
@@ -79,6 +80,7 @@ const MENU_ICON_SOURCES = {
   spy: "web/assets/icons/unified-v1/spy.webp",
   quartet: "web/assets/icons/unified-v1/quartet.webp",
   words: "web/assets/icons/unified-v1/words.webp",
+  azbuka: "web/assets/icons/bible-azbuka.webp",
   search: "web/assets/icons/unified-v1/search.webp",
   sacred: "web/assets/icons/unified-v1/sacred.webp",
   ark: "web/assets/icons/unified-v1/ark.webp",
@@ -797,6 +799,26 @@ function showGame(gameName) {
     return;
   }
 
+  if (gameName === "bible-azbuka") {
+    // The online game is hosted on a Durable Object Worker, within the app.
+    if (menu) menu.classList.add("hidden");
+    document.body.dataset.mode = "game";
+    document.body.dataset.currentGame = gameName;
+    activeGameName = gameName;
+    window.scrollTo({top:0,behavior:"auto"});
+    const url = new URL("https://alias-spy-games-bible-azbuka.vitaledanilov.workers.dev/");
+    url.searchParams.set("parentOrigin",location.origin);
+    const roomCode = new URLSearchParams(location.search).get("room") || "";
+    if (/^[A-HJ-NP-Z2-9]{6}$/i.test(roomCode)) url.searchParams.set("room",roomCode.toUpperCase());
+    if (container) {
+      container.innerHTML = '<div class="game-frame-wrap game-frame-wrap--azbuka">' +
+        '<iframe class="game-frame" src="' + escapeHTML(url.href) +
+        '" title="Библейская азбука" allow="camera; fullscreen" loading="eager"></iframe>' +
+        '</div>';
+    }
+    return;
+  }
+
   const route = routes[gameName];
   if (!route) {
     if (menu) menu.classList.add("hidden");
@@ -1349,3 +1371,34 @@ function sendPromisedLandInvite() {
   window.RoomInvite.consume('promised-land');
 }
 window.addEventListener('roominvitechange', sendPromisedLandInvite);
+
+// Bridge QR scanning and the home button to the trusted «Библейская азбука» iframe.
+// Telegram native QR scanning belongs to the parent Mini App.
+window.addEventListener('message', event => {
+  if (document.body.dataset.currentGame !== 'bible-azbuka') return;
+  const frame = document.querySelector('.game-frame-wrap--azbuka iframe.game-frame');
+  if (!frame || event.source !== frame.contentWindow) return;
+  let frameOrigin;
+  try { frameOrigin = new URL(frame.src).origin; } catch { return; }
+  if (event.origin !== frameOrigin || !event.data || typeof event.data !== 'object') return;
+  if (event.data.type === 'bible-azbuka:exit') {
+    goToMainMenu();
+    return;
+  }
+  if (event.data.type !== 'bible-azbuka:scan-request') return;
+  const telegram = window.Telegram?.WebApp;
+  if (typeof telegram?.showScanQrPopup !== 'function') {
+    frame.contentWindow?.postMessage({type:'bible-azbuka:scan-error'},frameOrigin);
+    return;
+  }
+  try {
+    telegram.showScanQrPopup({text:'Наведите камеру на QR-код комнаты'}, value => {
+      if (typeof value !== 'string' || !value.trim()) return false;
+      frame.contentWindow?.postMessage({type:'bible-azbuka:scan-result',text:value},frameOrigin);
+      telegram.closeScanQrPopup?.();
+      return true;
+    });
+  } catch {
+    frame.contentWindow?.postMessage({type:'bible-azbuka:scan-error'},frameOrigin);
+  }
+});
