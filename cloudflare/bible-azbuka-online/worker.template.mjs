@@ -22,8 +22,8 @@ const candidates = data => Array.from({length:5},(_,i)=>{
   return [...new Set(words.slice(0,3).map(x=>clean(x)).filter(Boolean).map(x=>x.slice(0,80)))];
 });
 const userView = p => ({id:p.id,name:p.name,score:p.score,ready:!!p.ready,online:Date.now()-p.lastSeen<20000});
-async function bible() {
-  if (!dictionaryRequest) dictionaryRequest = fetch(SOURCE+'/synodal/game.json?v=3')
+async function bible(env) {
+  if (!dictionaryRequest) dictionaryRequest = env.SYNODAL_SOURCE.fetch('https://synodal/synodal/game.json?v=3')
     .then(r=>{if(!r.ok) throw new Error('Синодальный словарь недоступен');return r.json()})
     .catch(e=>{dictionaryRequest=null;throw e});
   return dictionaryRequest;
@@ -84,7 +84,7 @@ export class AzbukaRoom {
   async finish(reason, stopper=null) {
     const r=this.room;
     if(!r||r.phase!=='playing')return;
-    const dict=await bible();
+    const dict=await bible(this.env);
     const checks=r.players.map(p=>p.answers.map((words,i)=>validate(dict.categories[i],words,r.letter)));
     const frequencies=Array.from({length:5},()=>new Map());
     checks.forEach(rows=>rows.forEach((list,cat)=>{
@@ -171,7 +171,7 @@ export class AzbukaRoom {
       if(r.players.length<2)return error('Для онлайн-игры нужны минимум два игрока');
       if(r.phase==='finished'){r.round=0;r.used=[];r.players.forEach(p=>p.score=0);}
       else if(r.phase==='results')r.round+=1;
-      const dict=await bible();
+      const dict=await bible(this.env);
       const usable=LETTERS.filter(letter=>dict.categories.every(c=>(c.options||[]).some(w=>normalize(w)[0]===normalize(letter))));
       const pool=usable.filter(letter=>!r.used.includes(letter));
       if(!pool.length)return error('Нет подходящих букв в словаре');
@@ -191,7 +191,7 @@ export class AzbukaRoom {
         await this.store();
       }
       if(action==='draft')return json({ok:true,at:Date.now()});
-      const dict=await bible();
+      const dict=await bible(this.env);
       const all=player.answers.map((words,i)=>validate(dict.categories[i],words,r.letter));
       if(action==='check') {
         // Validate submitted form without changing saved draft.
@@ -213,12 +213,12 @@ export default {
     if(url.pathname==='/favicon.ico')return Response.redirect(url.origin+'/icon.webp',302);
     if(url.pathname.startsWith('/synodal/')) {
       // The verified RUSSYN dataset stays on the existing preview; don't duplicate it.
-      const remote=await fetch(SOURCE+url.pathname,{headers:{Accept:'application/json'}});
+      const remote=await env.SYNODAL_SOURCE.fetch('https://synodal'+url.pathname,{headers:{Accept:'application/json'}});
       const h=new Headers(remote.headers);h.set('cache-control','public,max-age=3600');
       return new Response(remote.body,{status:remote.status,headers:h});
     }
     if(url.pathname.startsWith('/branding/')) {
-      const remote=await fetch(SOURCE+url.pathname);
+      const remote=await env.SYNODAL_SOURCE.fetch('https://synodal'+url.pathname);
       const h=new Headers(remote.headers);h.set('cache-control','public,max-age=86400');
       return new Response(remote.body,{status:remote.status,headers:h});
     }
