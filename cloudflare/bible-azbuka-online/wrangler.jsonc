@@ -5,7 +5,25 @@
   "compatibility_date": "2026-11-20",
   "workers_dev": true,
   "durable_objects": {
-    "bindings": [{"name":"ROOMS","class_name":"AzbukaRoom"}]
+    "bindings": [
+      {
+        "name": "ROOMS",
+        "class_name": "AzbukaRoom"
+      }
+    ]
   },
-  "migrations": [{"tag":"v1","new_sqlite_classes":["AzbukaRoom"]}]
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "AzbukaRoom"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "binding": "SYNODAL_SOURCE",
+      "service": "alias-spy-games-bible-words-preview"
+    }
+  ]
 }
