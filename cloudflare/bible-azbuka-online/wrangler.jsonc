@@ -12,13 +12,11 @@
       }
     ]
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": [
-        "AzbukaRoom"
-      ]
+  "preview_urls": false,
+  "exports": {
+    "AzbukaRoom": {
+      "type": "durable-object",
+      "storage": "sqlite"
     }
-  ],
-  "preview_urls": false
+  }
 }
