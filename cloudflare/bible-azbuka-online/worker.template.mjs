@@ -228,7 +228,8 @@ export default {
       return new Response(remote.body,{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'public,max-age=86400'}});
     }
     if(url.pathname==='/vendor/jsqr.min.js'){
-      const remote=await fetch('https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js');
+      let remote=await fetch('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js');
+      if(!remote.ok)remote=await fetch('https://raw.githubusercontent.com/cozmo/jsQR/master/dist/jsQR.js');
       if(!remote.ok)return new Response('QR scanner unavailable',{status:503});
       return new Response(remote.body,{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'public,max-age=86400','x-content-type-options':'nosniff'}});
     }
