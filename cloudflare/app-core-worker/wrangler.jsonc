@@ -5,6 +5,7 @@
   "main": "src/index-v18.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
+  "services": [{ "binding": "AZBUKA", "service": "alias-spy-games-bible-azbuka" }],
   "triggers": {
     "crons": ["17 3 * * *"]
   },

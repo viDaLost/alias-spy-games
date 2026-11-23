@@ -11,7 +11,7 @@
   const accountActions = document.getElementById('catalog-account-actions');
   const more = document.getElementById('more-dialog');
   const join = document.getElementById('join-dialog');
-  const rooms = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land']);
+  const rooms = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land', 'bible-azbuka']);
   const icon = (key) => `<img class="catalog-system-icon" src="${systemRoot}${key}.webp" alt="" draggable="false">`;
   const help = { art: 'support', title: 'Техподдержка', action: 'support' };
   const joinAction = { art: 'share', title: 'Подключиться к комнате', action: 'join' };

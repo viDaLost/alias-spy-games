@@ -8,6 +8,8 @@
     quartet: 'quartet',
     'promised-land': 'promised-land',
     q: 'quartet',
+    azbuka: 'bible-azbuka',
+    'bible-azbuka': 'bible-azbuka',
     sketch: 'bible-sketch',
     'bible-sketch': 'bible-sketch',
     bible_sketch: 'bible-sketch',
@@ -26,6 +28,7 @@
   const INVITE_NAMES = Object.freeze({
     quartet: 'quartet',
     'bible-sketch': 'sketch',
+    'bible-azbuka': 'azbuka',
     'twelve-tribes': 'tribes',
   });
 
@@ -93,10 +96,13 @@
   function readInvite() {
     let url = null;
     try { url = new URL(window.location.href); } catch {}
+    const hash = new URLSearchParams(url?.hash.slice(1) || '');
     const candidates = [
       url?.searchParams?.get('join'),
       url?.searchParams?.get('startapp'),
       url?.searchParams?.get('tgWebAppStartParam'),
+      hash.get('tgWebAppStartParam'),
+      window.TelegramLaunchContext?.getStartParam?.(),
       window.Telegram?.WebApp?.initDataUnsafe?.start_param,
     ];
     for (const candidate of candidates) {
@@ -131,6 +137,10 @@
 
   function tryAutoOpen() {
     if (!pendingInvite || pendingInvite.opened || !menuIsReady()) return;
+    if (pendingInvite.game === 'bible-azbuka' && !window.canPlayBibleAzbuka?.()) {
+      const access = window.AppAccess?.state();
+      if (!access?.checked || access.checking) return;
+    }
     pendingInvite.opened = true;
     persistInviteRoom(pendingInvite);
     try {
@@ -305,6 +315,11 @@
     if (!qrPayload) return;
 
     const inviteUrl = await getShareUrl(canonical, normalizedRoom);
+    if (canonical === 'bible-azbuka' && document.body.dataset.currentGame !== canonical) return;
+    if (canonical === 'bible-azbuka' && !inviteUrl) {
+      window.showToast?.('Не удалось получить ссылку Telegram. Попробуйте ещё раз.');
+      return;
+    }
     const qrValue = inviteUrl || qrPayload;
 
     closeQr();
@@ -388,6 +403,12 @@
     }
   }
 
+  window.addEventListener('app-access:allowed', tryAutoOpen);
+  window.addEventListener('telegram:sdk-ready', () => {
+    if (pendingInvite) return;
+    pendingInvite = readInvite();
+    if (pendingInvite) startAutoOpen();
+  }, { once: true });
   window.RoomInvite = Object.freeze({
     normalizeRoomId,
     normalizeGame,
@@ -401,5 +422,6 @@
     getShareUrl,
     loadMiniAppConfig,
     openQr,
+    closeQr,
   });
 })();

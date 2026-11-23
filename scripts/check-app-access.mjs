@@ -253,7 +253,7 @@ try {
     assert.equal(document.querySelectorAll('#games a').length, 1);
     assert.equal(document.getElementById('page').textContent, '2 / 2');
     document.getElementById('catalog').click();
-    assert.equal(document.getElementById('page').textContent, '1 / 4');
+    assert.equal(document.getElementById('page').textContent, '1 / 5');
     document.getElementById('favorites').click();
     refreshData = { favorites: ['twelve-tribes', 'toString', 'twelve-tribes'], lastGame: 'removed' };
     await new Promise((resolve) => setImmediate(resolve));

@@ -1,14 +1,16 @@
-name: Bible Azbuka Online
+name: Bible Azbuka online
 
 on:
-  push:
-    branches:
-      - feat/bible-azbuka-online-lobby
-    paths:
-      - 'cloudflare/bible-azbuka-online/**'
   pull_request:
     paths:
       - 'cloudflare/bible-azbuka-online/**'
+      - 'cloudflare/app-core-worker/**'
+      - 'web/games/bible-azbuka.*'
+      - 'web/js/room-invite.js'
+      - '.github/workflows/bible-azbuka-online.yml'
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -19,9 +21,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build worker
-        run: node cloudflare/bible-azbuka-online/scripts/build.mjs
-      - name: Syntax check
-        run: node --check cloudflare/bible-azbuka-online/dist/worker.mjs
-      - name: Multiplayer rules tests
+      - name: Check game and room service syntax
+        run: |
+          node --check web/games/bible-azbuka.js
+          node --check cloudflare/bible-azbuka-online/worker.mjs
+      - name: Check room access and multiplayer rules
         run: node cloudflare/bible-azbuka-online/scripts/test.mjs

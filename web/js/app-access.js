@@ -82,6 +82,7 @@
 
   window.AppAccess = {
     verify, allowed: () => state.allowed, state: () => ({ ...state, checking: Boolean(state.checking) }),
+    azbukaRequest: (path, payload) => post(`/azbuka/${path}`, { payload }),
     sabbathProfile: () => sabbathProfile,
     sabbathSignedIn: () => {
       const auth = credentials();

@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '2af38e0642';
+const VERSION = '9f1c6cf7a9';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -30,9 +30,12 @@ const PRECACHE = [
   'web/assets/twelve-tribes/art.json',
   'web/assets/bible-geography/map.json',
   'web/assets/bible-geography/art.json',
-  'web/dist/app.491a9385d9.css',
-  'web/dist/app.70e040f06c.js',
+  'web/dist/app.f8dc661db9.css',
+  'web/dist/app.c20b520453.js',
   'web/games/alias.js',
+  'web/games/bible-azbuka.css',
+  'web/games/bible-azbuka.html',
+  'web/games/bible-azbuka.js',
   'web/games/bible-geography-logic.js',
   'web/games/bible-geography.css',
   'web/games/bible-geography.js',
@@ -97,7 +100,6 @@ const PRECACHE = [
   'web/assets/icons/alias.webp',
   'web/assets/icons/android-download.webp',
   'web/assets/icons/ark.webp',
-  'web/assets/icons/bible-azbuka.webp',
   'web/assets/icons/bible-sketch.svg',
   'web/assets/icons/bible-sketch.webp',
   'web/assets/icons/biblical-treasures-v38.webp',
@@ -147,6 +149,7 @@ const PRECACHE = [
   'web/assets/icons/twelve-tribes.webp',
   'web/assets/icons/unified-v1/alias.webp',
   'web/assets/icons/unified-v1/ark.webp',
+  'web/assets/icons/unified-v1/bible-azbuka.webp',
   'web/assets/icons/unified-v1/bible-geography.webp',
   'web/assets/icons/unified-v1/bible-sketch.webp',
   'web/assets/icons/unified-v1/biblical-treasures.webp',

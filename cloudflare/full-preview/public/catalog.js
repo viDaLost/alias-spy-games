@@ -226,7 +226,7 @@
     if (preview) queueMicrotask(openURL);
     else {
       window.addEventListener('app:menu-ready', openURL, { once: true });
-      new MutationObserver(() => {
+      const refreshAvailableGames = () => {
         const available = allGames.filter(canShow);
         if (available.length === games.length && available.every((game, index) => game === games[index])) return;
         games = available;
@@ -234,7 +234,14 @@
         carousel.updateGames(games);
         window.CatalogSystem.setRoomGames(games);
         window.CatalogSystem.refresh();
-      }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+      };
+      window.addEventListener('app-access:allowed', () => {
+        refreshAvailableGames();
+        if (document.body.dataset.currentGame !== 'bible-azbuka' &&
+            new URLSearchParams(location.search).get('game') === 'bible-azbuka') openURL();
+      });
+      new MutationObserver(refreshAvailableGames)
+        .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     }
   }
 

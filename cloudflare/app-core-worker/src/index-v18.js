@@ -5,6 +5,7 @@ import { accessIdentity, accessStore, cleanAccessId, accessError } from './app-a
 import { readTelegramWebhookUpdate, restrictedBotReply, RESTRICTED_BOT_TEXT } from './restricted-bot.js';
 import { handleFavoritesWidget } from './telegram-favorites-widget.js';
 import { SabbathUserStore } from './sabbath-user-store.js';
+import { azbukaAvailableTo, forwardAzbuka } from './bible-azbuka.js';
 
 const MESSAGE = 'Библейские игры временно заблокированы. Не волнуйтесь: ваши данные и достижения на месте.';
 const MANAGEMENT = new Map([
@@ -93,6 +94,23 @@ export class UserStore extends V17UserStore {
     const user = super.readUser(userId);
     if (user) user.unifiedWallet = Boolean(this.sql.exec('SELECT unified_wallet FROM game_balances WHERE user_id = ?', userId).toArray()[0]?.unified_wallet);
     return user;
+  }
+
+  async profileSetFavorites(raw = {}) {
+    if (!azbukaAvailableTo(raw.userId, this.env)) {
+      if (String(raw.game || '').trim() === 'bible-azbuka') return { ok: false, success: false, error: 'Игра недоступна' };
+      if (Array.isArray(raw.favorites)) {
+        raw = { ...raw, favorites: raw.favorites.filter(game => String(game).trim() !== 'bible-azbuka') };
+      }
+    }
+    return super.profileSetFavorites(raw);
+  }
+
+  async profileTrackGame(raw = {}) {
+    if (String(raw.game || '').trim() === 'bible-azbuka' && !azbukaAvailableTo(raw.userId, this.env)) {
+      return { ok: false, success: false, error: 'Игра недоступна' };
+    }
+    return super.profileTrackGame(raw);
   }
 
   async fetch(request) {
@@ -213,11 +231,12 @@ export default {
       } catch { return json({ ok: false, success: false, error: 'Access check unavailable' }, 503, cors); }
     }
     const compat = ['/compat', '/android/compat'].includes(url.pathname) && request.method === 'POST';
+    const azbuka = request.method === 'POST' && url.pathname.startsWith('/azbuka/');
     const check = url.pathname === '/app/access' && ['GET', 'POST'].includes(request.method);
     const sabbath = request.method === 'POST' && ['/sabbath/confirm','/sabbath/report'].includes(url.pathname);
     const legacyAccess = url.pathname === '/android/access' && request.method === 'GET';
     const sessionIssue = ['/admin/verify', '/web/session'].includes(url.pathname) && request.method === 'POST';
-    if (!sabbath && !compat && !check && !legacyAccess && !sessionIssue && url.pathname !== '/android/room-relay') return coreV17.fetch(request, env, ctx);
+    if (!azbuka && !sabbath && !compat && !check && !legacyAccess && !sessionIssue && url.pathname !== '/android/room-relay') return coreV17.fetch(request, env, ctx);
     try {
       const origin = request.headers.get('Origin');
       if (origin && !String(env.ALLOWED_ORIGINS || '').split(',').includes(origin)) throw accessError(403, 'Origin not allowed');
@@ -225,6 +244,7 @@ export default {
       const action = String(body?.payload?.action || '');
       const management = compat ? MANAGEMENT.get(action) : null;
       const userId = await accessIdentity(request, body, env, { fresh: Boolean(management), optional: check });
+      if (azbuka) return await forwardAzbuka(url.pathname, body?.payload, userId, env, cors);
       if (management) {
         if (userId !== String(env.ADMIN_TELEGRAM_ID || '')) throw accessError(403, 'Только главный администратор может снимать ограничения');
         return json(await accessStore(env, `/app-access/${management}`, { actorId: userId, targetId: body.payload.targetId }), 200, cors);

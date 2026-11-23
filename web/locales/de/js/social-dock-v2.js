@@ -13,6 +13,7 @@
     { id: 'quartet', title: 'Quartett', icon: 'web/assets/icons/unified-v1/quartet.webp?v=1' },
     { id: 'bible-sketch', title: 'Bibelkünstler', icon: 'web/assets/icons/unified-v1/bible-sketch.webp?v=3' },
     { id: 'bible-wow', title: 'Bibelwörter', icon: 'web/assets/icons/unified-v1/words.webp?v=1' },
+    { id: 'bible-azbuka', title: 'Bibelalphabet', icon: 'web/assets/icons/unified-v1/bible-azbuka.webp?v=1' },
     { id: 'bible-wordsearch', title: 'Bibel-Wortsuche', icon: 'web/assets/icons/unified-v1/search.webp?v=1' },
     { id: 'sacred-word', title: 'Heiliges Wort', icon: 'web/assets/icons/unified-v1/sacred.webp?v=1' },
     { id: 'kids-ark-pairs', title: 'Finde ein Paar', icon: 'web/assets/icons/unified-v1/ark.webp?v=1' },
@@ -284,7 +285,7 @@
 
   function renderFavorites() {
     const favorites = new Set(state.profile?.favorites || []);
-    const games = GAME_CATALOG;
+    const games = GAME_CATALOG.filter(game => game.id !== 'bible-azbuka' || window.canPlayBibleAzbuka?.());
     return `<div class="social-favorite-intro"><b>Lieblingsspiele</b><span>Markierte Spiele werden in deinem Profil gespeichert und sind auf jedem Gerät verfügbar.</span></div><div class="social-favorites-grid">${games.map((game) => {
       const selected = favorites.has(game.id);
       return `<button type="button" class="social-favorite ${selected ? 'is-selected' : ''}" data-toggle-favorite="${game.id}">

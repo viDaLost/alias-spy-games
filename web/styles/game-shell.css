@@ -240,10 +240,3 @@ body[data-current-game="promised-land"] .game-frame-exit {
   min-height: 40px;
   opacity: 1;
 }
-
-/* Compact game is shown below Telegram's own top bar when embedded. */
-.game-frame-wrap--azbuka .game-frame {
-  top: var(--game-chrome-top, 0px);
-  height: calc(100% - var(--game-chrome-top, 0px));
-  background: #edf2ff;
-}

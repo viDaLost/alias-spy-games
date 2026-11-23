@@ -1,9 +1,9 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-bible-azbuka",
-  "main": "dist/worker.mjs",
+  "main": "worker.mjs",
   "compatibility_date": "2026-11-20",
-  "workers_dev": true,
+  "workers_dev": false,
   "durable_objects": {
     "bindings": [
       {
@@ -20,10 +20,5 @@
       ]
     }
   ],
-  "services": [
-    {
-      "binding": "SYNODAL_SOURCE",
-      "service": "alias-spy-games-bible-words-preview"
-    }
-  ]
+  "preview_urls": false
 }

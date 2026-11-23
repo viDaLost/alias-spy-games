@@ -8,6 +8,7 @@ export const PLAYER_GAMES = new Map([
   ['quartet', ['Квартет', 'Quartet', 'Quartett', 'Cuarteto']],
   ['bible-sketch', ['Библейский художник', 'Bible Artist', 'Bibelkünstler', 'Artista bíblico']],
   ['bible-wow', ['Библейские слова', 'Bible Words', 'Bibelwörter', 'Palabras bíblicas']],
+  ['bible-azbuka', ['Библейская азбука', 'Biblical Alphabet', 'Biblisches Alphabet', 'Alfabeto bíblico']],
   ['bible-wordsearch', ['Поиск библейских слов', 'Bible Word Search', 'Bibel-Wortsuche', 'Sopa de letras bíblica']],
   ['sacred-word', ['Священное слово', 'Sacred Word', 'Heiliges Wort', 'Palabra sagrada']],
   ['kids-ark-pairs', ['Найди пару', 'Find a Pair', 'Finde ein Paar', 'Encuentra la pareja']],
