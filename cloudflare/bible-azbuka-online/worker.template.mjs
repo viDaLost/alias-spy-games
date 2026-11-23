@@ -227,6 +227,11 @@ export default {
       if(!remote.ok)return new Response('QR unavailable',{status:503});
       return new Response(remote.body,{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'public,max-age=86400'}});
     }
+    if(url.pathname==='/vendor/jsqr.min.js'){
+      const remote=await fetch('https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js');
+      if(!remote.ok)return new Response('QR scanner unavailable',{status:503});
+      return new Response(remote.body,{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'public,max-age=86400','x-content-type-options':'nosniff'}});
+    }
     if(url.pathname==='/icon.webp'){
       const remote=await fetch('https://raw.githubusercontent.com/viDaLost/alias-spy-games/b229e104584736858de4accdd2117bc95fbc29e1/web/assets/icons/bible-azbuka.webp');
       if(remote.ok)return new Response(remote.body,{headers:{'content-type':'image/webp','cache-control':'public,max-age=86400'}});
