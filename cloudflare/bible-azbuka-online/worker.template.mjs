@@ -228,7 +228,7 @@ export default {
       return new Response(remote.body,{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'public,max-age=86400'}});
     }
     if(url.pathname==='/icon.webp'){
-      const remote=await fetch('https://raw.githubusercontent.com/viDaLost/alias-spy-games/feat/bible-azbuka-online-lobby/web/assets/icons/bible-azbuka.webp');
+      const remote=await fetch('https://raw.githubusercontent.com/viDaLost/alias-spy-games/b229e104584736858de4accdd2117bc95fbc29e1/web/assets/icons/bible-azbuka.webp');
       if(remote.ok)return new Response(remote.body,{headers:{'content-type':'image/webp','cache-control':'public,max-age=86400'}});
       return new Response('Not found',{status:404});
     }
