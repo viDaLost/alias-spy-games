@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import vm from 'node:vm';
 import { isBundled } from './web-sources.mjs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
@@ -52,7 +53,22 @@ assert(errors.includes("'X-Telegram-Init-Data': initData"), 'error feed must aut
 assert(!errors.includes('/admin/stats?initData='), 'error feed must not expose initData or bypass the GET request budget');
 assert(errors.includes('document.hidden'), 'error feed must pause in background');
 
-assert(app.includes("expectedGame === 'quartet' ? 23"), 'dynamic game cache key must expose the patched Quartet source');
+const gameScripts = [];
+const loadGameSource = app.slice(app.indexOf('function loadGameScript('), app.indexOf('function cleanupActiveGame()'));
+const loader = vm.createContext({
+  gameLaunchEntry: 0,
+  currentGameScript: null,
+  loadedGameScripts: new Map(),
+  document: {
+    createElement: () => ({ dataset: {} }),
+    body: { appendChild: (script) => gameScripts.push(script) },
+  },
+});
+vm.runInContext(loadGameSource, loader);
+loader.loadGameScript('web/games/quartet.js', () => {}, 'quartet');
+loader.loadGameScript('web/games/bible-world.js', () => {}, 'bible-world');
+assert(gameScripts[0]?.src === 'web/games/quartet.js?v=23', 'dynamic game cache key must expose the patched Quartet source');
+assert(gameScripts[1]?.src === 'web/games/bible-world.js?v=22', 'Bible World must fetch the updated frame launcher');
 // Адрес «Художника» проходит через выбор языка — у него есть переведённая
 // копия, — но метка версии обязана остаться: без неё браузер отдаст старый файл.
 assert(sketchLauncher.includes("'web/games/bible-sketch.js'") && /script\.src = `\$\{[^`]+\}\?v=4`;/.test(sketchLauncher),
