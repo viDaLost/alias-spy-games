@@ -96,12 +96,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      - name: Verify both games on the production server
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      - name: Verify public Bible World on the production server
         run: |
           node --input-type=module <<'NODE'
-          import { createHmac } from 'node:crypto';
           const core = 'https://alias-spy-games-core.vitaledanilov.workers.dev';
           const preview = 'https://alias-spy-games-bible-world-preview.vitaledanilov.workers.dev';
           const post = (path, data = {}) => fetch(core + path, {
@@ -118,21 +115,7 @@ jobs:
           }
           await panorama.body?.cancel();
 
-          const azbuka = '/azbuka/public-release-check';
-          const anonymous = await post(azbuka);
-          if (anonymous.status !== 401) throw new Error(`Unsigned Azbuka request returned ${anonymous.status}`);
-          const token = process.env.TELEGRAM_BOT_TOKEN;
-          if (!token) throw new Error('Telegram verification secret is missing');
-          const params = new URLSearchParams({
-            auth_date: String(Math.floor(Date.now() / 1000)),
-            user: JSON.stringify({ id: 7540012345, first_name: 'Release check' }),
-          });
-          const secret = createHmac('sha256', 'WebAppData').update(token).digest();
-          const signed = [...params].map(([key, value]) => `${key}=${value}`).join('\n');
-          params.set('hash', createHmac('sha256', secret).update(signed).digest('hex'));
-          const player = await post(azbuka, { telegramInitData: params.toString() });
-          if (player.status !== 404) throw new Error(`Azbuka routing for a regular player returned ${player.status}`);
-          console.log('Production guest panorama and regular-player Azbuka routing verified.');
+          console.log('Production guest panorama verified.');
 
           for (const path of ['/', '/assets/babel-360-v6-seams2-4k.webp']) {
             const response = await fetch(preview + path, { signal: AbortSignal.timeout(15000) });
@@ -310,7 +293,7 @@ jobs:
           }
           throw lastError;
           NODE
-      - name: Verify hardened admin RBAC boundary
+      - name: Verify admin RBAC and regular-player Azbuka rooms
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           ADMIN_TELEGRAM_ID: '1288379477'
@@ -356,27 +339,32 @@ jobs:
           }
 
           async function verifyAzbuka() {
-            const proof = createInitData();
-            const others = createInitData('999999999');
+            const hostProof = createInitData('999999999');
+            const guestProof = createInitData('999999998');
             const unauthorized = await azbuka('create', '', { name: 'Verification' });
-            const forbidden = await azbuka('create', others, { name: 'Verification' });
-            if (unauthorized.status !== 401 || forbidden.status !== 403) {
-              throw new Error(`Azbuka access boundary: expected 401/403, got ${unauthorized.status}/${forbidden.status}`);
+            if (unauthorized.status !== 401) {
+              throw new Error(`Unsigned Azbuka request returned HTTP ${unauthorized.status}`);
             }
-            const room = await azbuka('create', proof, { name: 'Verification', mode: 'stop' });
+            const room = await azbuka('create', hostProof, { name: 'Verification', mode: 'stop' });
             const code = room.data.code;
             if (room.status !== 200 || !/^[A-HJ-NP-Z2-9]{6}$/.test(code || '')) {
-              throw new Error(`Azbuka owner could not create a lobby: HTTP ${room.status} ${room.data.error || ''}`);
+              throw new Error(`Regular player could not create an Azbuka lobby: HTTP ${room.status} ${room.data.error || ''}`);
             }
+            let guestJoined = false;
             try {
-              const guest = await azbuka(`${code}/join`, others, { name: 'Verification guest' });
-              const owner = await azbuka(`${code}/join`, proof, { name: 'Verification' });
-              if (guest.status !== 403 || owner.status !== 200 || owner.data.selfId !== room.data.selfId) {
-                throw new Error(`Azbuka invite authorization failed: HTTP ${guest.status}/${owner.status}`);
+              const guest = await azbuka(`${code}/join`, guestProof, { name: 'Verification guest' });
+              guestJoined = guest.status === 200;
+              const host = await azbuka(`${code}/join`, hostProof, { name: 'Verification' });
+              if (!guestJoined || guest.data.players?.length !== 2 || guest.data.selfId === room.data.selfId ||
+                  host.status !== 200 || host.data.selfId !== room.data.selfId) {
+                throw new Error(`Azbuka regular-player join or rejoin failed: HTTP ${guest.status}/${host.status}`);
               }
             } finally {
-              const left = await azbuka(`${code}/leave`, proof);
-              if (left.status !== 200) throw new Error(`Azbuka verification room cleanup failed: HTTP ${left.status}`);
+              const guestLeave = guestJoined ? await azbuka(`${code}/leave`, guestProof) : null;
+              const hostLeave = await azbuka(`${code}/leave`, hostProof);
+              if ((guestLeave && guestLeave.status !== 200) || hostLeave.status !== 200) {
+                throw new Error(`Azbuka verification room cleanup failed: HTTP ${guestLeave?.status || '-'}/${hostLeave.status}`);
+              }
             }
           }
 
