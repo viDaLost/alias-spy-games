@@ -22,6 +22,7 @@
     { id: 'twelve-tribes', title: 'Twelve Tribes', icon: 'web/assets/icons/unified-v1/twelve-tribes.webp?v=1' },
     { id: 'promised-land', title: 'Promised Land', icon: 'web/assets/icons/unified-v1/promised-land.webp?v=1' },
     { id: 'bible-geography', title: 'Bible Geography', icon: 'web/assets/icons/unified-v1/bible-geography.webp?v=1' },
+    { id: 'bible-world', title: 'Where Am I in the Bible?', icon: 'web/assets/icons/unified-v1/bible-world.webp' },
   ];
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));
 
@@ -285,7 +286,7 @@
 
   function renderFavorites() {
     const favorites = new Set(state.profile?.favorites || []);
-    const games = GAME_CATALOG.filter(game => game.id !== 'bible-azbuka' || window.canPlayBibleAzbuka?.());
+    const games = GAME_CATALOG.filter(game => !['bible-azbuka', 'bible-world'].includes(game.id) || window.canPlayBibleWorld?.());
     return `<div class="social-favorite-intro"><b>Favorite games</b><span>Favorite games are saved to your profile and available on any device.</span></div><div class="social-favorites-grid">${games.map((game) => {
       const selected = favorites.has(game.id);
       return `<button type="button" class="social-favorite ${selected ? 'is-selected' : ''}" data-toggle-favorite="${game.id}">

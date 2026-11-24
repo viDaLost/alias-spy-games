@@ -32,7 +32,7 @@ const isPreviewOnly = (file) => previewOnlyPrefixes.some((prefix) => rel(file).s
 // These templates use the paths in preview-dist after build.mjs copies the assets.
 const previewTemplates = ['cloudflare/full-preview/public/', 'cloudflare/reopening-preview/public/'];
 
-for (const file of files.filter((f) => f.endsWith('.js'))) {
+for (const file of files.filter((f) => /\.m?js$/.test(f))) {
   try { execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' }); }
   catch (error) { failures.push(`JS syntax: ${rel(file)}\n${error.stderr?.toString() || error.message}`); }
 }
@@ -76,6 +76,18 @@ for (const file of files.filter((f) => f.endsWith('.md'))) {
   }
 }
 
+const embeddedWorld = path.join(root, 'web/assets/bible-world-v1');
+const embeddedWorldReferences = new Set();
+for (const file of files.filter((file) => file.startsWith(embeddedWorld + path.sep))) {
+  const source = fs.readFileSync(file, 'utf8');
+  const references = source.matchAll(/(?:<[^>]*?\b(?:src|href)=|\bfrom\s+)(["'])(\.{0,2}\/?[^:"'?#]+)(?:[?#][^"']*)?\1/g);
+  for (const [, , ref] of references) {
+    const target = path.resolve(path.dirname(file), ref);
+    if (!fs.existsSync(target)) failures.push(`Broken embedded game reference in ${rel(file)}: ${ref}`);
+    else embeddedWorldReferences.add(rel(target));
+  }
+}
+
 const localRefRegex = /(?:src|href)=["'](?!https?:|data:|#|mailto:|tel:)([^"'?]+)|["'`](web\/(?:assets|data|games)\/[A-Za-z0-9_./-]+)[?"'`]/g;
 
 /*
@@ -96,7 +108,7 @@ const siteRootOf = (file) => {
   return root;
 };
 
-for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
+for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f) && !f.startsWith(embeddedWorld + path.sep))) {
   const text = fs.readFileSync(file, 'utf8');
   for (const match of text.matchAll(localRefRegex)) {
     const ref = match[1] || match[2];
@@ -201,7 +213,7 @@ for (const file of publishedFiles) {
   const aliases = [name];
   if (name.startsWith('web/assets/') || name.startsWith('web/data/')) aliases.push(name.slice(4));
 
-  const referenced = runtimeReferenceFiles.some((source) => {
+  const referenced = embeddedWorldReferences.has(name) || runtimeReferenceFiles.some((source) => {
     if (source === file) return false;
     const text = runtimeReferenceText.get(source) || '';
     return aliases.some((alias) => text.includes(alias));

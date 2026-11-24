@@ -16,5 +16,6 @@ export const PLAYER_GAMES = new Map([
   ['moses-nile', ['Моисей: Путь по Нилу', 'Moses: Journey on the Nile', 'Mose: Reise auf dem Nil', 'Moisés: Viaje por el Nilo']],
   ['twelve-tribes', ['Двенадцать колен', 'Twelve Tribes', 'Die zwölf Stämme', 'Las doce tribus']],
   ['promised-land', ['Земля обетованная', 'Promised Land', 'Das gelobte Land', 'Tierra Prometida']],
+  ['bible-world', ['Где я в Библии?', 'Where Am I in the Bible?', 'Wo bin ich in der Bibel?', '¿Dónde estoy en la Biblia?']],
   ['bible-geography', ['Библейская география', 'Bible Geography', 'Biblische Geografie', 'Geografía bíblica']],
 ]);

@@ -56,6 +56,7 @@ const GAME_GROUPS = [
         key: "bible-geography", title: "Библейская география",
         desc: "Герои, места и пути — тогда и сейчас", icon: "geography",
       },
+      { key: "bible-world", title: "Где я в Библии?", desc: "Угадай библейскую историю по панораме 360°", icon: "bible-world" },
     ],
   },
   {
@@ -88,6 +89,7 @@ const MENU_ICON_SOURCES = {
   "promised-land": "web/assets/icons/unified-v1/promised-land.webp",
   "twelve-tribes": "web/assets/icons/unified-v1/twelve-tribes.webp",
   geography: "web/assets/icons/unified-v1/bible-geography.webp",
+  "bible-world": "web/assets/icons/unified-v1/bible-world.webp",
 };
 
 function menuIconHTML(type, title = "") {
@@ -467,14 +469,15 @@ function renderGameButton(item) {
   `;
 }
 
-function canPlayBibleAzbuka() {
+function canPlayAdminGames() {
   const access = window.AppAccess?.state();
   return !fullCatalogPreview && access?.isRoot === true && access.userId === ADMIN_ID;
 }
-window.canPlayBibleAzbuka = canPlayBibleAzbuka;
+window.canPlayBibleAzbuka = canPlayAdminGames;
+window.canPlayBibleWorld = canPlayAdminGames;
 
 function canShowGame(game) {
-  return game.key !== 'bible-azbuka' || canPlayBibleAzbuka();
+  return !['bible-azbuka', 'bible-world'].includes(game.key) || canPlayAdminGames();
 }
 
 function renderMainMenu() {
@@ -485,7 +488,7 @@ function renderMainMenu() {
   }
   GAME_GROUPS.forEach((group) => {
     const root = document.getElementById(group.id);
-    const access = group.id === 'word-games' && canPlayBibleAzbuka() ? 'root' : '1';
+    const access = group.id === 'word-games' && canPlayAdminGames() ? 'root' : '1';
     if (!root || root.dataset.ready === access) return;
     root.innerHTML = group.items.filter(canShowGame).map(renderGameButton).join("");
     root.dataset.ready = access;
@@ -704,11 +707,12 @@ function startGameSafely(callback, expectedGame = activeGameName, expectedEntry 
 let gameLaunchEntry = 0;
 function showGame(gameName) {
   if (window.AppAccess && !window.AppAccess.allowed()) return;
-  if (gameName === "bible-azbuka" && !canPlayBibleAzbuka()) {
+  if (gameName === "bible-azbuka" && !canPlayAdminGames()) {
     window.RoomInvite?.consume('bible-azbuka');
     window.showToast?.('«Библейская азбука» доступна только главному администратору');
     return;
   }
+  if (gameName === "bible-world" && !canPlayAdminGames()) return;
   if (gameName === "moses-nile") {
     if (window.SabbathAccess?.status().mandatory) {
       window.SabbathAccess.authorize(gameName);
@@ -762,6 +766,7 @@ function showGame(gameName) {
     */
     "twelve-tribes": ["web/games/twelve-tribes.js", () => window.startTwelveTribesGame?.()],
     "bible-azbuka": ["web/games/bible-azbuka.js", () => window.startBibleAzbukaGame?.()],
+    "bible-world": ["web/games/bible-world.js", () => window.startBibleWorldGame?.()],
     "bible-wow": ["web/games/bible-wow.js", () => window.startBibleWowGame?.("web/data/bible_wow_levels.json")],
     "bible-wordsearch": ["web/games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("web/data/bible_wordsearch_levels.json")],
     "sacred-word": ["web/games/sacred-word.js", () => window.startSacredWordGame?.("web/data/sacred_words.json")],

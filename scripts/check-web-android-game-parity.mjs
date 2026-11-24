@@ -39,7 +39,7 @@ const expectedNativeRoutes = new Set([
 // «Библейская география» — тоже только веб: карта, её жесты и данные со
 // стихами живут в web/ и попадают в APK вместе с упакованным деревом.
 const expectedWebRoutes = new Set([...expectedNativeRoutes,
-  'moses-nile', 'promised-land', 'twelve-tribes', 'bible-geography', 'bible-azbuka']);
+  'moses-nile', 'promised-land', 'twelve-tribes', 'bible-geography', 'bible-azbuka', 'bible-world']);
 
 const sorted = (values) => [...values].sort();
 assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedWebRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);

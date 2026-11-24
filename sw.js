@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '5c2bf078b8';
+const VERSION = 'c1d7678c16';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -31,7 +31,7 @@ const PRECACHE = [
   'web/assets/bible-geography/map.json',
   'web/assets/bible-geography/art.json',
   'web/dist/app.f8dc661db9.css',
-  'web/dist/app.c20b520453.js',
+  'web/dist/app.42a28cf3a3.js',
   'web/games/alias.js',
   'web/games/bible-azbuka.css',
   'web/games/bible-azbuka.html',
@@ -43,6 +43,7 @@ const PRECACHE = [
   'web/games/bible-sketch.css',
   'web/games/bible-sketch.js',
   'web/games/bible-wordsearch.js',
+  'web/games/bible-world.js',
   'web/games/bible-wow.js',
   'web/games/biblical-match-three-core.js',
   'web/games/biblical-match-three-effects.js',
@@ -108,6 +109,7 @@ const PRECACHE = [
   'web/assets/icons/catalog-v1/bible-azbuka.webp',
   'web/assets/icons/catalog-v1/bible-geography.webp',
   'web/assets/icons/catalog-v1/bible-sketch.webp',
+  'web/assets/icons/catalog-v1/bible-world.webp',
   'web/assets/icons/catalog-v1/biblical-treasures.webp',
   'web/assets/icons/catalog-v1/character.webp',
   'web/assets/icons/catalog-v1/describe.webp',
@@ -153,6 +155,7 @@ const PRECACHE = [
   'web/assets/icons/unified-v1/bible-azbuka.webp',
   'web/assets/icons/unified-v1/bible-geography.webp',
   'web/assets/icons/unified-v1/bible-sketch.webp',
+  'web/assets/icons/unified-v1/bible-world.webp',
   'web/assets/icons/unified-v1/biblical-treasures.webp',
   'web/assets/icons/unified-v1/character.webp',
   'web/assets/icons/unified-v1/describe.webp',

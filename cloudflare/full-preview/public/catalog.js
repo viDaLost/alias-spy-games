@@ -237,8 +237,8 @@
       };
       window.addEventListener('app-access:allowed', () => {
         refreshAvailableGames();
-        if (document.body.dataset.currentGame !== 'bible-azbuka' &&
-            new URLSearchParams(location.search).get('game') === 'bible-azbuka') openURL();
+        const target = new URLSearchParams(location.search).get('game');
+        if (['bible-azbuka', 'bible-world'].includes(target) && document.body.dataset.currentGame !== target) openURL();
       });
       new MutationObserver(refreshAvailableGames)
         .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
