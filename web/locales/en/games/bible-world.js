@@ -19,7 +19,7 @@
     frame.className = 'game-frame';
     frame.title = 'Where Am I in the Bible?';
 
-    const address = 'web/assets/bible-world-v1/index.html';
+    const address = 'web/assets/bible-world-v2/index.html';
     const url = new URL(window.__gameFrameInsets?.seedUrl(address) || address, location.href);
     const insets = window.__gameFrameInsets?.measure();
     if (insets) url.searchParams.set('chromeTop', String(insets.top));

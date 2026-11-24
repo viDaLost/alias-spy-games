@@ -187,16 +187,20 @@ try {
   const worldCard = catalog.locator('#catalog-games [data-launch="bible-world"]');
   assert.equal(await worldCard.count(), 1);
   assert.match(await worldCard.locator('img').getAttribute('src'), /bible-world\.webp$/);
+  await catalog.evaluate(() => localStorage.setItem('bible-world-best-v5-hard', '49400'));
   await worldCard.click();
   const world = catalog.frameLocator('iframe[title="Где я в Библии?"]');
   await world.locator('#levelMenu').waitFor();
+  assert.equal(await world.locator('#totalLocations').textContent(), '60 локаций');
   assert.equal(await world.locator('.level-card').count(), 3);
+  assert.match(await world.locator('#level-hard').textContent(), /Рекорд за 10 локаций: 49\s400/);
   await world.locator('#level-hard').click();
   await world.locator('#locationDialog[open]').waitFor();
-  assert.equal(await world.locator('.location-number').count(), 10);
-  await world.getByRole('button', { name: 'Локация 10', exact: true }).click();
+  assert.equal(await world.locator('.location-number').count(), 20);
+  assert.equal(await world.locator('#startJourney').textContent(), 'Пройти все 20 локаций');
+  await world.getByRole('button', { name: 'Локация 20', exact: true }).click();
   await world.locator('#openAnswers:enabled').waitFor();
-  assert.equal(await world.locator('#roundNumber').textContent(), '10');
+  assert.equal(await world.locator('#roundNumber').textContent(), '20');
   await world.locator('#chooseLevel').click();
   await world.locator('#locationDialog[open]').waitFor();
   await world.locator('#startJourney').click();
@@ -207,7 +211,7 @@ try {
   await catalog.locator('#main-catalog').waitFor();
 
   const directWorld = await catalogContext.newPage();
-  await directWorld.goto(`${base}/web/assets/bible-world-v1/index.html`);
+  await directWorld.goto(`${base}/web/assets/bible-world-v2/index.html`);
   await directWorld.getByText('Игра доступна только главному администратору.', { exact: true }).waitFor();
   assert.equal(await directWorld.locator('#levelMenu').isVisible(), false);
   await directWorld.close();

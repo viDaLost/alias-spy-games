@@ -76,7 +76,7 @@ for (const file of files.filter((f) => f.endsWith('.md'))) {
   }
 }
 
-const embeddedWorld = path.join(root, 'web/assets/bible-world-v1');
+const embeddedWorld = path.join(root, 'web/assets/bible-world-v2');
 const embeddedWorldReferences = new Set();
 for (const file of files.filter((file) => file.startsWith(embeddedWorld + path.sep))) {
   const source = fs.readFileSync(file, 'utf8');

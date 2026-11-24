@@ -881,7 +881,8 @@ function loadGameScript(fileName, callback, expectedGame = activeGameName, expec
   loadedGameScripts.set(fileName, record);
 
   const script = document.createElement("script");
-  script.src = `${fileName}?v=${expectedGame === 'quartet' ? 23 : 21}`;
+  const version = { quartet: 23, 'bible-world': 22 }[expectedGame] || 21;
+  script.src = `${fileName}?v=${version}`;
   script.dataset.gameScript = fileName;
 
   script.onload = () => {
