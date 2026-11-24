@@ -7,6 +7,8 @@ on:
     paths:
       - 'cloudflare/app-core-worker/**'
       - 'cloudflare/bible-azbuka-online/**'
+      - 'cloudflare/bible-world-assets/**'
+      - 'web/assets/bible-world-v1/*scenes.mjs'
       - '.github/workflows/deploy-core-cloudflare.yml'
 
 permissions:
@@ -34,6 +36,31 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Check out the sources of the 30 Bible World panoramas
+        uses: actions/checkout@v4
+        with:
+          ref: c32f88fed7dee08c6108ace1e522fff405fba3c8
+          path: .bible-world-source
+          sparse-checkout: cloudflare/bible-world-preview
+          persist-credentials: false
+      - name: Build and check 4K Bible World panoramas
+        working-directory: .bible-world-source/cloudflare/bible-world-preview
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund sharp@0.35.4
+          node art/build-4k.mjs prepare
+          node art/build-4k.mjs build
+          npm test
+      - name: Prepare private Bible World assets
+        run: |
+          node ../../scripts/check-bible-world-access.mjs
+          node ../bible-world-assets/prepare.mjs "$GITHUB_WORKSPACE/.bible-world-source/cloudflare/bible-world-preview/public"
+          npx --no-install wrangler deploy --config ../bible-world-assets/wrangler.jsonc --dry-run --outdir /tmp/bible-world-assets-build
+      # Reuses the old preview Worker name and turns off its public and version URLs.
+      - name: Deploy private Bible World asset service
+        run: npx --no-install wrangler deploy --config ../bible-world-assets/wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Validate Worker bundle
         run: npx wrangler deploy --dry-run --outdir /tmp/app-core-worker-build
       - name: Create or update Worker
@@ -47,6 +74,20 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      - name: Verify Bible World requires sign-in and the old preview is closed
+        run: |
+          node --input-type=module <<'NODE'
+          const core = 'https://alias-spy-games-core.vitaledanilov.workers.dev';
+          const preview = 'https://alias-spy-games-bible-world-preview.vitaledanilov.workers.dev';
+          const response = await fetch(core + '/bible-world/access', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+          });
+          if (response.status !== 401) throw new Error(`Unexpected anonymous access status: ${response.status}`);
+          for (const path of ['/', '/assets/babel-360-v6-seams2-4k.webp']) {
+            const response = await fetch(preview + path, { signal: AbortSignal.timeout(15000) });
+            if (response.ok) throw new Error('The legacy public preview still serves ' + path);
+          }
+          NODE
       - name: Configure Telegram webhook and commands
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

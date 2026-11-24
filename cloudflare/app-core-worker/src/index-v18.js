@@ -1,11 +1,12 @@
 // Temporary application-wide restriction. Progress and permanent bans are never changed.
 import coreV17, { UserStore as V17UserStore } from './index-v17.js';
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { accessIdentity, accessStore, cleanAccessId, accessError } from './app-access-auth.js';
+import { accessIdentity, accessStore, cleanAccessId, accessError, isMainAdmin } from './app-access-auth.js';
 import { readTelegramWebhookUpdate, restrictedBotReply, RESTRICTED_BOT_TEXT } from './restricted-bot.js';
 import { handleFavoritesWidget } from './telegram-favorites-widget.js';
 import { SabbathUserStore } from './sabbath-user-store.js';
-import { azbukaAvailableTo, forwardAzbuka } from './bible-azbuka.js';
+import { forwardAzbuka } from './bible-azbuka.js';
+import { serveBibleWorld } from './bible-world.js';
 
 const MESSAGE = 'Библейские игры временно заблокированы. Не волнуйтесь: ваши данные и достижения на месте.';
 const MANAGEMENT = new Map([
@@ -14,6 +15,7 @@ const MANAGEMENT = new Map([
   ['appAccessRevoke', 'revoke'],
   ['appAccessRestore', 'restore'],
 ]);
+const ADMIN_GAMES = new Set(['bible-azbuka', 'bible-world']);
 const ACCESS_ACTIONS = new Set(['syncUser', 'accessStatus']);
 const MAX_GAME_STARS = 999_999;
 
@@ -97,17 +99,17 @@ export class UserStore extends V17UserStore {
   }
 
   async profileSetFavorites(raw = {}) {
-    if (!azbukaAvailableTo(raw.userId, this.env)) {
-      if (String(raw.game || '').trim() === 'bible-azbuka') return { ok: false, success: false, error: 'Игра недоступна' };
+    if (!isMainAdmin(raw.userId, this.env)) {
+      if (ADMIN_GAMES.has(String(raw.game || '').trim())) return { ok: false, success: false, error: 'Игра недоступна' };
       if (Array.isArray(raw.favorites)) {
-        raw = { ...raw, favorites: raw.favorites.filter(game => String(game).trim() !== 'bible-azbuka') };
+        raw = { ...raw, favorites: raw.favorites.filter(game => !ADMIN_GAMES.has(String(game).trim())) };
       }
     }
     return super.profileSetFavorites(raw);
   }
 
   async profileTrackGame(raw = {}) {
-    if (String(raw.game || '').trim() === 'bible-azbuka' && !azbukaAvailableTo(raw.userId, this.env)) {
+    if (ADMIN_GAMES.has(String(raw.game || '').trim()) && !isMainAdmin(raw.userId, this.env)) {
       return { ok: false, success: false, error: 'Игра недоступна' };
     }
     return super.profileTrackGame(raw);
@@ -231,12 +233,13 @@ export default {
       } catch { return json({ ok: false, success: false, error: 'Access check unavailable' }, 503, cors); }
     }
     const compat = ['/compat', '/android/compat'].includes(url.pathname) && request.method === 'POST';
+    const bibleWorld = request.method === 'POST' && ['/bible-world/access', '/bible-world/panorama'].includes(url.pathname);
     const azbuka = request.method === 'POST' && url.pathname.startsWith('/azbuka/');
     const check = url.pathname === '/app/access' && ['GET', 'POST'].includes(request.method);
     const sabbath = request.method === 'POST' && ['/sabbath/confirm','/sabbath/report'].includes(url.pathname);
     const legacyAccess = url.pathname === '/android/access' && request.method === 'GET';
     const sessionIssue = ['/admin/verify', '/web/session'].includes(url.pathname) && request.method === 'POST';
-    if (!azbuka && !sabbath && !compat && !check && !legacyAccess && !sessionIssue && url.pathname !== '/android/room-relay') return coreV17.fetch(request, env, ctx);
+    if (!bibleWorld && !azbuka && !sabbath && !compat && !check && !legacyAccess && !sessionIssue && url.pathname !== '/android/room-relay') return coreV17.fetch(request, env, ctx);
     try {
       const origin = request.headers.get('Origin');
       if (origin && !String(env.ALLOWED_ORIGINS || '').split(',').includes(origin)) throw accessError(403, 'Origin not allowed');
@@ -244,6 +247,7 @@ export default {
       const action = String(body?.payload?.action || '');
       const management = compat ? MANAGEMENT.get(action) : null;
       const userId = await accessIdentity(request, body, env, { fresh: Boolean(management), optional: check });
+      if (bibleWorld) return await serveBibleWorld(url.pathname, body?.scene, userId, env, cors);
       if (azbuka) return await forwardAzbuka(url.pathname, body?.payload, userId, env, cors);
       if (management) {
         if (userId !== String(env.ADMIN_TELEGRAM_ID || '')) throw accessError(403, 'Только главный администратор может снимать ограничения');

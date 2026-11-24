@@ -11,6 +11,7 @@
     'Библейский художник': { key: 'bible-sketch', desc: 'Рисуйте по очереди и найдите шпиона', icon: 'bibleSketch' },
     'Библейские слова': { key: 'bible-wow', desc: 'Собери слова из букв', icon: 'words' },
     'Библейская азбука': { key: 'bible-azbuka', desc: 'Онлайн-игра на общую букву', icon: 'azbuka' },
+    'Где я в Библии?': { key: 'bible-world', desc: 'Угадай библейскую историю по панораме 360°', icon: 'world' },
     'Поиск библейских слов': { key: 'bible-wordsearch', desc: 'Найди скрытые слова', icon: 'search' },
     'Библейские сокровища': { key: 'biblical-match-three', desc: 'Комбинации, бустеры и путь из 50 уровней', icon: 'matchThree' },
     'Библейские три в ряд': { key: 'biblical-match-three', desc: 'Комбинации, бустеры и путь из 50 уровней', icon: 'matchThree' },
@@ -26,6 +27,7 @@
     spy: `web/assets/icons/unified-v1/spy.webp?v=${ICON_VERSION}`, quartet: `web/assets/icons/unified-v1/quartet.webp?v=${ICON_VERSION}`,
     bibleSketch: `web/assets/icons/unified-v1/bible-sketch.webp?v=${ICON_VERSION}`,
     words: `web/assets/icons/unified-v1/words.webp?v=${ICON_VERSION}`,
+    world: 'web/assets/icons/unified-v1/bible-world.webp',
     azbuka: `web/assets/icons/unified-v1/bible-azbuka.webp?v=1`, search: `web/assets/icons/unified-v1/search.webp?v=${ICON_VERSION}`,
     matchThree: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39',
     sacred: `web/assets/icons/unified-v1/sacred.webp?v=${ICON_VERSION}`, ark: `web/assets/icons/unified-v1/ark.webp?v=${ICON_VERSION}`,
@@ -42,7 +44,7 @@
       const value = JSON.parse(localStorage.getItem('last_games_history') || '[]');
       return Array.isArray(value) ? value.filter((title) => {
         const game = GAMES[title];
-        return game && (game.key !== 'bible-azbuka' || window.canPlayBibleAzbuka?.());
+        return game && (!['bible-azbuka', 'bible-world'].includes(game.key) || window.canPlayBibleWorld?.());
       }).slice(0, 3) : [];
     } catch { return []; }
   }

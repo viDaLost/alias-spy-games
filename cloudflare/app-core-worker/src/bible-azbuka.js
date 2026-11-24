@@ -1,6 +1,6 @@
-import { accessError } from './app-access-auth.js';
+import { accessError, isMainAdmin } from './app-access-auth.js';
 
-export const azbukaAvailableTo = (userId, env) => Boolean(userId && String(userId) === String(env.ADMIN_TELEGRAM_ID || ''));
+export const azbukaAvailableTo = isMainAdmin;
 
 export async function forwardAzbuka(path, payload, userId, env, cors) {
   if (!azbukaAvailableTo(userId, env)) {
