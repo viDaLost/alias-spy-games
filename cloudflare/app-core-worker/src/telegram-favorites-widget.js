@@ -1,7 +1,6 @@
 import { accessStore, cleanAccessId } from './app-access-auth.js';
 import { getMainMiniAppUrl, telegramApi } from './index-v10.js';
 import { PLAYER_GAMES } from './player-games.js';
-import { isMainAdmin } from './app-access-auth.js';
 
 const LEGACY_QUERY = 'favorite_games_v1';
 const QUERY = 'favorite_games_v2';
@@ -103,7 +102,6 @@ async function getMenu(env, userId, lang, change) {
   const [state, url] = await Promise.all([getFavorites(env, userId, change), getMainMiniAppUrl(env)]);
   const index = Object.keys(COPY).indexOf(lang);
   const games = Object.fromEntries([...PLAYER_GAMES]
-    .filter(([id]) => !['bible-azbuka', 'bible-world'].includes(id) || isMainAdmin(userId, env))
     .map(([id, names]) => [id, [names[index], GAME_MARKS[id]]]));
   return { state, games, lang, copy: COPY[lang], url };
 }

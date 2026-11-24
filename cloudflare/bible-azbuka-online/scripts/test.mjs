@@ -79,8 +79,8 @@ const guest = { telegramInitData: signingData(GUEST) };
 const forged = { telegramInitData: signingData(GUEST).replace(GUEST, ADMIN) };
 assert.equal((await appRequest('create', {}, { name: 'Гость', accountId: ADMIN })).status, 401);
 assert.equal((await appRequest('create', forged, { name: 'Подмена' })).status, 401);
-assert.equal((await appRequest('create', guest, { name: 'Игрок', isRoot: true })).status, 403);
 assert.equal(rooms.size, 0);
+assert.equal((await appRequest('create', guest, { name: 'Игрок' })).status, 200);
 
 const created = await appRequest('create', admin, { name: 'Мария', mode: 'stop', accountId: GUEST });
 assert.equal(created.status, 200);
@@ -89,9 +89,7 @@ const initial = await created.json();
 assert.match(initial.code, /^[A-HJ-NP-Z2-9]{6}$/);
 assert.equal(initial.players.length, 1);
 assert(!JSON.stringify(initial).includes(ADMIN));
-assert.equal((await appRequest(initial.code + '/join', guest, { name: 'Анна' })).status, 403);
-assert.equal((await appRequest(initial.code + '/state', guest)).status, 403);
-assert.equal((await appRequest(initial.code + '/chat', guest, { text: 'Гость' })).status, 403);
+assert.equal((await appRequest(initial.code + '/state', guest)).status, 401);
 assert.equal((await appRequest(initial.code + '/start', admin)).status, 400);
 
 const rejoin = await appRequest(initial.code + '/join', admin, { name: 'Другое устройство' });
@@ -113,10 +111,12 @@ async function invoke(room, action, account, payload = {}) {
   return { status: response.status, ...await response.json() };
 }
 
-const room = rooms.get(initial.code);
-// The room engine supports multiple accounts. The production API above enforces the owner-only rollout.
-const second = await invoke(room, 'join', GUEST, { name: 'Анна' });
+const joinedByGuest = await appRequest(initial.code + '/join', guest, { name: 'Анна' });
+assert.equal(joinedByGuest.status, 200);
+const second = await joinedByGuest.json();
 assert.equal(second.players.length, 2);
+assert.equal((await appRequest(initial.code + '/state', guest)).status, 200);
+const room = rooms.get(initial.code);
 assert.equal((await invoke(room, 'state', '123456789')).status, 401);
 assert.equal((await invoke(room, 'settings', GUEST, { mode: 'timed', duration: 90 })).status, 403);
 assert.equal((await invoke(room, 'chat', GUEST, { text: 'Всем привет!' })).messages.at(-1).text, 'Всем привет!');
@@ -181,4 +181,4 @@ const legacy = makeRoom();
 await legacy.ready;
 legacy.room = { code: 'OLD234', phase: 'lobby', players: [{ token: 'preview-token' }] };
 assert.equal((await invoke(legacy, 'join', ADMIN, { name: 'Мария' })).status, 404);
-console.log('PASS: signed owner gate, room rejoin, lobby and chat, private drafts, Synodal scoring, rounds and timers');
+console.log('PASS: verified player access, room rejoin, lobby and chat, private drafts, Synodal scoring, rounds and timers');

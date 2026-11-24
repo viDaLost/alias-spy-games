@@ -137,10 +137,6 @@
 
   function tryAutoOpen() {
     if (!pendingInvite || pendingInvite.opened || !menuIsReady()) return;
-    if (pendingInvite.game === 'bible-azbuka' && !window.canPlayBibleAzbuka?.()) {
-      const access = window.AppAccess?.state();
-      if (!access?.checked || access.checking) return;
-    }
     pendingInvite.opened = true;
     persistInviteRoom(pendingInvite);
     try {

@@ -1,9 +1,6 @@
-import { accessError, isMainAdmin } from './app-access-auth.js';
+import { accessError } from './app-access-auth.js';
 
-export async function serveBibleWorld(path, scene, userId, env, cors) {
-  if (!isMainAdmin(userId, env)) {
-    throw accessError(403, '«Где я в Библии?» доступна только главному администратору', 'BIBLE_WORLD_ADMIN_ONLY');
-  }
+export async function serveBibleWorld(path, scene, env, cors) {
   const headers = new Headers({ ...cors, 'Cache-Control': 'no-store' });
   if (path === '/bible-world/access') return new Response(null, { status: 204, headers });
   if (typeof scene !== 'string' || !/^[a-z0-9-]{1,80}-4k\.webp$/.test(scene)) {

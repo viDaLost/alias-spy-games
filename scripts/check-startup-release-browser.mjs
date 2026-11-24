@@ -53,7 +53,7 @@ try {
     });
     await page.goto(base, {waitUntil:'domcontentloaded'});
     await page.waitForSelector('#menu-container:not(.hidden)');
-    await page.waitForFunction(() => document.querySelectorAll('#catalog-games .catalog-game').length === 16).catch(async (error) => {
+    await page.waitForFunction(() => document.querySelectorAll('#catalog-games .catalog-game').length === 18).catch(async (error) => {
       console.error('Startup state:', await page.evaluate(() => ({ access: window.AppAccess?.state(), cards: document.querySelectorAll('.game-card').length, details: document.querySelectorAll('.game-card__details').length, ready: document.readyState })));
       throw error;
     });

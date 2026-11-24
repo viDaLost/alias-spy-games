@@ -68,7 +68,7 @@ vm.runInContext(loadGameSource, loader);
 loader.loadGameScript('web/games/quartet.js', () => {}, 'quartet');
 loader.loadGameScript('web/games/bible-world.js', () => {}, 'bible-world');
 assert(gameScripts[0]?.src === 'web/games/quartet.js?v=23', 'dynamic game cache key must expose the patched Quartet source');
-assert(gameScripts[1]?.src === 'web/games/bible-world.js?v=22', 'Bible World must fetch the updated frame launcher');
+assert(gameScripts[1]?.src === 'web/games/bible-world.js?v=23', 'Bible World must fetch the updated frame launcher');
 // Адрес «Художника» проходит через выбор языка — у него есть переведённая
 // копия, — но метка версии обязана остаться: без неё браузер отдаст старый файл.
 assert(sketchLauncher.includes("'web/games/bible-sketch.js'") && /script\.src = `\$\{[^`]+\}\?v=4`;/.test(sketchLauncher),

@@ -47,9 +47,9 @@ async function contextFor({ android = false, web = false, telegram = true, socia
       const appRestricted = restricted && !allowed && !banned;
       return route.fulfill({ json: { success: true, allowed: !appRestricted && !banned, restricted, appRestricted, isBanned: appRestricted || banned, isRoot, userId: id } });
     }
-    if (url.pathname === '/bible-world/access') return route.fulfill({ status: isRoot ? 204 : 403 });
+    if (url.pathname === '/bible-world/access') return route.fulfill({ status: !banned && (allowed || !restricted) ? 204 : 403 });
     if (url.pathname === '/bible-world/panorama') {
-      assert.equal(isRoot, true);
+      assert.ok(!banned && (allowed || !restricted));
       assert.match(route.request().postDataJSON().scene, /-4k\.webp$/);
       return route.fulfill({ path: 'web/assets/icons/unified-v1/bible-world.webp', contentType: 'image/webp' });
     }
@@ -89,15 +89,16 @@ try {
     await page.goto(base);
     await page.waitForFunction(() => window.AppAccess?.state().checked);
     await page.locator('#main-catalog').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('#catalog-games [data-launch*="bible-azbuka"]').count(), 0);
-    assert.equal(await page.locator('#catalog-games [data-launch="bible-world"]').count(), 0);
-    await page.evaluate(() => window.showGame('bible-world'));
-    assert.notEqual(await page.locator('body').getAttribute('data-current-game'), 'bible-world');
+    assert.equal(await page.locator('#catalog-games [data-launch="bible-azbuka"]').count(), 1);
+    assert.equal(await page.locator('#catalog-games [data-launch="bible-world"]').count(), 1);
     assert.equal(await page.locator('#app-access-screen').count(), 0);
     assert.equal(await page.evaluate(() => window.AppAccess.allowed()), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('sacred_word_levels_v4_555555555')).level), 7);
     if (config.telegram !== false) {
+      await page.locator('#catalog-games [data-launch="bible-azbuka"]').click();
+      await page.locator('#game-container #create').waitFor();
+      await page.evaluate(() => window.goToMainMenu());
       await page.evaluate(() => window.showGame('sacred-word'));
       await page.waitForFunction(() => document.body.dataset.currentGame === 'sacred-word');
       fail = true;
@@ -110,6 +111,11 @@ try {
         assert.equal(await page.evaluate(() => document.body.dataset.currentGame), 'sacred-word');
         assert.equal(await page.locator('#app-access-screen').count(), 0);
       } finally { fail = false; }
+    }
+    if (config.telegram === false && !config.android && !config.web) {
+      allowed = true;
+      await page.locator('#catalog-games [data-launch="bible-world"]').click();
+      await page.frameLocator('iframe[title="Где я в Библии?"]').locator('#levelMenu').waitFor();
     }
     await context.close();
   }
@@ -165,10 +171,10 @@ try {
   await delegatedPage.waitForFunction(() => document.body.dataset.currentGame === 'quartet');
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=favorites`);
   await delegatedPage.locator('.social-sheet-overlay.is-open .social-favorites-grid').waitFor();
-  assert.equal(await delegatedPage.locator('[data-toggle-favorite="bible-world"]').count(), 0);
-  await delegatedPage.goto(`${base}/?game=bible-world`);
-  await delegatedPage.waitForFunction(() => window.AppAccess?.state().checked);
-  assert.notEqual(await delegatedPage.locator('body').getAttribute('data-current-game'), 'bible-world');
+  assert.equal(await delegatedPage.locator('[data-toggle-favorite="bible-world"]').count(), 1);
+  assert.equal(await delegatedPage.locator('[data-toggle-favorite="bible-azbuka"]').count(), 1);
+  await delegatedPage.goto(`${base}/?tgWebAppStartParam=game_bible-world`);
+  await delegatedPage.frameLocator('iframe[title="Где я в Библии?"]').locator('#levelMenu').waitFor();
   await delegatedContext.close();
 
   id = '1288379477'; isRoot = true;
@@ -212,7 +218,7 @@ try {
 
   const directWorld = await catalogContext.newPage();
   await directWorld.goto(`${base}/web/assets/bible-world-v2/index.html`);
-  await directWorld.getByText('Игра доступна только главному администратору.', { exact: true }).waitFor();
+  await directWorld.getByText('Открой игру из каталога «Библейских игр».', { exact: true }).waitFor();
   assert.equal(await directWorld.locator('#levelMenu').isVisible(), false);
   await directWorld.close();
   assert.equal((await catalog.locator('#main-catalog h1').textContent()).trim(), 'Библейские игры');
