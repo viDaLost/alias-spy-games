@@ -360,7 +360,7 @@ try {
   const editKeyboard = () => replies.at(-2).body.reply_markup.inline_keyboard;
   assert(replies.at(-2).url.endsWith('/editMessageText'));
   assert.equal(replies.at(-2).body.message_id, 43);
-  assert(replies.at(-2).body.text.includes('Изменить избранное · 2/4'));
+  assert(replies.at(-2).body.text.includes('Изменить избранное · 2/5'));
   const addSpy = editKeyboard()[0][0];
   assert.equal(addSpy.text, '☆ Соглядатай');
   assert.equal(addSpy.callback_data, 'favorite_menu:ru:edit:1:1:spy');
@@ -380,6 +380,10 @@ try {
   assert.deepEqual(store.readProfile(String(owner)).favorites, ['bible-wow']);
   await botUpdate({ callback_query: { ...playerCallback, data: removeSpy.callback_data } });
   assert.deepEqual(store.readProfile(String(delegated)).favorites, ['quartet']);
+  for (const id of ['bible-azbuka', 'bible-world']) {
+    await botUpdate({ callback_query: { ...playerCallback, data: `favorite_menu:ru:edit:0:1:${id}` } });
+  }
+  assert.deepEqual(store.readProfile(String(delegated)).favorites, ['quartet', 'bible-azbuka', 'bible-world']);
 
   assert.equal((await compat('555555555', 'appAccessRestore', { adminId: env.ADMIN_TELEGRAM_ID })).status, 403);
   assert.equal((await compat('666666666', 'appAccessRestore')).status, 403);
