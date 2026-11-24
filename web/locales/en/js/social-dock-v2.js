@@ -286,8 +286,7 @@
 
   function renderFavorites() {
     const favorites = new Set(state.profile?.favorites || []);
-    const games = GAME_CATALOG.filter(game => !['bible-azbuka', 'bible-world'].includes(game.id) || window.canPlayBibleWorld?.());
-    return `<div class="social-favorite-intro"><b>Favorite games</b><span>Favorite games are saved to your profile and available on any device.</span></div><div class="social-favorites-grid">${games.map((game) => {
+    return `<div class="social-favorite-intro"><b>Favorite games</b><span>Favorite games are saved to your profile and available on any device.</span></div><div class="social-favorites-grid">${GAME_CATALOG.map((game) => {
       const selected = favorites.has(game.id);
       return `<button type="button" class="social-favorite ${selected ? 'is-selected' : ''}" data-toggle-favorite="${game.id}">
         <img src="${game.icon}" alt="" loading="lazy"><span><b>${escapeHtml(game.title)}</b><small>${selected ? 'Favorited' : 'Add'}</small></span><i aria-hidden="true">♥</i>

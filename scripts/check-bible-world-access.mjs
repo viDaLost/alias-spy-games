@@ -12,9 +12,12 @@ registerHooks({
 });
 const { default: core } = await import('../cloudflare/app-core-worker/src/index-v18.js');
 const owner = '1288379477';
-const delegated = '666666666';
-let identity = owner;
+const player = '666666666';
+let identity = player;
+let restricted = false;
+let banned = false;
 let assetRequests = 0;
+let roomRequests = 0;
 const scene = 'babel-360-v6-seams2-4k.webp';
 const env = {
   ADMIN_TELEGRAM_ID: owner,
@@ -22,11 +25,22 @@ const env = {
   USERS: {
     idFromName: () => 'global',
     get: () => ({
-      fetch: (url) => {
-        assert.match(url, /\/android-auth\/session$/);
-        return Response.json({ userId: identity });
+      fetch: (url, init) => {
+        if (url.endsWith('/android-auth/session')) return Response.json({ userId: identity });
+        assert.match(url, /\/app-access\/check$/);
+        const { userId } = JSON.parse(init.body);
+        const allowed = userId === owner || (!restricted && !(userId && banned));
+        return Response.json({ ok: true, success: true, allowed });
       },
     }),
+  },
+  AZBUKA: {
+    fetch: (url, init) => {
+      roomRequests++;
+      assert.equal(url, 'https://azbuka.internal/create');
+      assert.equal(init.headers['X-Azbuka-Account'], player);
+      return Response.json({ ok: true });
+    },
   },
   BIBLE_WORLD: {
     fetch: (url) => {
@@ -39,29 +53,40 @@ const env = {
   },
 };
 const origin = 'https://appassets.androidplatform.net';
-function request(action, body = {}, authenticated = false) {
+function request(path, body = {}, authenticated = false) {
   const headers = { Origin: origin, 'Content-Type': 'application/json' };
   if (authenticated) headers.Authorization = 'Bearer bgs_' + 's'.repeat(64);
-  return core.fetch(new Request('https://core.example/bible-world/' + action, {
+  return core.fetch(new Request('https://core.example/' + path, {
     method: 'POST', headers, body: JSON.stringify(body),
   }), env);
 }
-assert.equal((await request('access', { userId: owner })).status, 401);
-assert.equal((await request('panorama', { userId: owner, scene })).status, 401);
-identity = delegated;
-assert.equal((await request('access', { userId: owner }, true)).status, 403);
-assert.equal((await request('panorama', { scene }, true)).status, 403);
-assert.equal(assetRequests, 0);
+assert.equal((await request('bible-world/access')).status, 204);
+assert.equal((await request('bible-world/access', {}, true)).status, 204);
+assert.equal((await request('bible-world/access', { telegramInitData: 'invalid' })).status, 401);
+assert.equal((await request('azbuka/create', { userId: owner })).status, 401);
+assert.equal((await request('azbuka/create', { payload: { name: 'Игрок' } }, true)).status, 200);
+
+banned = true;
+assert.equal((await request('bible-world/panorama', { scene }, true)).status, 403);
+assert.equal((await request('azbuka/create', { userId: owner }, true)).status, 403);
+banned = false;
+restricted = true;
+assert.equal((await request('bible-world/access', { userId: owner })).status, 403);
+assert.equal((await request('bible-world/panorama', { scene }, true)).status, 403);
+assert.equal((await request('azbuka/create', {}, true)).status, 403);
 identity = owner;
-assert.equal((await request('access', {}, true)).status, 204);
-assert.equal((await request('panorama', { scene: '../' + scene }, true)).status, 404);
+assert.equal((await request('bible-world/access', {}, true)).status, 204);
+identity = player;
+restricted = false;
+assert.equal(roomRequests, 1);
+assert.equal((await request('bible-world/panorama', { scene: '../' + scene }, true)).status, 404);
 assert.equal(assetRequests, 0);
-const panorama = await request('panorama', { scene }, true);
+const panorama = await request('bible-world/panorama', { scene });
 assert.equal(panorama.status, 200);
 assert.equal(panorama.headers.get('Content-Type'), 'image/webp');
 assert.equal(panorama.headers.get('Cache-Control'), 'no-store');
 assert.equal(panorama.headers.get('Access-Control-Allow-Origin'), origin);
 assert.equal(await panorama.text(), 'panorama');
-assert.equal((await request('panorama', { scene: 'missing-4k.webp' }, true)).status, 404);
+assert.equal((await request('bible-world/panorama', { scene: 'missing-4k.webp' }, true)).status, 404);
 assert.equal(assetRequests, 2);
-console.log('Bible World Core routes allow only the verified main administrator.');
+console.log('Both games are open to regular players. Bible World accepts guests, Azbuka rooms use verified accounts, and general restrictions are enforced.');

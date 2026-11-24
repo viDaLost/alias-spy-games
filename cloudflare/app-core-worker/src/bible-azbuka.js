@@ -1,11 +1,4 @@
-import { accessError, isMainAdmin } from './app-access-auth.js';
-
-export const azbukaAvailableTo = isMainAdmin;
-
 export async function forwardAzbuka(path, payload, userId, env, cors) {
-  if (!azbukaAvailableTo(userId, env)) {
-    throw accessError(403, '«Библейская азбука» доступна только главному администратору', 'AZBUKA_ADMIN_ONLY');
-  }
   const target = new URL('https://azbuka.internal');
   target.pathname = path.slice('/azbuka'.length);
   const result = await env.AZBUKA.fetch(target.href, {

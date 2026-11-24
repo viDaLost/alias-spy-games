@@ -1,7 +1,6 @@
 // Only signed Telegram launch data or an existing server-issued session proves identity.
 const encoder = new TextEncoder();
 export const cleanAccessId = (value) => /^[1-9]\d{4,19}$/.test(String(value || '')) ? String(value) : '';
-export const isMainAdmin = (userId, env) => Boolean(userId && String(userId) === String(env.ADMIN_TELEGRAM_ID || ''));
 export const accessError = (status, message, code = 'APP_ACCESS_ERROR') => Object.assign(new Error(message), { status, code });
 
 export async function accessStore(env, path, body) {

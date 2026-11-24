@@ -22,6 +22,8 @@ jobs:
         working-directory: cloudflare/app-core-worker
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -36,7 +38,25 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Check whether Bible World panorama inputs changed
+        id: world-assets
+        working-directory: .
+        env:
+          PREVIOUS_COMMIT: ${{ github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == push && "$PREVIOUS_COMMIT" =~ ^[0-9a-f]{40}$ ]] &&
+             (git cat-file -e "$PREVIOUS_COMMIT^{commit}" || git fetch --no-tags --depth=1 origin "$PREVIOUS_COMMIT") &&
+             git diff --quiet "$PREVIOUS_COMMIT" "$GITHUB_SHA" -- cloudflare/bible-world-assets ':(glob)web/assets/bible-world-v2/*scenes.mjs'; then
+            echo 'rebuild=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'rebuild=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check both released games
+        run: |
+          node ../../scripts/check-bible-world-access.mjs
+          node ../../scripts/check-bible-world-catalog.mjs
       - name: Check out the original Bible World panorama sources
+        if: steps.world-assets.outputs.rebuild == 'true'
         uses: actions/checkout@v4
         with:
           ref: c32f88fed7dee08c6108ace1e522fff405fba3c8
@@ -44,6 +64,7 @@ jobs:
           sparse-checkout: cloudflare/bible-world-preview
           persist-credentials: false
       - name: Build and check the original 30 Bible World panoramas
+        if: steps.world-assets.outputs.rebuild == 'true'
         working-directory: .bible-world-source/cloudflare/bible-world-preview
         run: |
           npm install --no-save --package-lock=false --no-audit --no-fund sharp@0.35.4
@@ -51,13 +72,13 @@ jobs:
           node art/build-4k.mjs build
           npm test
       - name: Prepare private Bible World assets
+        if: steps.world-assets.outputs.rebuild == 'true'
         run: |
-          node ../../scripts/check-bible-world-access.mjs
-          node ../../scripts/check-bible-world-catalog.mjs
           node ../bible-world-assets/prepare.mjs "$GITHUB_WORKSPACE/.bible-world-source/cloudflare/bible-world-preview/public"
           npx --no-install wrangler deploy --config ../bible-world-assets/wrangler.jsonc --dry-run --outdir /tmp/bible-world-assets-build
       # Reuses the old preview Worker name and turns off its public and version URLs.
       - name: Deploy private Bible World asset service
+        if: steps.world-assets.outputs.rebuild == 'true'
         run: npx --no-install wrangler deploy --config ../bible-world-assets/wrangler.jsonc
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -75,15 +96,44 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      - name: Verify Bible World requires sign-in and the old preview is closed
+      - name: Verify both games on the production server
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: |
           node --input-type=module <<'NODE'
+          import { createHmac } from 'node:crypto';
           const core = 'https://alias-spy-games-core.vitaledanilov.workers.dev';
           const preview = 'https://alias-spy-games-bible-world-preview.vitaledanilov.workers.dev';
-          const response = await fetch(core + '/bible-world/access', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+          const post = (path, data = {}) => fetch(core + path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Origin: 'https://alias-spy-games-app.vitaledanilov.workers.dev' },
+            body: JSON.stringify(data),
+            signal: AbortSignal.timeout(15000),
           });
-          if (response.status !== 401) throw new Error(`Unexpected anonymous access status: ${response.status}`);
+          const world = await post('/bible-world/access');
+          if (world.status !== 204) throw new Error(`Bible World guest access returned ${world.status}`);
+          const panorama = await post('/bible-world/panorama', { scene: 'babel-360-v6-seams2-4k.webp' });
+          if (!panorama.ok || panorama.headers.get('Content-Type') !== 'image/webp') {
+            throw new Error(`Public Bible World panorama returned ${panorama.status}`);
+          }
+          await panorama.body?.cancel();
+
+          const azbuka = '/azbuka/public-release-check';
+          const anonymous = await post(azbuka);
+          if (anonymous.status !== 401) throw new Error(`Unsigned Azbuka request returned ${anonymous.status}`);
+          const token = process.env.TELEGRAM_BOT_TOKEN;
+          if (!token) throw new Error('Telegram verification secret is missing');
+          const params = new URLSearchParams({
+            auth_date: String(Math.floor(Date.now() / 1000)),
+            user: JSON.stringify({ id: 7540012345, first_name: 'Release check' }),
+          });
+          const secret = createHmac('sha256', 'WebAppData').update(token).digest();
+          const signed = [...params].map(([key, value]) => `${key}=${value}`).join('\n');
+          params.set('hash', createHmac('sha256', secret).update(signed).digest('hex'));
+          const player = await post(azbuka, { telegramInitData: params.toString() });
+          if (player.status !== 404) throw new Error(`Azbuka routing for a regular player returned ${player.status}`);
+          console.log('Production guest panorama and regular-player Azbuka routing verified.');
+
           for (const path of ['/', '/assets/babel-360-v6-seams2-4k.webp']) {
             const response = await fetch(preview + path, { signal: AbortSignal.timeout(15000) });
             if (response.ok) throw new Error('The legacy public preview still serves ' + path);

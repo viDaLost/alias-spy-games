@@ -469,15 +469,14 @@ function renderGameButton(item) {
   `;
 }
 
-function canPlayAdminGames() {
-  const access = window.AppAccess?.state();
-  return !fullCatalogPreview && access?.isRoot === true && access.userId === ADMIN_ID;
+function canPlayReleasedGames() {
+  return !fullCatalogPreview && window.AppAccess?.allowed() !== false;
 }
-window.canPlayBibleAzbuka = canPlayAdminGames;
-window.canPlayBibleWorld = canPlayAdminGames;
+window.canPlayBibleAzbuka = canPlayReleasedGames;
+window.canPlayBibleWorld = canPlayReleasedGames;
 
 function canShowGame(game) {
-  return !['bible-azbuka', 'bible-world'].includes(game.key) || canPlayAdminGames();
+  return !fullCatalogPreview || !['bible-azbuka', 'bible-world'].includes(game.key);
 }
 
 function renderMainMenu() {
@@ -488,10 +487,9 @@ function renderMainMenu() {
   }
   GAME_GROUPS.forEach((group) => {
     const root = document.getElementById(group.id);
-    const access = group.id === 'word-games' && canPlayAdminGames() ? 'root' : '1';
-    if (!root || root.dataset.ready === access) return;
-    root.innerHTML = group.items.filter(canShowGame).map(renderGameButton).join("");
-    root.dataset.ready = access;
+    if (!root || root.dataset.ready === '1') return;
+    root.innerHTML = group.items.map(renderGameButton).join("");
+    root.dataset.ready = '1';
   });
 
   const systemRoot = document.getElementById("system-actions");
@@ -707,12 +705,7 @@ function startGameSafely(callback, expectedGame = activeGameName, expectedEntry 
 let gameLaunchEntry = 0;
 function showGame(gameName) {
   if (window.AppAccess && !window.AppAccess.allowed()) return;
-  if (gameName === "bible-azbuka" && !canPlayAdminGames()) {
-    window.RoomInvite?.consume('bible-azbuka');
-    window.showToast?.('«Библейская азбука» доступна только главному администратору');
-    return;
-  }
-  if (gameName === "bible-world" && !canPlayAdminGames()) return;
+  if (!canShowGame({ key: gameName })) return;
   if (gameName === "moses-nile") {
     if (window.SabbathAccess?.status().mandatory) {
       window.SabbathAccess.authorize(gameName);
@@ -881,7 +874,7 @@ function loadGameScript(fileName, callback, expectedGame = activeGameName, expec
   loadedGameScripts.set(fileName, record);
 
   const script = document.createElement("script");
-  const version = { quartet: 23, 'bible-world': 22 }[expectedGame] || 21;
+  const version = { quartet: 23, 'bible-world': 23 }[expectedGame] || 21;
   script.src = `${fileName}?v=${version}`;
   script.dataset.gameScript = fileName;
 

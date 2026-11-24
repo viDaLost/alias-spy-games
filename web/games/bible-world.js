@@ -19,7 +19,7 @@
     frame.className = 'game-frame';
     frame.title = 'Где я в Библии?';
 
-    const address = 'web/assets/bible-world-v2/index.html';
+    const address = 'web/assets/bible-world-v2/play.html';
     const url = new URL(window.__gameFrameInsets?.seedUrl(address) || address, location.href);
     const insets = window.__gameFrameInsets?.measure();
     if (insets) url.searchParams.set('chromeTop', String(insets.top));

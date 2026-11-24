@@ -1,7 +1,7 @@
 // Temporary application-wide restriction. Progress and permanent bans are never changed.
 import coreV17, { UserStore as V17UserStore } from './index-v17.js';
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { accessIdentity, accessStore, cleanAccessId, accessError, isMainAdmin } from './app-access-auth.js';
+import { accessIdentity, accessStore, cleanAccessId, accessError } from './app-access-auth.js';
 import { readTelegramWebhookUpdate, restrictedBotReply, RESTRICTED_BOT_TEXT } from './restricted-bot.js';
 import { handleFavoritesWidget } from './telegram-favorites-widget.js';
 import { SabbathUserStore } from './sabbath-user-store.js';
@@ -15,7 +15,6 @@ const MANAGEMENT = new Map([
   ['appAccessRevoke', 'revoke'],
   ['appAccessRestore', 'restore'],
 ]);
-const ADMIN_GAMES = new Set(['bible-azbuka', 'bible-world']);
 const ACCESS_ACTIONS = new Set(['syncUser', 'accessStatus']);
 const MAX_GAME_STARS = 999_999;
 
@@ -96,23 +95,6 @@ export class UserStore extends V17UserStore {
     const user = super.readUser(userId);
     if (user) user.unifiedWallet = Boolean(this.sql.exec('SELECT unified_wallet FROM game_balances WHERE user_id = ?', userId).toArray()[0]?.unified_wallet);
     return user;
-  }
-
-  async profileSetFavorites(raw = {}) {
-    if (!isMainAdmin(raw.userId, this.env)) {
-      if (ADMIN_GAMES.has(String(raw.game || '').trim())) return { ok: false, success: false, error: 'Игра недоступна' };
-      if (Array.isArray(raw.favorites)) {
-        raw = { ...raw, favorites: raw.favorites.filter(game => !ADMIN_GAMES.has(String(game).trim())) };
-      }
-    }
-    return super.profileSetFavorites(raw);
-  }
-
-  async profileTrackGame(raw = {}) {
-    if (ADMIN_GAMES.has(String(raw.game || '').trim()) && !isMainAdmin(raw.userId, this.env)) {
-      return { ok: false, success: false, error: 'Игра недоступна' };
-    }
-    return super.profileTrackGame(raw);
   }
 
   async fetch(request) {
@@ -246,9 +228,7 @@ export default {
       const body = request.method === 'POST' ? await request.clone().json() : {};
       const action = String(body?.payload?.action || '');
       const management = compat ? MANAGEMENT.get(action) : null;
-      const userId = await accessIdentity(request, body, env, { fresh: Boolean(management), optional: check });
-      if (bibleWorld) return await serveBibleWorld(url.pathname, body?.scene, userId, env, cors);
-      if (azbuka) return await forwardAzbuka(url.pathname, body?.payload, userId, env, cors);
+      const userId = await accessIdentity(request, body, env, { fresh: Boolean(management), optional: check || bibleWorld });
       if (management) {
         if (userId !== String(env.ADMIN_TELEGRAM_ID || '')) throw accessError(403, 'Только главный администратор может снимать ограничения');
         return json(await accessStore(env, `/app-access/${management}`, { actorId: userId, targetId: body.payload.targetId }), 200, cors);
@@ -258,6 +238,8 @@ export default {
       });
       if (check || legacyAccess || (compat && ACCESS_ACTIONS.has(action) && !access.allowed)) return json(access, 200, cors);
       if (!access.allowed) return json({ ...access, ok: false, success: false, error: MESSAGE }, 403, cors);
+      if (bibleWorld) return await serveBibleWorld(url.pathname, body?.scene, env, cors);
+      if (azbuka) return await forwardAzbuka(url.pathname, body?.payload, userId, env, cors);
       if (sabbath) {
         if (url.pathname === '/sabbath/report') {
           return json(await accessStore(env, '/app-access/sabbath-report', {userId,offset:body.offset}),200,cors);

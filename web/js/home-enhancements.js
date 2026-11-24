@@ -42,10 +42,7 @@
   function history() {
     try {
       const value = JSON.parse(localStorage.getItem('last_games_history') || '[]');
-      return Array.isArray(value) ? value.filter((title) => {
-        const game = GAMES[title];
-        return game && (!['bible-azbuka', 'bible-world'].includes(game.key) || window.canPlayBibleWorld?.());
-      }).slice(0, 3) : [];
+      return Array.isArray(value) ? value.filter((title) => GAMES[title]).slice(0, 3) : [];
     } catch { return []; }
   }
 
