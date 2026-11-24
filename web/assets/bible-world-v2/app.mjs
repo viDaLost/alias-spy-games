@@ -1,4 +1,4 @@
-import {levels,regions,events,epochs,createJourney,eventChoices,maxRoundScore} from './rules.mjs?v=12';
+import {scenes,levels,regions,events,epochs,createJourney,eventChoices,maxRoundScore} from './rules.mjs';
 import {createPanorama} from './viewer.mjs?v=10';
 const params = new URLSearchParams(location.search);
 document.documentElement.dataset.theme = params.get('theme') === 'dark' ? 'dark' : 'light';
@@ -42,15 +42,16 @@ if (access?.ok) {
 function startGame() {
 const $=id=>document.getElementById(id),fmt=n=>n.toLocaleString('ru-RU'),steps=['place','event','epoch'],titles=['Где вы находитесь?','Что здесь происходит?','В какое время это было?'];
 const state={active:false,guess:null,event:null,epoch:null,hints:0,submitted:false,loaded:false,seconds:0,step:0};let journey,cueTimer;
-const key=id=>`bible-world-best-v5-${id}`;
+const key = (id, rounds) => rounds === 10 ? `bible-world-best-v5-${id}` : `bible-world-best-${rounds}-rounds-${id}`;
 function best(id,limit){
- try{return Math.max(0,Math.min(limit,Number(localStorage.getItem(key(id)))||0));}
+ try{return Math.max(0,Math.min(limit,Number(localStorage.getItem(key(id, limit / maxRoundScore)))||0));}
  catch{return 0;}
 }
 let sceneRequest;
 const levelIcons = ['◔', '◑', '◕'];
 
 function renderLevels() {
+ $('totalLocations').textContent = `${scenes.length} локаций`;
  const cards = $('levelCards');
  cards.replaceChildren();
  for (const [index, level] of levels.entries()) {
@@ -75,6 +76,12 @@ function renderLevels() {
   const text = document.createElement('small');
   text.textContent = record ? `${count} локаций · Рекорд ${fmt(record)}` : `${count} локаций`;
   copy.append(title, text);
+  const oldRecord = count > 10 && best(level.id, 10 * maxRoundScore);
+  if (oldRecord) {
+   const previous = document.createElement('small');
+   previous.textContent = `Рекорд за 10 локаций: ${fmt(oldRecord)}`;
+   copy.append(previous);
+  }
 
   const chevron = document.createElement('span');
   chevron.className = 'level-chevron';
@@ -164,7 +171,7 @@ function result(r){const s=journey.scene,finishedJourney=journey.complete&&!jour
  $('roundResults').replaceChildren();for(const [i,scene] of journey.scenes.entries()){const row=document.createElement('div'),name=document.createElement('span'),score=document.createElement('b');row.className='round-result';name.textContent=`${i+1}. ${scene.title}`;score.textContent=journey.results[i]?fmt(journey.results[i].total):'—';row.append(name,score);$('roundResults').append(row);}
  $('playAgain').textContent=journey.complete?'Сыграть ещё раз ↺':'Следующая локация →';$('resultScroll').scrollTop=0;$('resultDialog').showModal();inert();
 }
-$('submitGuess').onclick=()=>{if(state.submitted||!state.loaded||!values().every(Boolean))return;const r=journey.submit(state);state.submitted=true;closeAnswers();$('hintToast').hidden=true;$('lookCue').hidden=true;$('hintButton').disabled=true;if(journey.complete&&!journey.single){try{localStorage.setItem(key(journey.levelId),String(Math.max(best(journey.levelId,journey.maxScore),journey.total)));}catch{}}$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;completion();result(r);};
+$('submitGuess').onclick=()=>{if(state.submitted||!state.loaded||!values().every(Boolean))return;const r=journey.submit(state);state.submitted=true;closeAnswers();$('hintToast').hidden=true;$('lookCue').hidden=true;$('hintButton').disabled=true;if(journey.complete&&!journey.single){try{localStorage.setItem(key(journey.levelId, journey.roundCount),String(Math.max(best(journey.levelId,journey.maxScore),journey.total)));}catch{}}$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;completion();result(r);};
 async function loadScene() {
  sceneRequest?.abort();
  const request = new AbortController();

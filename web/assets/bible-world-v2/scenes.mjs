@@ -1,4 +1,5 @@
 import {additionalScenes} from './additional-scenes.mjs?v=11';
+import {extraScenes} from './extra-scenes.mjs';
 
 export const scenes = [
  {
@@ -568,5 +569,6 @@ export const scenes = [
   "quote": "«Все мы здесь»",
   "quoteSource": "Деяния 16:28 · Синодальный перевод"
  },
- ...additionalScenes
+ ...additionalScenes,
+ ...extraScenes
 ];

@@ -22,6 +22,16 @@ export const regions=[
  {id:'beersheba',label:'Вирсавия',detail:'Южная пустыня',lat:31.24,lon:34.79},
  {id:'joppa',label:'Иоппия',detail:'Город на побережье Средиземного моря',lat:32.05,lon:34.75},
  {id:'berea',label:'Верия',detail:'Город в Македонии',lat:40.52,lon:22.20},
+ {id:'eden',label:'Едем',detail:'Сад, точное положение неизвестно'},
+ {id:'moriah',label:'Земля Мориа',detail:'Горная местность, названная в Бытии'},
+ {id:'gaza',label:'Газа',detail:'Филистимский город у морского побережья',lat:31.50,lon:34.47},
+ {id:'jabbok',label:'Долина Иавока',detail:'К востоку от Иордана',lat:32.17,lon:35.66},
+ {id:'edom-road',label:'Путь вокруг Едома',detail:'Пустынная дорога на юге'},
+ {id:'shiloh',label:'Силом',detail:'Святилище в горах Ефремовых',lat:32.05,lon:35.29},
+ {id:'susa',label:'Сузы',detail:'Одна из столиц Персидского царства',lat:32.19,lon:48.25},
+ {id:'damascus',label:'Окрестности Дамаска',detail:'Сирия',lat:33.51,lon:36.30},
+ {id:'mamre',label:'Мамре',detail:'Дубрава близ Хеврона',lat:31.53,lon:35.10},
+ {id:'malta',label:'Мелит',detail:'Остров, обычно отождествляемый с Мальтой',lat:35.90,lon:14.45},
  {id:'unknown',label:'Место не названо в Писании',detail:'Без определённой географической области'}
 ];
 export const events=scenes.map(scene=>({id:scene.event,label:scene.title}));

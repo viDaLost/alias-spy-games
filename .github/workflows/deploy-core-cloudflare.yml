@@ -8,7 +8,7 @@ on:
       - 'cloudflare/app-core-worker/**'
       - 'cloudflare/bible-azbuka-online/**'
       - 'cloudflare/bible-world-assets/**'
-      - 'web/assets/bible-world-v1/*scenes.mjs'
+      - 'web/assets/bible-world-v2/*scenes.mjs'
       - '.github/workflows/deploy-core-cloudflare.yml'
 
 permissions:
@@ -36,14 +36,14 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Check out the sources of the 30 Bible World panoramas
+      - name: Check out the original Bible World panorama sources
         uses: actions/checkout@v4
         with:
           ref: c32f88fed7dee08c6108ace1e522fff405fba3c8
           path: .bible-world-source
           sparse-checkout: cloudflare/bible-world-preview
           persist-credentials: false
-      - name: Build and check 4K Bible World panoramas
+      - name: Build and check the original 30 Bible World panoramas
         working-directory: .bible-world-source/cloudflare/bible-world-preview
         run: |
           npm install --no-save --package-lock=false --no-audit --no-fund sharp@0.35.4
@@ -53,6 +53,7 @@ jobs:
       - name: Prepare private Bible World assets
         run: |
           node ../../scripts/check-bible-world-access.mjs
+          node ../../scripts/check-bible-world-catalog.mjs
           node ../bible-world-assets/prepare.mjs "$GITHUB_WORKSPACE/.bible-world-source/cloudflare/bible-world-preview/public"
           npx --no-install wrangler deploy --config ../bible-world-assets/wrangler.jsonc --dry-run --outdir /tmp/bible-world-assets-build
       # Reuses the old preview Worker name and turns off its public and version URLs.
