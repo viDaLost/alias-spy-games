@@ -800,24 +800,27 @@
             vec3 sky = mix(uHorizon, uHaze, smoothstep(0.47, 0.57, height));
             sky = mix(sky, uZenith, smoothstep(0.48, 0.68, height));
 
-            // Солнце едва пробивается сквозь взвесь. Ореол убавлен: широкое
-            // гало засвечивало верх кадра целиком.
+            // Диск солнца, тёплая дымка и мягкие перистые облака.
             float sun = max(dot(dir, normalize(uSunDir)), 0.0);
-            sky += uSunColor * pow(sun, 220.0) * 0.42;
-            sky += uSunColor * pow(sun, 10.0) * 0.16;
-            sky += uSunColor * pow(sun, 2.4) * 0.06 * uStorm;
+            float corona = pow(sun, 48.0) * 0.20 + pow(sun, 390.0) * 0.23;
+            float disk = smoothstep(0.99964, 0.99982, sun);
+            sky += uSunColor * (corona * (1.0 - uStorm * 0.45) + disk * 0.76);
 
             // Пыль: два слоя шума, ползущие поперёк с разной скоростью.
             vec2 flow = vec2(atan(dir.z, dir.x) * 1.6, height * 3.4);
             float dustA = fbm(flow * vec2(1.0, 2.2) + vec2(uTime * 0.030, uTime * -0.010));
             float dustB = fbm(flow * vec2(2.6, 4.1) + vec2(uTime * -0.055, uTime * 0.014));
             float dust = clamp(dustA * 0.62 + dustB * 0.38, 0.0, 1.0);
-            float lowBand = smoothstep(0.72, 0.44, height);
+            float lowBand = 1.0 - smoothstep(0.44, 0.72, height);
             sky = mix(sky, uHorizon * 1.02, dust * lowBand * uStorm * 0.72);
+
+            float cirrus = smoothstep(0.51, 0.71, dustB)
+              * smoothstep(0.508, 0.57, height) * (1.0 - smoothstep(0.65, 0.79, height));
+            sky = mix(sky, mix(uHorizon, uSunColor, pow(sun, 9.0)), cirrus * 0.38 * (1.0 - uStars));
 
             // Плотная взвесь у самой земли, куда уходит вся геометрия. Мешаем
             // не до конца, иначе нижняя треть неба становится ровной плитой.
-            sky = mix(sky, uHorizon, smoothstep(0.50, 0.41, height) * 0.86);
+            sky = mix(sky, uHorizon, (1.0 - smoothstep(0.41, 0.50, height)) * 0.86);
 
             if (uStars > 0.01) {
               vec2 grid = floor(vec2(atan(dir.z, dir.x) * 34.0, height * 150.0));

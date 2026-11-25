@@ -20,6 +20,7 @@ let fail = false;
 let banned = false;
 let id = '555555555';
 let isRoot = false;
+let isDelegate = false;
 let restricted = true;
 let accountStars = 999953;
 let accountRevision = 1;
@@ -56,7 +57,7 @@ async function contextFor({ android = false, web = false, telegram = true, socia
     const body = route.request().postDataJSON?.() || {};
     const action = body?.payload?.action;
     let data = { success: true, ok: true };
-    if (action === 'adminRoleStatus') data = { ...data, isAdmin: isRoot, isRoot, userId: id };
+    if (action === 'adminRoleStatus') data = { ...data, isAdmin: isRoot || isDelegate, isRoot, userId: id };
     if (action === 'getAdminData') data = { ...data, users: [], adminAccess: { isAdmin: isRoot, isRoot, userId: id }, admins: [] };
     if (action === 'syncUser') data = { ...data, isBanned: banned, swLevel: 7, wowStars: 42 };
     if (action === 'syncGameWallet') data = { ...data, bmtStars: accountStars, revision: accountRevision };
@@ -135,6 +136,17 @@ try {
   await page.goto(base);
   await page.waitForFunction(() => window.AppAccess?.allowed() && window.AdminRBAC?.state?.isRoot);
   assert.equal(await page.locator('#app-access-screen').isVisible(), false);
+  await page.evaluate(() => {
+    // Sabbath behavior is covered independently by the integration suite.
+    const sabbath = window.SabbathAccess;
+    window.SabbathAccess = { ...sabbath, authorize: () => true };
+    window.showGame('moses-nile');
+    window.SabbathAccess = sabbath;
+  });
+  const ownerNile = page.locator('#game-container iframe[src*="moses-nile-v7"]');
+  await ownerNile.waitFor();
+  await ownerNile.contentFrame().locator('html.standalone-access-allowed').waitFor({ state: 'attached' });
+  await page.evaluate(() => window.goToMainMenu());
   await page.evaluate(() => window.AdminRBAC.open());
   await page.locator('#app-access-manager').waitFor({ state: 'visible' });
   await page.locator('#app-access-id').fill('555555555');
@@ -164,9 +176,33 @@ try {
   await favoritePage.waitForFunction(() => document.body.dataset.currentGame === 'bible-geography');
   await favoriteContext.close();
 
-  id = '666666666'; isRoot = false; allowed = true;
+  id = '666666666'; isRoot = false; isDelegate = true; allowed = true;
   const delegatedContext = await contextFor({ social: true });
   const delegatedPage = await delegatedContext.newPage();
+  await delegatedPage.goto(base);
+  await delegatedPage.waitForFunction(() => window.AppAccess?.state().checked);
+  await delegatedPage.evaluate(() => {
+    const sabbath = window.SabbathAccess;
+    window.SabbathAccess = { ...sabbath, status: () => ({ mandatory: false }) };
+    window.showGame('moses-nile');
+    window.SabbathAccess = sabbath;
+  });
+  await delegatedPage.locator('#moses-maintenance[open]').waitFor();
+  assert.equal(await delegatedPage.locator('#game-container iframe').count(), 0);
+  const frameAccess = delegatedPage.waitForResponse((response) => (
+    new URL(response.url()).pathname === '/app/access'
+    && response.request().frame().url().includes('/moses-nile-v7/')
+  ));
+  await delegatedPage.evaluate(() => {
+    const frame = document.createElement('iframe');
+    frame.id = 'nile-direct-test';
+    frame.src = 'web/games/moses-nile-v7/index.html';
+    document.getElementById('game-container').append(frame);
+  });
+  assert.equal((await (await frameAccess).json()).isRoot, false);
+  const delegatedNile = delegatedPage.frameLocator('#nile-direct-test');
+  assert.equal(await delegatedNile.locator('script[src*="game-v75.js"]').count(), 0);
+  assert.equal(await delegatedNile.locator('html.standalone-access-allowed').count(), 0);
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=game_quartet`);
   await delegatedPage.waitForFunction(() => document.body.dataset.currentGame === 'quartet');
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=favorites`);
@@ -176,6 +212,7 @@ try {
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=game_bible-world`);
   await delegatedPage.frameLocator('iframe[title="Где я в Библии?"]').locator('#levelMenu').waitFor();
   await delegatedContext.close();
+  isDelegate = false;
 
   id = '1288379477'; isRoot = true;
   const catalogContext = await contextFor({ social: true });
@@ -275,6 +312,8 @@ try {
   await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '999947');
   await catalog.waitForFunction(() => !Object.keys(localStorage).some((key) => key.startsWith('game_wallet_op_v1_')));
   assert.equal(accountStars, 999947);
+  isRoot = false;
+  await catalog.evaluate(() => window.AppAccess.verify());
   const nileNotice = catalog.locator('#moses-maintenance[open]');
   const catalogURL = catalog.url();
   await catalog.locator('#catalog-games [data-launch="moses-nile"]').click();
@@ -294,6 +333,7 @@ try {
   await catalog.locator('#main-catalog').waitFor();
   assert.equal(await catalog.evaluate(() => document.body.dataset.currentGame || ''), '');
   await catalogContext.close();
+  isRoot = true;
 
   const webCatalogContext = await contextFor({ web: true, telegram: false, social: true });
   const webCatalog = await webCatalogContext.newPage();

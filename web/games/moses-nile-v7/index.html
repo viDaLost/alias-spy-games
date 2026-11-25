@@ -2,12 +2,14 @@
 <html lang="ru">
 <head>
   <style>html:not(.standalone-access-allowed) body{visibility:hidden!important}</style>
-  <script src="../../js/standalone-app-access.js" defer></script>
+  <meta name="app-game-access" content="root">
+  <script src="../../js/standalone-app-access.js?v=2" defer></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
   <meta name="theme-color" content="#b79869">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Моисей: Путь по Нилу — V7.5.1</title>
+  <link rel="stylesheet" href="../../styles/typography.css">
   <style>
     :root {
       --ink: #241c14;
@@ -149,12 +151,19 @@
       именно на промах, а не на попадание.
     */
     .mobile-controls { position: absolute; z-index: 15; left: 0; right: 0; bottom: calc(var(--safe-bottom) + 10px); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 14px; pointer-events: none; }
-    .steer-btn { pointer-events: auto; width: 86px; height: 86px; border-radius: 50%; border: 1.5px solid rgba(255, 251, 230, .72); color: #fff9e8; background: rgba(30, 32, 25, .34); box-shadow: 0 12px 32px rgba(22,16,8,.26), inset 0 0 0 1px rgba(0,0,0,.10); backdrop-filter: blur(10px); font-size: 32px; font-weight: 900; cursor: pointer; transition: transform .12s, background .12s; }
-    .steer-btn:active { transform: scale(.92); background: rgba(44, 53, 38, .62); }
-    .vertical-controls { pointer-events: none; display: flex; flex-direction: column; gap: 12px; padding-bottom: 2px; }
-    .action-btn { pointer-events: auto; width: 74px; height: 74px; border-radius: 24px; border: 1.5px solid rgba(255, 246, 214, .5); color: #fff8e4; background: rgba(30, 26, 16, .24); backdrop-filter: blur(8px); text-shadow: 0 1px 4px rgba(0,0,0,.55); font-size: 16px; font-weight: 900; letter-spacing: .04em; cursor: pointer; display: grid; place-items: center; line-height: 1.05; transition: transform .12s, background .12s; }
-    .action-btn small { display: block; margin-top: 1px; font-size: 10px; opacity: .8; font-weight: 700; }
-    .action-btn:active { transform: scale(.92); background: rgba(70, 62, 36, .55); }
+    .steer-btn, .action-btn {
+      pointer-events: auto; width: clamp(62px, 16vw, 66px); height: clamp(62px, 16vw, 66px);
+      border: 1px solid #f6dcad7a; border-radius: 15px; background: rgba(17, 44, 43, .76);
+      color: #fff1ce; box-shadow: 0 7px 18px #071d2680, inset 0 1px #e6d7a132;
+      cursor: pointer; transition: transform .12s, background .12s;
+    }
+    .steer-btn { display: grid; place-items: center; }
+    .steer-btn:active, .action-btn:active { transform: scale(.94); background: #2c5348; }
+    .vertical-controls { pointer-events: none; display: flex; gap: 5px; }
+    .action-btn { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1px; }
+    .action-btn svg, .steer-btn svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 2.1; }
+    .action-btn small { font-size: 9px; font-weight: 750; }
+    button:focus-visible { outline: 2px solid #ffe7a7; outline-offset: 2px; }
 
     #sys-controls { position: absolute; right: 12px; top: calc(var(--safe-top) + 92px); z-index: 16; display: flex; flex-direction: column; gap: 7px; }
     .sys-btn { width: 36px; height: 36px; border-radius: 12px; border: 1px solid rgba(255, 244, 214, .26); background: rgba(35, 31, 22, .55); color: #f4e5bd; font-size: 15px; cursor: pointer; backdrop-filter: blur(8px); display: grid; place-items: center; transition: transform .12s, opacity .12s; }
@@ -173,7 +182,6 @@
     .panel > * { position: relative; }
     h1 { margin: 0 0 8px; color: #2f2519; font-family: Georgia, "Times New Roman", serif; font-size: clamp(25px, 6vw, 34px); line-height: 1.05; }
     p { margin: 0 0 14px; color: #5a4b3a; font-size: 14px; line-height: 1.42; }
-    .eyebrow { display: block; margin-bottom: 7px; color: #9a6b2e; font-size: 11px; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
     .btn { width: 100%; min-height: 52px; border: 0; border-radius: 999px; color: #2b2116; background: linear-gradient(135deg, #d3a351, #f0cd80); box-shadow: 0 8px 22px rgba(113, 75, 30, .25), inset 0 1px rgba(255,255,255,.38); font-size: 16px; font-weight: 900; cursor: pointer; transition: transform .12s, filter .12s; }
     .btn:active { transform: translateY(1px) scale(.99); }
     .btn:disabled { cursor: wait; filter: saturate(.55); opacity: .68; }
@@ -188,34 +196,72 @@
     .control-mode-switch { display: flex; gap: 6px; margin-top: 13px; padding: 4px; border-radius: 999px; background: rgba(122, 97, 60, .12); border: 1px solid rgba(150, 116, 60, .28); }
     .control-mode-btn { flex: 1; min-height: 38px; border: 0; border-radius: 999px; background: transparent; color: #7a613c; font-size: 12px; font-weight: 800; letter-spacing: .01em; cursor: pointer; transition: background .15s, color .15s; }
     .control-mode-btn.is-active { background: linear-gradient(135deg, #d3a351, #f0cd80); color: #2b2116; box-shadow: 0 4px 12px rgba(113, 75, 30, .22); }
-    #start-best { margin-top: 12px; font-weight: 800; }
-    #start-best.is-set { color: #9a6b2e; }
-
-    .legend { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin: 0 0 15px; }
-    .legend div { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(150, 116, 60, .10); color: #5c4a35; font-size: 11px; font-weight: 700; text-align: left; line-height: 1.25; }
-    .legend .key { flex: 0 0 auto; min-width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: rgba(255, 250, 236, .9); border: 1px solid rgba(150, 116, 60, .28); font-size: 13px; }
-    .legend .key .ico { width: 16px; height: 16px; color: #d1566d; }
-
-    #start-screen .panel {
-      --gold-deep: #f0c883;
-      background: linear-gradient(145deg, rgba(26,64,56,.97), rgba(20,43,42,.97));
-      color: #fff3d8;
-      border-color: #809991;
-      box-shadow: 0 20px 48px #0a211c73, inset 0 1px #fff3d822;
+    #start-screen {
+      padding-bottom: calc(var(--safe-bottom) + 16px);
+      background: linear-gradient(180deg, transparent 36%, #0d242b24 63%, #091914cc);
     }
-    #start-screen h1 { color: #fff3d8; font-size: clamp(27px, 6vw, 40px); }
-    #start-screen .eyebrow, #start-best.is-set { color: #f0c883; }
-    #start-screen p, #start-screen .controls-hint { color: #d2e2d7; }
-    #start-screen .legend div, #start-screen .control-mode-switch { background: #99c4af18; color: #e4eee3; }
-    #start-screen .legend .key, #start-screen #help-btn { background: #183b35; color: #f0c883; border-color: #a5beac50; }
-    #start-screen .control-mode-btn:not(.is-active) { color: #e4eee3; }
+    #start-screen .panel {
+      padding: 22px 18px 16px;
+      text-align: left;
+      background: linear-gradient(155deg, #173a37fa, #0c2528fc);
+      border-color: #ddd1aa59;
+      box-shadow: 0 20px 44px #081c23a8, inset 0 1px #fff3d825;
+    }
+    #start-screen .panel::before {
+      opacity: .85;
+      background: radial-gradient(ellipse at 90% 0, #54897243, transparent 59%);
+    }
+    #start-screen h1 {
+      margin: 0 42px 8px 0;
+      color: #fff2d4;
+      font: 650 clamp(28px, 8.2vw, 46px)/1.02 var(--font-ui, system-ui);
+      letter-spacing: -.035em;
+    }
+    #start-best { color: #f0c883; text-align: center; font-weight: 800; }
+    #start-screen p { max-width: 34ch; margin-bottom: 15px; color: #d7dfd4; }
+    #start-screen .control-mode-switch { margin: 0 0 12px; background: #080f1938; border-color: #efe2be34; }
+    #start-screen #help-btn {
+      top: 17px; right: 16px; width: 42px; height: 42px;
+      background: #1c453d; color: #f9df9f; border-color: #d9c28c61;
+    }
+    #start-screen .control-mode-btn:not(.is-active) { color: #e5efdf; }
+    #start-screen .btn { border-radius: 14px; }
+    body:not(.is-playing) #hud { visibility: hidden; }
+
+    #landing-meter {
+      position: relative; align-self: center; margin-top: 1px; min-height: 26px;
+      overflow: hidden; padding: 4px 10px 5px; gap: 5px; align-items: center;
+      border-radius: 7px; background: #0d2d2cec; color: #fff1ca;
+      border: 1px solid #f1d48a5c; font-size: 11px; line-height: 1.15;
+      font-weight: 750; font-variant-numeric: tabular-nums;
+    }
+    #landing-meter:not([hidden]) { display: inline-flex; }
+    #landing-meter.is-near { background: #59431dec; border-color: #f1d48a94; }
+    #landing-meter .ico { width: 13px; height: 13px; }
+    #landing-fill {
+      position: absolute; height: 2px; inset: auto 0 0; background: #f4ce80;
+      transform: scaleX(0); transform-origin: left;
+    }
+    #hazard-markers { position: absolute; z-index: 8; inset: 0; pointer-events: none; overflow: hidden; }
+    #hazard-markers i {
+      position: absolute; top: 0; left: 0; width: 30px; height: 29px;
+      align-items: center; justify-content: center; border-radius: 9px;
+      background: #28241cef; border: 1px solid #f8d18abd; color: #ffe5a9;
+      box-shadow: 0 2px 7px #09252380;
+    }
+    #hazard-markers i:not([hidden]) { display: flex; }
+    #hazard-markers i[data-action="high"] { background: #153640ef; border-color: #bbe6ecad; color: #c5f0f6; }
+    #hazard-markers i[data-action="ground"] { background: #432c23ef; border-color: #ffd0b6bc; color: #ffd8bb; }
+    #hazard-markers i.is-urgent { border-width: 2px; }
+    #hazard-markers svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.1; }
+
     @media (min-width: 760px) and (orientation: landscape) {
       #start-screen { justify-content: flex-start; padding-left: clamp(24px, 6vw, 92px); }
     }
     @media (orientation: landscape) and (max-height: 465px) {
       #start-screen { align-items: center; padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
       #start-screen .panel { padding: 14px 16px 10px; }
-      #start-screen .eyebrow, #start-screen .legend, #start-screen .controls-hint:last-child { display: none; }
+      #start-screen h1 { font-size: 31px; }
     }
 
     #river-reflection {
@@ -234,7 +280,7 @@
     }
     #river-reflection::backdrop { background: #071e1d80; }
     .reflection-label { color: #f0c883; font-size: 12px; font-weight: 750; }
-    #reflection-title { margin: 5px 0 6px; font: 700 clamp(23px, 5vw, 34px)/1.12 Georgia, serif; }
+    #reflection-title { margin: 5px 0 6px; font: 650 clamp(23px, 5vw, 34px)/1.12 var(--font-ui, system-ui); }
     #reflection-reference { margin: 0 0 13px; color: #a7c7b9; font-size: 13px; }
     #reflection-question, #reflection-note { color: #f9f3e2; font-size: 15px; line-height: 1.44; }
     #reflection-note { border-left: 2px solid #eac384; margin: 0 0 16px; padding: 4px 0 4px 12px; }
@@ -385,15 +431,10 @@
     /* Низкий экран: кнопки ужимаются, но не ниже удобного размера. */
     @media (max-height: 700px) {
       #powerups-bar { top: calc(var(--safe-top) + 84px); }
-      .steer-btn { width: 72px; height: 72px; font-size: 27px; }
-      .action-btn { width: 64px; height: 64px; }
-      .vertical-controls { gap: 9px; }
     }
     /* Узкий экран: три кнопки в ряд не должны наезжать друг на друга. */
     @media (max-width: 360px) {
       .mobile-controls { padding: 0 10px; }
-      .steer-btn { width: 76px; height: 76px; font-size: 29px; }
-      .action-btn { width: 66px; height: 66px; }
     }
     @media (prefers-reduced-motion: reduce) {
       #scene-bg, .screen, .steer-btn, .toast, .active-buff { transition: none; animation: none; }
@@ -498,6 +539,11 @@
         <path d="M3.2 8.8h25.6v3.6H3.2z"/>
         <path d="M10.4 8.8c0-3.6 2.5-6 5.6-6s5.6 2.4 5.6 6h-2.8c0-2.1-1.2-3.4-2.8-3.4s-2.8 1.3-2.8 3.4z" opacity=".55"/>
       </symbol>
+      <symbol id="ico-wave-up" viewBox="0 0 32 32"><path d="M16 20V5m-6 6 6-6 6 6M4 25q4-4 8 0t8 0 8 0" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="ico-wave-down" viewBox="0 0 32 32"><path d="M4 8q4-4 8 0t8 0 8 0m-12 5v14m-6-6 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="ico-veer" viewBox="0 0 32 32"><path d="M5 16h22M10 11l-5 5 5 5m12-10 5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="ico-left" viewBox="0 0 32 32"><path d="m19 7-9 9 9 9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="ico-right" viewBox="0 0 32 32"><path d="m13 7 9 9-9 9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     </defs>
   </svg>
 
@@ -536,6 +582,16 @@
       <div class="hud-mini" id="biome-name">Заводь папируса</div>
       <div class="hud-mini" id="combo-chip"><span id="combo-mult">×1</span></div>
     </div>
+    <div id="landing-meter" hidden>
+      <svg class="ico" aria-hidden="true" viewBox="0 0 32 32"><use href="#ico-path"/></svg>
+      <span>До остановки</span> <strong id="landing-distance">110</strong><span>м</span>
+      <span id="landing-fill" aria-hidden="true"></span>
+    </div>
+  </div>
+  <div id="hazard-markers" aria-hidden="true">
+    <i hidden><svg viewBox="0 0 32 32"><use href="#ico-veer"/></svg></i>
+    <i hidden><svg viewBox="0 0 32 32"><use href="#ico-veer"/></svg></i>
+    <i hidden><svg viewBox="0 0 32 32"><use href="#ico-veer"/></svg></i>
   </div>
 
   <div id="powerups-bar">
@@ -558,33 +614,25 @@
   </div>
 
   <div class="mobile-controls">
-    <button class="steer-btn" id="btn-left" type="button" aria-label="Двигаться влево">◀</button>
+    <button class="steer-btn" id="btn-left" type="button" aria-label="Двигаться влево"><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-left"/></svg></button>
     <div class="vertical-controls">
-      <button class="action-btn" id="btn-jump" type="button" aria-label="Прыжок на волне">▲<small>ВОЛНА</small></button>
-      <button class="action-btn" id="btn-dive" type="button" aria-label="Нырок под препятствие">▼<small>НЫРОК</small></button>
+      <button class="action-btn" id="btn-jump" type="button" aria-label="Прыжок на волне"><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-wave-up"/></svg><small>ВОЛНА</small></button>
+      <button class="action-btn" id="btn-dive" type="button" aria-label="Нырок под препятствие"><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-wave-down"/></svg><small>НЫРОК</small></button>
     </div>
-    <button class="steer-btn" id="btn-right" type="button" aria-label="Двигаться вправо">▶</button>
+    <button class="steer-btn" id="btn-right" type="button" aria-label="Двигаться вправо"><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-right"/></svg></button>
   </div>
 
   <div id="start-screen" class="screen">
     <div class="panel">
-      <span class="eyebrow">Путь начинается</span>
       <h1>Моисей на Ниле</h1>
       <p>Ведите корзинку по Нилу. На остановках у берега размышляйте над поступками людей из Библии.</p>
-      <div class="legend">
-        <div><span class="key">◀▶</span>смена дорожки</div>
-        <div><span class="key">▲</span>волна: через бревно</div>
-        <div><span class="key">▼</span>нырок: под папирус</div>
-        <div><span class="key"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>три сердца на путь</div>
-      </div>
       <button id="help-btn" type="button" aria-label="Открыть обучение">?</button>
-      <button class="btn" id="start-btn" type="button">ОТПЛЫТЬ</button>
-      <div class="controls-hint" id="start-best">Ещё ни одного заплыва — самое время начать.</div>
       <div class="control-mode-switch" role="group" aria-label="Способ управления">
-        <button class="control-mode-btn" id="control-mode-arrows" type="button" aria-pressed="false">◀▶ КНОПКИ</button>
-        <button class="control-mode-btn" id="control-mode-swipe" type="button" aria-pressed="false">👆 СВАЙПЫ</button>
+        <button class="control-mode-btn" id="control-mode-arrows" type="button" aria-pressed="false">Кнопки</button>
+        <button class="control-mode-btn" id="control-mode-swipe" type="button" aria-pressed="false">Свайпы</button>
       </div>
-      <div class="controls-hint">Выбор запомнится для следующих заплывов</div>
+      <button class="btn" id="start-btn" type="button">ОТПЛЫТЬ</button>
+      <div class="controls-hint" id="start-best" hidden></div>
     </div>
   </div>
 
@@ -700,13 +748,13 @@
   <script src="js/sound.js?v=770&r=770"></script>
   <script src="js/materials.js?v=774"></script>
   <script src="js/landscape.js?v=774"></script>
-  <script src="js/shaders.js?v=774"></script>
+  <script src="js/shaders.js?v=776"></script>
   <script src="js/fx.js?v=770"></script>
-  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=775&r=775"><\/script>');else window.assetManager={};</script>
+  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=776&r=776"><\/script>');else window.assetManager={};</script>
   <link rel="stylesheet" href="../../styles/sabbath-access.css" />
   <script src="../../js/sabbath-clock.js?v=4"></script>
   <script src="../../js/sabbath-access.js?v=5"></script>
-  <script type="application/x-app-access" data-app-access-src="js/game-v75.js?v=775&r=775"></script>
+  <script type="application/x-app-access" data-app-access-src="js/game-v75.js?v=776&r=776"></script>
   <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){try{localStorage.setItem('moses-nile-tutorial-seen-v1','1')}catch(e){}setTimeout(()=>{document.getElementById('tut-skip')?.click();document.getElementById('start-btn')?.click()},1600)}</script>
 </body>
 </html>

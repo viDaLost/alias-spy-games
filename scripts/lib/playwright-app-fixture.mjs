@@ -18,7 +18,7 @@ async function preparePage(page) {
       headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' },
     }));
     // Isolated game tests exercise game mechanics, without a parent launcher.
-    await page.route('**/standalone-app-access.js', (route) => route.fulfill({
+    await page.route('**/standalone-app-access.js*', (route) => route.fulfill({
       contentType: 'text/javascript',
       body: `(async()=>{window.StandaloneAppProof={testUserId:String(100000000+Math.floor(Math.random()*800000000))};document.documentElement.classList.add('standalone-access-allowed');for(const node of document.querySelectorAll('script[data-app-access-src]')){const s=document.createElement('script');s.src=node.dataset.appAccessSrc;await new Promise((resolve,reject)=>{s.onload=resolve;s.onerror=reject;node.after(s)})}})();`,
     }));

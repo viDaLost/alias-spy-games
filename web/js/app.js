@@ -706,7 +706,7 @@ let gameLaunchEntry = 0;
 function showGame(gameName) {
   if (window.AppAccess && !window.AppAccess.allowed()) return;
   if (!canShowGame({ key: gameName })) return;
-  if (gameName === "moses-nile") {
+  if (gameName === "moses-nile" && (fullCatalogPreview || window.AppAccess?.state()?.isRoot !== true)) {
     if (window.SabbathAccess?.status().mandatory) {
       window.SabbathAccess.authorize(gameName);
       return;
@@ -733,6 +733,26 @@ function showGame(gameName) {
 
   const container = document.getElementById("game-container");
   const menu = document.getElementById("menu-container");
+
+  if (gameName === "moses-nile") {
+    menu?.classList.add("hidden");
+    document.body.dataset.mode = "game";
+    document.body.dataset.currentGame = gameName;
+    activeGameName = gameName;
+    window.scrollTo({ top: 0, behavior: "auto" });
+    if (container) {
+      const base = "web/games/moses-nile-v7/index.html";
+      const src = window.__gameFrameInsets?.seedUrl?.(base) || base;
+      container.innerHTML = `
+        <div class="game-frame-wrap">
+          <iframe class="game-frame" src="${escapeHTML(src)}"
+                  title="Моисей на Ниле" allow="autoplay; fullscreen"
+                  loading="eager"></iframe>
+          <button type="button" class="back-button game-frame-exit" onclick="goToMainMenu()">Главное меню</button>
+        </div>`;
+    }
+    return;
+  }
 
   if (window.GameCatalog && gameName === 'biblical-match-three') {
     activeGameName = gameName;

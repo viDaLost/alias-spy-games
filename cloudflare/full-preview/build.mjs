@@ -45,18 +45,15 @@ async function buildFrames() {
     ['web/games/moses-nile-v7/models/environment/survival_pack/WoodLog.glb', 'models/WoodLog.glb'],
   ]) await copy(file, 'land/art/' + target);
 
-  for (const file of ['land/index.html', 'web/games/moses-nile-v7/index.html']) {
-    const html = standaloneMarkup(await readFile(path.join(output, file), 'utf8'))
-      .replace(/<script>\s*if\(!window\.THREE\)document\.write[\s\S]*?<\/script>/, '');
-    const libraryPattern = file.startsWith('land/')
-      ? /<script src="art\/(?:three-r128\.min|GLTFLoader-r128)\.js"><\/script>/g
-      : /<script src="vendor\/(?:three-r128\.min|GLTFLoader-r128|OBJLoader-r128)\.js"><\/script>/g;
-    const lightHtml = html.replace(libraryPattern, (tag) => {
-      const escaped = JSON.stringify(tag).replaceAll('</script>', '<\\/script>');
-      return `<script>if(!window.GameDisplay.lowGraphics())document.write(${escaped});</script>`;
-    });
-    await writeFile(path.join(output, file), lightHtml);
-  }
+  // Only Promised Land runs without first-party proof in this public preview.
+  const file = path.join(output, 'land/index.html');
+  const html = standaloneMarkup(await readFile(file, 'utf8'))
+    .replace(/<script>\s*if\(!window\.THREE\)document\.write[\s\S]*?<\/script>/, '');
+  const lightHtml = html.replace(/<script src="art\/(?:three-r128\.min|GLTFLoader-r128)\.js"><\/script>/g, (tag) => {
+    const escaped = JSON.stringify(tag).replaceAll('</script>', '<\\/script>');
+    return `<script>if(!window.GameDisplay.lowGraphics())document.write(${escaped});</script>`;
+  });
+  await writeFile(file, lightHtml);
 }
 
 async function thumbnails(from, into, geometry) {

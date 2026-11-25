@@ -594,16 +594,6 @@ class AssetManager {
     const wrapper=new THREE.Group();
     wrapper.add(root);
 
-    const rim=new THREE.Mesh(
-      new THREE.TorusGeometry(.77,.065,7,24),
-      new THREE.MeshStandardMaterial({color:0x7a421d,roughness:.92,metalness:0})
-    );
-    rim.rotation.x=Math.PI/2;
-    rim.position.y=.39;
-    rim.scale.y=.85;
-    rim.castShadow=true;
-    wrapper.add(rim);
-
     return wrapper;
   }
 
