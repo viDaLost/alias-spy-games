@@ -71,7 +71,7 @@ await page.route('**/js/sound.js*', (route) => route.fulfill({
 // Свайп по window — так же, как слушает сама игра: без настоящего пальца, но
 // с теми же полями события, которые она читает (touches/changedTouches).
 async function swipe(page, dx, dy) {
-  await page.evaluate(([dx, dy]) => {
+  return page.evaluate(([dx, dy]) => {
     const start = new Event('touchstart');
     Object.defineProperty(start, 'touches', { value: [{ clientX: 200, clientY: 500 }] });
     window.dispatchEvent(start);
@@ -79,9 +79,11 @@ async function swipe(page, dx, dy) {
     Object.defineProperty(move, 'touches', { value: [{ clientX: 200 + dx, clientY: 500 + dy }] });
     Object.defineProperty(move, 'cancelable', { value: false });
     window.dispatchEvent(move);
+    const laneDuringGesture = window.__mosesV75State.lane;
     const end = new Event('touchend');
     Object.defineProperty(end, 'changedTouches', { value: [{ clientX: 200 + dx, clientY: 500 + dy }] });
     window.dispatchEvent(end);
+    return laneDuringGesture;
   }, [dx, dy]);
 }
 
@@ -134,11 +136,16 @@ try {
     `В режиме «свайпы» нажатие на кнопку всё равно сдвинуло дорожку (${laneBeforeButtonInSwipe} → ${laneAfterButtonInSwipe})`);
 
   const laneBeforeSwipe = await page.evaluate(() => window.__mosesV75State.lane);
-  await swipe(page, -120, 0);
+  const laneBeforeRelease = await swipe(page, -120, 0);
   await page.waitForTimeout(150);
   const laneAfterSwipe = await page.evaluate(() => window.__mosesV75State.lane);
   check(laneAfterSwipe === laneBeforeSwipe - 1,
     `В режиме «свайпы» свайп влево не сдвинул дорожку (${laneBeforeSwipe} → ${laneAfterSwipe})`);
+  check(laneBeforeRelease === laneAfterSwipe, 'Корзинка должна сменить дорожку ещё до отпускания пальца');
+  await swipe(page, 100, 5);
+  await page.waitForTimeout(180);
+  const laneAfterOneGesture = await page.evaluate(() => window.__mosesV75State.lane);
+  check(laneAfterOneGesture === 1, 'Один жест должен сдвинуть корзинку только на одну дорожку');
 
   // Переключатель живёт на стартовом экране — возвращаемся туда через паузу
   // и выбираем «кнопки» для второй половины проверки.
@@ -165,6 +172,12 @@ try {
   const laneAfterButtonInArrows = await page.evaluate(() => window.__mosesV75State.lane);
   check(laneAfterButtonInArrows === laneBeforeButtonInArrows + 1,
     `В режиме «кнопки» нажатие на кнопку не сдвинуло дорожку (${laneBeforeButtonInArrows} → ${laneAfterButtonInArrows})`);
+  await page.evaluate(() => {
+    const left = document.getElementById('btn-left');
+    left.click();
+    left.click();
+  });
+  await page.waitForFunction(() => window.__mosesV75State.lane === 0, null, { timeout: 1000 });
 
   check(!pageErrors.length, `pageerror: ${pageErrors.join(' | ')}`);
 } catch (error) {

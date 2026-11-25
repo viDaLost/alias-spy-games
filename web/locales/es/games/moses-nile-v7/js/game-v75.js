@@ -28,7 +28,8 @@
   const EDITION = 'RUNNER II';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
-  const MAX_DPR = 1.6;
+  const MAX_DPR = 1.65;
+  const BASKET_SCALE = .85;
   const FAR_Z = -255;
   const NEAR_Z = 10;
   const THREE = window.THREE;
@@ -36,6 +37,11 @@
   const HINT_KEY = 'moses-nile-hint-seen-v2';
   const TUTORIAL_KEY = 'moses-nile-tutorial-seen-v1';
   const CONTROL_MODE_KEY = 'moses-nile-control-mode-v1';
+  const REFLECTION_KEY = 'moses-nile-reflection-v1';
+  const FIRST_REFLECTION_DISTANCE = 110;
+  const REFLECTION_INTERVAL = 300;
+  const INPUT_BUFFER = .17;
+  const SWIPE_THRESHOLD = 24;
 
   const TUNE = {
     baseSpeed: 18.5,
@@ -48,7 +54,7 @@
     diveDuration: .62,
     diveDepth: -.52,
     diveClearance: -.22,     // ниже этого корзинка проходит под «высокими»
-    inputCooldown: .12,
+    inputCooldown: .095,
     hitInvulnerability: 1.7,
     comboWindow: 4.2,
     maxHearts: 3,
@@ -77,11 +83,11 @@
       title: 'Remanso de papiro',
       subtitle: 'Agua tranquila, juncos densos',
       from: 0,
-      fog: 0xc9c2ac, fogNear: 140, fogFar: 380,
-      hemiSky: 0xc8dcf0, hemiGround: 0x4a4234, hemiPower: .30,
-      sunColor: 0xffe8c4, sunPower: 1.5, sunPos: [-24, 38, 16],
-      water: { deep: 0x1c3729, shallow: 0x4f7458, sky: 0x9db8d0, sun: 0xffe3ae, foam: 0xeff2e6, chop: .85, glitter: 1.05, opacity: .95 },
-      sky: { zenith: 0x4f7ba9, haze: 0xb2a488, horizon: 0xd8c8a6, sun: 0xffe6ae, storm: .12, stars: 0 },
+      fog: 0xc8bc9b, fogNear: 138, fogFar: 365,
+      hemiSky: 0xb9d5e8, hemiGround: 0x584637, hemiPower: .38,
+      sunColor: 0xffdeb0, sunPower: 1.51, sunPos: [-24, 38, 16],
+      water: { deep: 0x143b3c, shallow: 0x4a9e84, sky: 0x8cb7c5, sun: 0xffe0a8, foam: 0xf2f4df, chop: .85, glitter: 1.08, opacity: .95 },
+      sky: { zenith: 0x456f95, haze: 0xdbad7e, horizon: 0xeccb9a, sun: 0xffe1a6, storm: .10, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
       exposure: .93, wind: 1, weights: { rock: 3, log: 4, croc: 2, gate: 3, vortex: 0, hippo: 0, boat: 1 },
@@ -94,7 +100,7 @@
       fog: 0xd0cab4, fogNear: 110, fogFar: 336,
       hemiSky: 0xd4e6f6, hemiGround: 0x554c38, hemiPower: .34,
       sunColor: 0xfff4dc, sunPower: 1.62, sunPos: [-16, 46, 12],
-      water: { deep: 0x1b3d2f, shallow: 0x568063, sky: 0xa9c4dc, sun: 0xfff2cf, foam: 0xf6f7ec, chop: 1, glitter: 1.4, opacity: .96 },
+      water: { deep: 0x16454b, shallow: 0x53978b, sky: 0xa9c4dc, sun: 0xfff2cf, foam: 0xf6f7ec, chop: 1, glitter: 1.4, opacity: .96 },
       sky: { zenith: 0x4272a6, haze: 0xbcb094, horizon: 0xe4d5b4, sun: 0xfff2cf, storm: .10, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
@@ -108,7 +114,7 @@
       fog: 0xb2c0ba, fogNear: 76, fogFar: 256,
       hemiSky: 0xb8cfdc, hemiGround: 0x333d36, hemiPower: .32,
       sunColor: 0xe8f0e4, sunPower: 1.4, sunPos: [-28, 34, 20],
-      water: { deep: 0x1b3831, shallow: 0x5f7a67, sky: 0xbccdbe, sun: 0xf2f7ef, foam: 0xffffff, chop: 2.1, glitter: 1.5, opacity: .98 },
+      water: { deep: 0x183945, shallow: 0x64938d, sky: 0xbccdbe, sun: 0xf2f7ef, foam: 0xffffff, chop: 2.1, glitter: 1.5, opacity: .98 },
       sky: { zenith: 0x3f5f74, haze: 0x8b9d96, horizon: 0xc2cec1, sun: 0xf2f7ef, storm: .62, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(40,60,60,.20), transparent 30%, transparent 66%, rgba(16,26,26,.30))',
@@ -234,6 +240,17 @@
     grade: pick('scene-grade'),
     sceneBg: pick('scene-bg'),
     biomeName: pick('biome-name'),
+    landing: pick('landing-meter'),
+    landingFill: pick('landing-fill'),
+    landingDistance: pick('landing-distance'),
+    hazardMarkers: Array.from(document.querySelectorAll('#hazard-markers i')),
+    reflection: pick('river-reflection'),
+    reflectionTitle: pick('reflection-title'),
+    reflectionReference: pick('reflection-reference'),
+    reflectionQuestion: pick('reflection-question'),
+    reflectionChoices: pick('reflection-choices'),
+    reflectionNote: pick('reflection-note'),
+    reflectionContinue: pick('reflection-continue'),
   };
 
   /*
@@ -271,6 +288,9 @@
     airborne: false,
     dive: 0,
     inputLock: 0,
+    queuedSteer: 0,
+    queuedAction: null,
+    actionTime: 0,
     distance: 0,
     lotuses: 0,
     score: 0,
@@ -300,6 +320,8 @@
     qualityHold: 0,
     runTime: 0,
     milestone: 0,
+    nextReflection: FIRST_REFLECTION_DISTANCE,
+    reflectionCount: 0,
     best: { score: 0, distance: 0, lotuses: 0 },
     quality: 1,
     fpsAverage: 60,
@@ -411,6 +433,7 @@
 
   let scene = null;
   let camera = null;
+  let cameraLookZ = -6;
   let renderer = null;
   let fx = null;
   let water = null;
@@ -471,7 +494,7 @@
 
   function renderPixelRatio() {
     const tier = detectTier();
-    const limit = mobileDevice() ? (tier >= 1 ? 1.25 : 1) : MAX_DPR;
+    const limit = mobileDevice() ? (tier >= 1 ? 1.45 : 1) : MAX_DPR;
     const resolution = .80 + .20 * clamp((state.quality - .35) / .3, 0, 1);
     return (window.GameDisplay?.pixelRatio(limit) ?? Math.min(window.devicePixelRatio || 1, limit)) * resolution;
   }
@@ -1045,6 +1068,40 @@ ${shader.vertexShader}`.replace(
     return mesh;
   }
 
+  function buildShallows() {
+    const geometry = new THREE.CircleGeometry(.50, 16, .24, Math.PI * 2 - .48);
+    geometry.rotateX(-Math.PI / 2);
+    geometry.scale(1, 1, .82);
+    const positions = geometry.attributes.position;
+    for (let point = 1; point < positions.count; point++) {
+      positions.setY(point, .022 + .024 * Math.sin(point * 2.7));
+    }
+    geometry.computeVertexNormals();
+
+    const perTile = mobileDevice() ? 40 : 64;
+    const material = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: .72 });
+    const pads = makeInstanced(geometry, material, perTile * 2, 'NileShoreLilyPads');
+    const pose = new THREE.Object3D();
+    const green = new THREE.Color();
+    for (let index = 0; index < perTile; index++) {
+      const side = index % 2 ? -1 : 1;
+      const z = -hash(index, 37) * SCROLL_TILE;
+      const edge = riverHalf() + (window.NileLandscape?.shoreOffset(z, side) || 0);
+      const x = side * (edge - mix(.5, 1.1, hash(index, 38)));
+      pose.rotation.y = hash(index, 39) * Math.PI * 2;
+      pose.scale.setScalar(mix(.65, 1.3, hash(index, 40)));
+      green.setHSL(mix(.25, .34, hash(index, 41)), .43, mix(.22, .40, hash(index, 42)));
+      for (let tile = 0; tile < 2; tile++) {
+        pose.position.set(x, .055, z - tile * SCROLL_TILE);
+        pose.updateMatrix();
+        pads.setMatrixAt(index + tile * perTile, pose.matrix);
+        pads.setColorAt(index + tile * perTile, green);
+      }
+    }
+    scene.add(pads);
+    scrollLayers.push(pads);
+  }
+
   function windMaterial(options) {
     const { wind = 1, ...params } = options;
     const material = new THREE.MeshStandardMaterial(params);
@@ -1254,8 +1311,8 @@ ${shader.vertexShader}`.replace(
       }
     }
 
-    const stalkMaterial = new THREE.MeshStandardMaterial({ color: 0x7d8b4a, roughness: .96, side: THREE.DoubleSide });
-    const crownMaterial = new THREE.MeshStandardMaterial({ color: 0x9aa458, roughness: .99, side: THREE.DoubleSide });
+    const stalkMaterial = new THREE.MeshStandardMaterial({ color: 0x54774b, roughness: .96, side: THREE.DoubleSide });
+    const crownMaterial = new THREE.MeshStandardMaterial({ color: 0x91ac5d, roughness: .99, side: THREE.DoubleSide });
     const parts = [
       { geometry: mergeFromGroup(stalks), material: stalkMaterial },
       { geometry: mergeFromGroup(crowns), material: crownMaterial },
@@ -1606,6 +1663,7 @@ ${shader.vertexShader}`.replace(
       dome.name = 'V751SandstormSky';
       dome.frustumCulled = false;
       dome.renderOrder = -100;
+      dome.userData.celestialDirection = new THREE.Vector3();
       scene.add(dome);
       sky = dome;
     }
@@ -1828,43 +1886,53 @@ ${shader.vertexShader}`.replace(
   }
 
   function addClosedLid(root) {
-    if (!root || root.getObjectByName?.('V75ClosedBasketLid')) return root;
-    const material = window.assetManager?._basketMaterial?.() || new THREE.MeshStandardMaterial({ color: 0xb56f32, roughness: .94, metalness: 0 });
+    if (!root || root.getObjectByName('V75ClosedBasketLid')) return root;
     const lid = new THREE.Group();
     lid.name = 'V75ClosedBasketLid';
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(.78, .82, .12, 22), material);
-    disc.scale.z = .82;
-    disc.position.y = .71;
-    disc.castShadow = true;
-    lid.add(disc);
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(.78, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), material.clone());
-    dome.scale.set(1, .26, .82);
-    dome.position.y = .73;
-    dome.castShadow = true;
-    lid.add(dome);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(.80, .045, 6, 28), new THREE.MeshStandardMaterial({ color: 0x674020, roughness: .98 }));
-    rim.rotation.x = Math.PI / 2;
-    rim.scale.z = .82;
-    rim.position.y = .69;
-    lid.add(rim);
-    for (let i = 0; i < 9; i += 1) {
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(.09 + i * .068, .012, 4, 30),
-        new THREE.MeshBasicMaterial({ color: i % 2 ? 0x8c5325 : 0xd09149, transparent: true, opacity: .78 }),
-      );
-      ring.rotation.x = Math.PI / 2;
-      ring.scale.z = .82;
-      ring.position.y = .795;
-      lid.add(ring);
+
+    const wicker = window.assetManager?._basketMaterial?.()
+      || new THREE.MeshStandardMaterial({ color: 0xb56f32, roughness: .94 });
+    const profile = [
+      [.001, .72], [.79, .72], [.82, .75], [.83, .79],
+      [.75, .84], [.56, .90], [.30, .94], [.001, .95],
+    ].map(([radius, height]) => new THREE.Vector2(radius, height));
+    const cover = new THREE.Mesh(new THREE.LatheGeometry(profile, 48), wicker);
+    cover.scale.z = .85;
+    lid.add(cover);
+
+    // Две пряди идут по противоположным сторонам обода и перекрещиваются.
+    for (const [phase, color] of [[0, 0xa76a33], [Math.PI, 0xd99f5a]]) {
+      const strand = new THREE.Curve();
+      strand.getPoint = (t, target = new THREE.Vector3()) => {
+        const angle = t * Math.PI * 2;
+        const twist = angle * 21 + phase;
+        const radius = .815 + Math.cos(twist) * .025;
+        return target.set(Math.cos(angle) * radius, .77 + Math.sin(twist) * .027, Math.sin(angle) * radius * .85);
+      };
+      lid.add(new THREE.Mesh(
+        new THREE.TubeGeometry(strand, 126, .023, 5, true),
+        new THREE.MeshStandardMaterial({ color, roughness: .9 }),
+      ));
     }
-    // Тёплый свет изнутри: напоминание, что в корзинке ребёнок.
-    const glow = new THREE.Mesh(
-      new THREE.SphereGeometry(.42, 12, 8),
-      new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: .16, depthWrite: false }),
-    );
-    glow.position.y = .5;
-    glow.name = 'V751BasketInnerGlow';
-    lid.add(glow);
+    const binding = new THREE.MeshStandardMaterial({ color: 0x593d27, roughness: .97 });
+    const fiber = new THREE.MeshStandardMaterial({ color: 0xbc905b, roughness: .94 });
+    for (const x of [-.28, .28]) {
+      const overLid = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(x, .59, -.62), new THREE.Vector3(x, .80, -.65),
+        new THREE.Vector3(x, .91, -.43), new THREE.Vector3(x, .958, 0),
+        new THREE.Vector3(x, .91, .43), new THREE.Vector3(x, .80, .65),
+        new THREE.Vector3(x, .59, .62),
+      ]);
+      lid.add(new THREE.Mesh(new THREE.TubeGeometry(overLid, 28, .025, 6), binding));
+      const strand = new THREE.Curve();
+      strand.getPoint = (t, target = new THREE.Vector3()) => {
+        overLid.getPoint(t, target);
+        target.x += Math.cos(t * Math.PI * 60) * .018;
+        target.y += Math.sin(t * Math.PI * 60) * .014 + .017;
+        return target;
+      };
+      lid.add(new THREE.Mesh(new THREE.TubeGeometry(strand, 90, .008, 5), fiber));
+    }
     root.add(lid);
     return root;
   }
@@ -1971,7 +2039,7 @@ ${shader.vertexShader}`.replace(
     if (!player || !visual) return;
     if (basketVisual) player.remove(basketVisual);
     basketVisual = addClosedLid(visual);
-    basketVisual.scale.setScalar(.62);
+    basketVisual.scale.setScalar(BASKET_SCALE);
     basketVisual.position.y = -.30;
     basketVisual.rotation.y = Math.PI;
     basketVisual.traverse((node) => {
@@ -2009,7 +2077,7 @@ ${shader.vertexShader}`.replace(
     // Тень корзинки — тем же мягким пятном с умножением, что и у препятствий:
     // ровный тёмный круг читался как приклеенный к воде блин.
     const contact = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.9, 1.9),
+      new THREE.PlaneGeometry(2.15, 2.15),
       new THREE.MeshBasicMaterial({
         map: contactShadowTexture(),
         transparent: true,
@@ -3016,7 +3084,9 @@ ${shader.vertexShader}`.replace(
   function rowGap() {
     const d = difficulty();
     const beat = mix(1.45, .92, d);
-    return Math.max(mix(24, 16, d), state.speed * beat);
+    const cruise = Math.min(TUNE.maxSpeed, TUNE.baseSpeed + state.distance * TUNE.speedRamp);
+    const expected = cruise * (state.rush > 0 ? TUNE.rushBoost : 1);
+    return Math.max(mix(24, 16, d), Math.max(state.speed, expected) * beat);
   }
 
   /*
@@ -3028,9 +3098,13 @@ ${shader.vertexShader}`.replace(
   */
   function generateRow(z, rowIndex) {
     const d = difficulty();
-    if (rowIndex <= 2) {
-      // Разгонная зона: только лотосы, чтобы старт не убивал сразу.
-      for (let i = 0; i < 3; i += 1) addItem('lotus', 1, z - i * 2.6);
+    if (rowIndex <= 3) {
+      // Сначала игрок узнаёт лотосы, затем сам выбирает сторону обхода.
+      const lanes = rowIndex === 1 ? [1] : [0, 2];
+      for (const lane of lanes) {
+        for (let i = 0; i < 3; i += 1) addItem('lotus', lane, z - i * 2.6);
+      }
+      if (rowIndex > 1) addItem(rowIndex === 2 ? 'rock' : 'log', 1, z);
       return;
     }
     const biome = BIOMES[state.biome];
@@ -3097,11 +3171,9 @@ ${shader.vertexShader}`.replace(
     }
 
     // Награда живёт на свободной дорожке — иначе собирать её негде.
-    const free = [];
-    for (let lane = 0; lane < 3; lane += 1) if (!cells[lane]) free.push(lane);
-    if (!free.length) free.push(cells.findIndex((type) => type && OBSTACLES[type].clearance !== 'ground'));
-    const lane = free[Math.floor(hash(z, 27) * free.length) % free.length];
-    if (lane < 0) return;
+    const free = reach.flatMap((reachable, lane) => reachable && !cells[lane] ? [lane] : []);
+    const options = free.length ? free : reach.flatMap((reachable, lane) => reachable ? [lane] : []);
+    const lane = options[Math.floor(hash(z, 27) * options.length)];
 
     const roll = hash(z, 33);
     if (roll > .975) addItem('mercy', lane, z - 2.4);
@@ -3268,10 +3340,23 @@ ${shader.vertexShader}`.replace(
     if (dom.total) dom.total.textContent = String(Math.floor(state.score));
     if (dom.comboValue) dom.comboValue.textContent = `×${state.multiplier}`;
     if (dom.combo) dom.combo.classList.toggle('is-live', state.multiplier > 1);
+    updateLandingMeter();
     if (dom.hearts) {
       const nodes = dom.hearts.children;
       for (let i = 0; i < nodes.length; i += 1) nodes[i].classList.toggle('is-lost', i >= state.hearts);
     }
+  }
+
+  function updateLandingMeter() {
+    if (!dom.landing) return;
+    dom.landing.hidden = !Number.isFinite(state.nextReflection);
+    if (dom.landing.hidden) return;
+    const meters = Math.max(0, Math.ceil(state.nextReflection - state.distance));
+    const leg = state.reflectionCount ? REFLECTION_INTERVAL : FIRST_REFLECTION_DISTANCE;
+    dom.landingFill.style.transform = `scaleX(${clamp(1 - meters / leg, 0, 1)})`;
+    const label = String(meters);
+    if (dom.landingDistance.textContent !== label) dom.landingDistance.textContent = label;
+    dom.landing.classList.toggle('is-near', meters <= 24);
   }
 
   function setBuff(node, active) {
@@ -3289,6 +3374,7 @@ ${shader.vertexShader}`.replace(
     state.airborne = false;
     state.dive = 0;
     state.inputLock = 0;
+    clearBufferedInput();
     state.distance = 0;
     state.lotuses = 0;
     state.score = 0;
@@ -3303,6 +3389,8 @@ ${shader.vertexShader}`.replace(
     state.multiplier = 1;
     state.nearMisses = 0;
     state.milestone = 0;
+    state.nextReflection = FIRST_REFLECTION_DISTANCE;
+    state.reflectionCount = 0;
     state.runTime = 0;
     state.over = false;
     state.paused = false;
@@ -3310,7 +3398,7 @@ ${shader.vertexShader}`.replace(
     state.lastWallRow = -10;
     state.reachable = [true, true, true];
     state.biome = 0;
-    state.spawnZ = -20;
+    state.spawnZ = -5;
     setBuff(dom.shield, false);
     setBuff(dom.magnet, false);
     setBuff(dom.rush, false);
@@ -3319,6 +3407,7 @@ ${shader.vertexShader}`.replace(
     fx?.reset?.();
     applyLookCss(BIOMES[0]);
     applyLook(BIOMES[0], 1);
+    if (dom.biomeName) dom.biomeName.textContent = BIOMES[0].title;
     for (let i = 0; i < 11; i += 1) {
       const gap = rowGap();
       state.spawnZ -= gap;
@@ -3500,9 +3589,10 @@ ${shader.vertexShader}`.replace(
   }
 
   function togglePause(force) {
-    if (!state.playing) return;
+    if (!state.playing || dom.reflection?.open) return;
     const next = force === undefined ? !state.paused : force;
     state.paused = next;
+    if (next) clearBufferedInput();
     dom.pauseScreen?.classList.toggle('hidden', !next);
     dom.body.classList.toggle('is-paused', next);
     if (next) window.gameAudio?.suspend?.();
@@ -3523,9 +3613,13 @@ ${shader.vertexShader}`.replace(
   }
 
   function steer(direction) {
-    if (!state.playing || state.paused || state.inputLock > 0) return;
+    if (!state.playing || state.paused) return;
     const next = clamp(state.lane + direction, 0, LANES.length - 1);
     if (next === state.lane) return;
+    if (state.inputLock > 0) {
+      state.queuedSteer = direction;
+      return;
+    }
     state.lane = next;
     state.targetX = LANES[state.lane];
     state.inputLock = TUNE.inputCooldown;
@@ -3541,7 +3635,12 @@ ${shader.vertexShader}`.replace(
 
   /* Прыжок на гребне волны — способ обойти «низкие» помехи. */
   function jump() {
-    if (!state.playing || state.paused || state.airborne || state.dive > 0) return;
+    if (!state.playing || state.paused) return;
+    if (state.airborne || state.dive > 0) {
+      state.queuedAction = 'jump';
+      state.actionTime = INPUT_BUFFER;
+      return;
+    }
     state.airborne = true;
     state.vy = TUNE.jumpImpulse;
     window.gameAudio?.playJump?.();
@@ -3558,6 +3657,8 @@ ${shader.vertexShader}`.replace(
     if (state.airborne) {
       // Резкое приводнение вместо ожидания дуги.
       state.vy = -TUNE.jumpImpulse;
+      state.queuedAction = 'dive';
+      state.actionTime = Math.max(INPUT_BUFFER, state.y / TUNE.jumpImpulse + .06);
       return;
     }
     state.dive = TUNE.diveDuration;
@@ -3567,6 +3668,19 @@ ${shader.vertexShader}`.replace(
       fx?.ripple?.(state.x, .015, .1, 1, 5, 1, .55);
     }
     haptic('medium');
+  }
+
+  function clearBufferedInput() {
+    state.queuedSteer = 0;
+    state.queuedAction = null;
+    state.actionTime = 0;
+  }
+
+  function canLand() {
+    return !state.airborne && state.dive <= 0 && state.items.every((item) => (
+      !item.clearance || item.scored || item.lane !== state.lane
+      || item.z > 2 || item.z < -state.speed * .55
+    ));
   }
 
   function addScore(amount) {
@@ -3673,6 +3787,96 @@ ${shader.vertexShader}`.replace(
     return true;
   }
 
+  const REFLECTIONS = [
+    {
+      title: '¿Quién actuó como prójimo?',
+      reference: 'Lucas 10:30–37',
+      question: 'Hay un herido junto al camino. Puedes ayudarlo, pero llegarás tarde. ¿Qué harás?',
+      choices: ['Me detendré y buscaré ayuda para él', 'Seguiré y esperaré que alguien más se detenga'],
+      note: 'El samaritano vendó sus heridas, lo llevó a una posada y se aseguró de que siguiera recibiendo cuidados. Jesús muestra que el prójimo es quien actúa con misericordia.',
+    },
+    {
+      title: 'José tenía poder',
+      reference: 'Génesis 50:15–21',
+      question: 'Los hermanos de José lo vendieron y ahora temen que se vengue. ¿Qué puede hacer él?',
+      choices: ['Recordarles lo que deben y dejarlos con miedo', 'Tranquilizarlos y cuidar a sus familias'],
+      note: 'José tranquilizó a sus hermanos y prometió alimentar a ellos y a sus hijos. Recordó el mal que le habían hecho y vio cómo Dios hizo que de aquello saliera algo bueno.',
+    },
+    {
+      title: 'Rut se queda a su lado',
+      reference: 'Rut 1:14–18',
+      question: 'Noemí vuelve sola a su tierra y le dice a Rut que puede regresar con su familia. ¿Qué decide Rut?',
+      choices: ['Ir con Noemí a una tierra desconocida', 'Quedarse en su tierra, donde todo le resulta familiar'],
+      note: 'Rut fue con Noemí y le dijo que el pueblo de Noemí sería su pueblo y su Dios sería su Dios. Demostró su lealtad al compartir con ella un viaje difícil.',
+    },
+    {
+      title: 'Dos monedas pequeñas',
+      reference: 'Marcos 12:41–44',
+      question: 'Los ricos dan mucho y una viuda da dos monedas pequeñas. ¿Qué señala Jesús a sus discípulos?',
+      choices: ['La cantidad más grande', 'Lo que cada persona dio de lo que tenía'],
+      note: 'Jesús se fijó en la viuda. Las dos monedas eran todo lo que tenía para vivir. La cantidad por sí sola no revela cuánto le costó a una persona ser generosa.',
+    },
+    {
+      title: 'Ayudar con hechos',
+      reference: 'Santiago 2:14–17',
+      question: 'Te encuentras con una persona que no tiene comida ni ropa de abrigo. ¿Qué harás?',
+      choices: ['Le daré ánimo y compartiré lo que necesita', 'Le desearé que se abrigue y coma bien y seguiré mi camino'],
+      note: 'Santiago pone este mismo ejemplo al hablar de la fe y las obras. Cuando a alguien le falta lo necesario, nuestro cuidado se hace tangible con la ayuda que podemos dar.',
+    },
+  ];
+
+  let reflectionIndex = 0;
+
+  function openReflection() {
+    const dialog = dom.reflection;
+    if (!dialog?.showModal) {
+      state.nextReflection = Infinity;
+      return;
+    }
+    state.reflectionCount += 1;
+    state.nextReflection = state.reflectionCount < REFLECTIONS.length ? state.distance + REFLECTION_INTERVAL : Infinity;
+    const reflection = REFLECTIONS[reflectionIndex];
+    dom.reflectionTitle.textContent = reflection.title;
+    dom.reflectionReference.textContent = reflection.reference;
+    dom.reflectionQuestion.textContent = reflection.question;
+    dom.reflectionQuestion.hidden = false;
+    dom.reflectionNote.hidden = true;
+    dom.reflectionChoices.replaceChildren(...reflection.choices.map((choice) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = choice;
+      button.addEventListener('click', () => {
+        dom.reflectionNote.textContent = reflection.note;
+        dom.reflectionNote.hidden = false;
+        dom.reflectionNote.focus({ preventScroll: true });
+        dom.reflectionChoices.hidden = true;
+        dom.reflectionQuestion.hidden = true;
+      });
+      return button;
+    }));
+    dom.reflectionChoices.hidden = false;
+    clearBufferedInput();
+    dialog.showModal();
+    dom.reflectionTitle.focus({ preventScroll: true });
+    state.paused = true;
+    window.gameAudio?.suspend?.();
+  }
+
+  function bindReflections() {
+    try {
+      const saved = Number(localStorage.getItem(REFLECTION_KEY));
+      if (Number.isInteger(saved) && saved >= 0 && saved < REFLECTIONS.length) reflectionIndex = saved;
+    } catch { /* приватный режим */ }
+
+    dom.reflectionContinue?.addEventListener('click', () => dom.reflection.close());
+    dom.reflection?.addEventListener('close', () => {
+      reflectionIndex = (reflectionIndex + 1) % REFLECTIONS.length;
+      try { localStorage.setItem(REFLECTION_KEY, String(reflectionIndex)); } catch { /* приватный режим */ }
+      if (document.hidden) togglePause(true);
+      else togglePause(false);
+    });
+  }
+
   function checkMilestones() {
     const next = Math.floor(state.distance / 500);
     if (next <= state.milestone) return;
@@ -3697,6 +3901,11 @@ ${shader.vertexShader}`.replace(
 
   function updateGameplay(dt) {
     state.inputLock = Math.max(0, state.inputLock - dt);
+    if (state.inputLock === 0 && state.queuedSteer) {
+      const direction = state.queuedSteer;
+      state.queuedSteer = 0;
+      steer(direction);
+    }
     state.x = damp(state.x, state.targetX, TUNE.laneDamp, dt);
 
     // Вертикаль: прыжок считается физикой, нырок — заданной дугой.
@@ -3723,6 +3932,16 @@ ${shader.vertexShader}`.replace(
 
     if (!state.playing || state.paused) return;
 
+    if (state.queuedAction) {
+      state.actionTime -= dt;
+      if (state.actionTime <= 0) state.queuedAction = null;
+      else if (!state.airborne && state.dive <= 0) {
+        const action = state.queuedAction;
+        state.queuedAction = null;
+        if (action === 'jump') jump();
+        else dive();
+      }
+    }
     state.runTime += dt;
     const rushFactor = state.rush > 0 ? TUNE.rushBoost : 1;
     const target = Math.min(TUNE.maxSpeed, TUNE.baseSpeed + state.distance * TUNE.speedRamp);
@@ -3887,6 +4106,7 @@ ${shader.vertexShader}`.replace(
 
     updateHud();
     window.gameAudio?.setIntensity?.(clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed) * .7 + (state.multiplier - 1) * .1, 0, 1));
+    if (state.distance >= state.nextReflection && canLand()) openReflection();
   }
 
   /* ------------------------------------------------------------------ *
@@ -3895,6 +4115,48 @@ ${shader.vertexShader}`.replace(
 
   const tmpColor = THREE ? new THREE.Color() : null;
   const BLACK = THREE ? new THREE.Color(0x0b0d10) : null;
+  const projectedHazard = THREE ? new THREE.Vector3() : null;
+  const nextHazards = [null, null, null];
+  const hazardIcons = { low: '#ico-wave-up', high: '#ico-wave-down', ground: '#ico-veer' };
+
+  function updateHazardMarkers() {
+    if (!dom.hazardMarkers.length) return;
+    nextHazards.fill(null);
+    if (state.playing && !state.paused) {
+      const ahead = state.speed * 2.25;
+      for (const item of state.items) {
+        if (!item.clearance || item.scored || item.z > -1.8 || item.z < -ahead) continue;
+        const current = nextHazards[item.lane];
+        if (!current || item.z > current.z) nextHazards[item.lane] = item;
+      }
+      if (!state.fallback) camera.updateMatrixWorld();
+    }
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    for (const [lane, marker] of dom.hazardMarkers.entries()) {
+      const item = nextHazards[lane];
+      if (!item) { marker.hidden = true; continue; }
+      let x, y;
+      if (state.fallback) {
+        const projected = projectFallback(item);
+        x = projected.x;
+        y = projected.y - projected.size * .65;
+      } else {
+        const height = item.type === 'gate' || item.type === 'boat' ? 3.2 : 2;
+        projectedHazard.set(item.x, height, item.z).project(camera);
+        x = (projectedHazard.x + 1) * w / 2;
+        y = (1 - projectedHazard.y) * h / 2;
+      }
+      marker.hidden = x <= 12 || x >= w - 12 || y <= 12 || y >= h - 12;
+      if (marker.hidden) continue;
+      marker.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
+      marker.classList.toggle('is-urgent', item.z > -state.speed * .65);
+      if (marker.dataset.action !== item.clearance) {
+        marker.dataset.action = item.clearance;
+        marker.querySelector('use').setAttribute('href', hazardIcons[item.clearance]);
+      }
+    }
+  }
 
   function applyLook(biome, blend) {
     if (!scene) return;
@@ -3995,7 +4257,12 @@ ${shader.vertexShader}`.replace(
       u.uSunColor.value.copy(air.sun);
       u.uStorm.value = air.storm;
       u.uStars.value = air.stars;
-      if (sun) u.uSunDir.value.copy(sun.position).normalize();
+      const target = sky.userData.celestialDirection.set(
+        biome.id === 'night' ? .18 : -.17,
+        biome.id === 'open' ? .35 : .16,
+        -1,
+      ).normalize();
+      u.uSunDir.value.lerp(target, t).normalize();
     }
     for (const sheet of dustSheets) {
       if (!sheet.material.uniforms) continue;
@@ -4090,6 +4357,7 @@ ${shader.vertexShader}`.replace(
     buildWater();
     buildBanks();
     buildBankDetail();
+    buildShallows();
     buildPyramids();
     buildTorches();
     buildBirds();
@@ -4372,7 +4640,7 @@ ${shader.vertexShader}`.replace(
     player.rotation.y = damp(player.rotation.y, -drift * .12, 6, dt);
     if (basketVisual) {
       const squash = state.dive > 0 ? .84 : state.airborne ? 1.05 : 1;
-      basketVisual.scale.setScalar(damp(basketVisual.scale.x, .62 * squash, 9, dt));
+      basketVisual.scale.setScalar(damp(basketVisual.scale.x, BASKET_SCALE * squash, 9, dt));
       // На прыжке корзинку слегка проворачивает вокруг оси — заметно на глаз.
       basketVisual.rotation.y = damp(basketVisual.rotation.y, Math.PI + (state.airborne ? Math.sin(t * 5) * .16 : 0), 6, dt);
     }
@@ -4428,7 +4696,10 @@ ${shader.vertexShader}`.replace(
       camera.fov = damp(camera.fov, targetFov, 3, dt);
       camera.updateProjectionMatrix();
     }
-    camera.lookAt(state.x * .84, .1 + state.y * .35, -16.5);
+    const portrait = camera.aspect < 1;
+    const openingView = !state.playing && !state.over && !dom.startScreen.classList.contains('hidden');
+    cameraLookZ = damp(cameraLookZ, openingView && portrait ? -6 : -16.5, 6, dt);
+    camera.lookAt(state.x * .84, (portrait ? -1.1 : .1) + state.y * .35, cameraLookZ);
 
     // Источник тени едет за корзинкой: карта тени тратится на то, что в кадре.
     if (sun) {
@@ -4682,8 +4953,8 @@ ${shader.vertexShader}`.replace(
     const river = ctx.createLinearGradient(0, hy, 0, h);
     const night = state.biome === 3;
     river.addColorStop(0, skyTone('--sky-horizon', .95));
-    river.addColorStop(.34, night ? 'rgba(30,48,70,.94)' : 'rgba(150,140,84,.94)');
-    river.addColorStop(1, night ? 'rgba(12,20,32,.98)' : 'rgba(78,76,40,.98)');
+    river.addColorStop(.34, night ? 'rgba(30,48,70,.94)' : '#598e91');
+    river.addColorStop(1, night ? 'rgba(12,20,32,.98)' : '#134a4d');
     ctx.fillStyle = river;
     ctx.fillRect(0, hy, w, h - hy);
 
@@ -4874,7 +5145,7 @@ ${shader.vertexShader}`.replace(
     const x = anchor.x;
     const lift = state.y * anchor.size * .42;
     const y = anchor.y + Math.sin(state.elapsed * 2.2) * 2 - lift;
-    const size = clamp(anchor.size * .78, 62, 108) * (state.dive > 0 ? .88 : 1);
+    const size = clamp(anchor.size * .78, 72, 121) * (state.dive > 0 ? .88 : 1);
     ctx.save();
     ctx.translate(x, y);
 
@@ -4947,6 +5218,11 @@ ${shader.vertexShader}`.replace(
     ctx.strokeStyle = '#6a3b1c';
     ctx.lineWidth = Math.max(2.4, size * .045);
     ctx.beginPath(); ctx.ellipse(0, -size * .07, size * .44, size * .245, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = '#dca568';
+    ctx.lineWidth = Math.max(1, size * .014);
+    ctx.setLineDash([size * .042, size * .024]);
+    ctx.stroke();
+    ctx.setLineDash([]);
     ctx.globalAlpha = 1;
 
     ctx.strokeStyle = 'rgba(250,242,213,.34)';
@@ -5096,6 +5372,7 @@ ${shader.vertexShader}`.replace(
 
     if (state.fallback) {
       renderFallback(dt);
+      updateHazardMarkers();
       window.__mosesV75Diagnostics = {
         mode: 'fallback',
         oneRenderLoop: true,
@@ -5113,6 +5390,7 @@ ${shader.vertexShader}`.replace(
 
     if (state.playing && !state.paused) updateQuality(wallDt);
     update3D(dt);
+    updateHazardMarkers();
     renderer.render(scene, camera);
     window.__mosesV75Diagnostics = {
       mode: 'webgl',
@@ -5141,15 +5419,13 @@ ${shader.vertexShader}`.replace(
   */
   function bindPress(node, handler) {
     if (!node) return;
-    let pointerHandled = 0;
     node.addEventListener('pointerdown', (event) => {
+      if (!event.isPrimary || event.button !== 0) return;
       event.preventDefault();
-      pointerHandled = performance.now();
       handler();
     });
-    node.addEventListener('click', () => {
-      if (performance.now() - pointerHandled < 600) return;
-      handler();
+    node.addEventListener('click', (event) => {
+      if (event.detail === 0) handler();
     });
   }
 
@@ -5192,6 +5468,7 @@ ${shader.vertexShader}`.replace(
   }
 
   function bindControls() {
+    bindReflections();
     lockTelegramSwipes();
     loadControlMode();
     bindPress(dom.controlModeArrows, () => applyControlMode('arrows', true));
@@ -5216,6 +5493,7 @@ ${shader.vertexShader}`.replace(
     dom.tutSkip?.addEventListener('click', closeTutorial);
 
     window.addEventListener('keydown', (event) => {
+      if (dom.reflection?.open) return;
       if (tutorialOpen) {
         // Поверх обучения стрелки листают шаги, а не двигают корзинку.
         if (event.code === 'ArrowRight' || event.code === 'Enter' || event.code === 'Space') { stepTutorial(1); event.preventDefault(); }
@@ -5223,6 +5501,7 @@ ${shader.vertexShader}`.replace(
         else if (event.code === 'Escape') closeTutorial();
         return;
       }
+      if (event.repeat || (event.target instanceof HTMLElement && event.target.closest('button') && ['Space', 'Enter'].includes(event.code))) return;
       switch (event.code) {
         case 'ArrowLeft': case 'KeyA': steer(-1); break;
         case 'ArrowRight': case 'KeyD': steer(1); break;
@@ -5236,44 +5515,40 @@ ${shader.vertexShader}`.replace(
       }
     });
 
-    let touchX = 0;
-    let touchY = 0;
-    let touchTime = 0;
+    let gesture = null;
     window.addEventListener('touchstart', (event) => {
-      touchX = event.touches[0]?.clientX || 0;
-      touchY = event.touches[0]?.clientY || 0;
-      touchTime = performance.now();
-      // Каждое касание — повод убедиться, что жест закрытия отключён: SDK
-      // Telegram грузится асинхронно и мог доехать уже после старта игры.
       lockTelegramSwipes();
-    }, { passive: true });
-    /*
-      Свайп вниз — это нырок, и он же родной жест Telegram «потянуть, чтобы
-      закрыть». Без отмены движения мини-приложение сворачивалось прямо
-      посреди заплыва. Обработчик обязан быть непассивным: у пассивного
-      preventDefault не действует.
-    */
-    window.addEventListener('touchmove', (event) => {
-      if (tutorialOpen) return;
+      gesture = null;
+      if (event.touches.length !== 1 || !state.playing || state.paused || controlMode !== 'swipe') return;
+      if (event.target instanceof Element && event.target.closest('button, dialog')) return;
       const point = event.touches[0];
-      if (!point) return;
-      const dx = point.clientX - touchX;
-      const dy = point.clientY - touchY;
-      if (dy > 6 && Math.abs(dy) > Math.abs(dx) * 1.15 && event.cancelable) {
-        event.preventDefault();
-      }
-    }, { passive: false });
-    window.addEventListener('touchend', (event) => {
-      if (tutorialOpen || controlMode !== 'swipe') return;
-      const point = event.changedTouches[0];
-      if (!point || performance.now() - touchTime > 700) return;
-      const dx = point.clientX - touchX;
-      const dy = point.clientY - touchY;
-      if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
-      if (Math.abs(dx) > Math.abs(dy)) steer(dx < 0 ? -1 : 1);
-      else if (dy < 0) jump();
-      else dive();
+      gesture = { id: point.identifier, x: point.clientX, y: point.clientY, start: performance.now(), handled: false };
     }, { passive: true });
+
+    const steerByTouch = (event) => {
+      if (!gesture || state.paused || performance.now() - gesture.start > 700) return;
+      const touches = event.type === 'touchmove' ? event.touches : event.changedTouches;
+      const point = Array.from(touches).find((touch) => touch.identifier === gesture.id);
+      if (!point) return;
+      const dx = point.clientX - gesture.x;
+      const dy = point.clientY - gesture.y;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+      if (dy > 6 && ay > ax && event.cancelable) event.preventDefault();
+      if (gesture.handled) return;
+      if (ax >= SWIPE_THRESHOLD && ax > ay * 1.18) steer(dx < 0 ? -1 : 1);
+      else if (ay >= SWIPE_THRESHOLD && ay > ax * 1.18) {
+        if (dy < 0) jump();
+        else dive();
+      } else return;
+      gesture.handled = true;
+    };
+    window.addEventListener('touchmove', steerByTouch, { passive: false });
+    window.addEventListener('touchend', (event) => {
+      steerByTouch(event);
+      gesture = null;
+    }, { passive: false });
+    window.addEventListener('touchcancel', () => { gesture = null; }, { passive: true });
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && state.playing) togglePause(true);
@@ -5283,12 +5558,9 @@ ${shader.vertexShader}`.replace(
 
   function showBestOnStart() {
     if (!dom.startBest) return;
-    if (!state.best?.score) {
-      dom.startBest.textContent = 'Aún no has navegado: es hora de empezar.';
-      return;
-    }
+    dom.startBest.hidden = !state.best?.score;
+    if (dom.startBest.hidden) return;
     dom.startBest.textContent = `Mejor viaje: ${state.best.score} puntos · ${state.best.distance} м · ${state.best.lotuses} 🪷`;
-    dom.startBest.classList.add('is-set');
   }
 
   /*

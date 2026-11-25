@@ -3,6 +3,7 @@
   'use strict';
   const app = 'https://alias-spy-games-app.vitaledanilov.workers.dev/';
   const core = 'https://alias-spy-games-core.vitaledanilov.workers.dev';
+  const ownerOnly = document.querySelector('meta[name="app-game-access"]')?.content === 'root';
   const style = document.createElement('style');
   style.textContent = 'html:not(.standalone-access-allowed) body{visibility:hidden!important}';
   document.head.append(style);
@@ -28,7 +29,7 @@
       body: JSON.stringify({ telegramInitData: proof.telegramInitData || '' }), cache: 'no-store', signal: AbortSignal.timeout(8000),
     });
     const access = await response.json();
-    if (!response.ok || access.allowed !== true) return;
+    if (!response.ok || access.allowed !== true || (ownerOnly && access.isRoot !== true)) return;
     window.StandaloneAppProof = proof;
     // Only the game bootstrap is deferred; library files can still use their normal order.
     for (const placeholder of document.querySelectorAll('script[data-app-access-src]')) {

@@ -158,7 +158,7 @@ try {
   });
   await page.waitForSelector('.game-frame', { timeout: 15_000 });
   const frame = await (await page.$('.game-frame')).contentFrame();
-  await frame.waitForSelector('#hud', { timeout: 20_000 });
+  await frame.waitForSelector('#start-btn', { timeout: 20_000 });
 
   // Игра могла ещё не получить сообщение: числа приходят и адресом, и им.
   await frame.waitForFunction(
@@ -166,7 +166,10 @@ try {
     null,
     { timeout: 10_000 },
   );
-  await frame.locator('#start-btn').click().catch(() => {});
+  await frame.waitForFunction(() => window.__mosesV75Ready === true, null, { timeout: 20_000 });
+  // This suite measures controls after launch. Gesture and click behavior are tested separately.
+  await frame.evaluate(() => document.getElementById('start-btn').click());
+  await frame.waitForSelector('#hud', { timeout: 10_000 });
   await page.waitForTimeout(700);
 
   // --- 1. Сверху: HUD не залезает под кнопки Telegram --------------------------
