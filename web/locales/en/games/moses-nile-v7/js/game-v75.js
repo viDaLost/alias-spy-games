@@ -28,7 +28,8 @@
   const EDITION = 'RUNNER II';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
-  const MAX_DPR = 1.6;
+  const MAX_DPR = 1.65;
+  const BASKET_SCALE = .76;
   const FAR_Z = -255;
   const NEAR_Z = 10;
   const THREE = window.THREE;
@@ -36,6 +37,9 @@
   const HINT_KEY = 'moses-nile-hint-seen-v2';
   const TUTORIAL_KEY = 'moses-nile-tutorial-seen-v1';
   const CONTROL_MODE_KEY = 'moses-nile-control-mode-v1';
+  const REFLECTION_KEY = 'moses-nile-reflection-v1';
+  const FIRST_REFLECTION_DISTANCE = 110;
+  const REFLECTION_INTERVAL = 300;
 
   const TUNE = {
     baseSpeed: 18.5,
@@ -78,9 +82,9 @@
       subtitle: 'Calm water, dense reeds',
       from: 0,
       fog: 0xc9c2ac, fogNear: 140, fogFar: 380,
-      hemiSky: 0xc8dcf0, hemiGround: 0x4a4234, hemiPower: .30,
+      hemiSky: 0xc8dcf0, hemiGround: 0x4a4234, hemiPower: .36,
       sunColor: 0xffe8c4, sunPower: 1.5, sunPos: [-24, 38, 16],
-      water: { deep: 0x1c3729, shallow: 0x4f7458, sky: 0x9db8d0, sun: 0xffe3ae, foam: 0xeff2e6, chop: .85, glitter: 1.05, opacity: .95 },
+      water: { deep: 0x173b39, shallow: 0x528f7e, sky: 0x9abed0, sun: 0xffe3ae, foam: 0xeff2e6, chop: .95, glitter: 1.19, opacity: .95 },
       sky: { zenith: 0x4f7ba9, haze: 0xb2a488, horizon: 0xd8c8a6, sun: 0xffe6ae, storm: .12, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
@@ -94,7 +98,7 @@
       fog: 0xd0cab4, fogNear: 110, fogFar: 336,
       hemiSky: 0xd4e6f6, hemiGround: 0x554c38, hemiPower: .34,
       sunColor: 0xfff4dc, sunPower: 1.62, sunPos: [-16, 46, 12],
-      water: { deep: 0x1b3d2f, shallow: 0x568063, sky: 0xa9c4dc, sun: 0xfff2cf, foam: 0xf6f7ec, chop: 1, glitter: 1.4, opacity: .96 },
+      water: { deep: 0x16454b, shallow: 0x53978b, sky: 0xa9c4dc, sun: 0xfff2cf, foam: 0xf6f7ec, chop: 1, glitter: 1.4, opacity: .96 },
       sky: { zenith: 0x4272a6, haze: 0xbcb094, horizon: 0xe4d5b4, sun: 0xfff2cf, storm: .10, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
@@ -108,7 +112,7 @@
       fog: 0xb2c0ba, fogNear: 76, fogFar: 256,
       hemiSky: 0xb8cfdc, hemiGround: 0x333d36, hemiPower: .32,
       sunColor: 0xe8f0e4, sunPower: 1.4, sunPos: [-28, 34, 20],
-      water: { deep: 0x1b3831, shallow: 0x5f7a67, sky: 0xbccdbe, sun: 0xf2f7ef, foam: 0xffffff, chop: 2.1, glitter: 1.5, opacity: .98 },
+      water: { deep: 0x183945, shallow: 0x64938d, sky: 0xbccdbe, sun: 0xf2f7ef, foam: 0xffffff, chop: 2.1, glitter: 1.5, opacity: .98 },
       sky: { zenith: 0x3f5f74, haze: 0x8b9d96, horizon: 0xc2cec1, sun: 0xf2f7ef, storm: .62, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(40,60,60,.20), transparent 30%, transparent 66%, rgba(16,26,26,.30))',
@@ -234,6 +238,13 @@
     grade: pick('scene-grade'),
     sceneBg: pick('scene-bg'),
     biomeName: pick('biome-name'),
+    reflection: pick('river-reflection'),
+    reflectionTitle: pick('reflection-title'),
+    reflectionReference: pick('reflection-reference'),
+    reflectionQuestion: pick('reflection-question'),
+    reflectionChoices: pick('reflection-choices'),
+    reflectionNote: pick('reflection-note'),
+    reflectionContinue: pick('reflection-continue'),
   };
 
   /*
@@ -300,6 +311,8 @@
     qualityHold: 0,
     runTime: 0,
     milestone: 0,
+    nextReflection: FIRST_REFLECTION_DISTANCE,
+    reflectionCount: 0,
     best: { score: 0, distance: 0, lotuses: 0 },
     quality: 1,
     fpsAverage: 60,
@@ -471,7 +484,7 @@
 
   function renderPixelRatio() {
     const tier = detectTier();
-    const limit = mobileDevice() ? (tier >= 1 ? 1.25 : 1) : MAX_DPR;
+    const limit = mobileDevice() ? (tier >= 1 ? 1.45 : 1) : MAX_DPR;
     const resolution = .80 + .20 * clamp((state.quality - .35) / .3, 0, 1);
     return (window.GameDisplay?.pixelRatio(limit) ?? Math.min(window.devicePixelRatio || 1, limit)) * resolution;
   }
@@ -1045,6 +1058,40 @@ ${shader.vertexShader}`.replace(
     return mesh;
   }
 
+  function buildShallows() {
+    const geometry = new THREE.CircleGeometry(.50, 16, .24, Math.PI * 2 - .48);
+    geometry.rotateX(-Math.PI / 2);
+    geometry.scale(1, 1, .82);
+    const positions = geometry.attributes.position;
+    for (let point = 1; point < positions.count; point++) {
+      positions.setY(point, .022 + .024 * Math.sin(point * 2.7));
+    }
+    geometry.computeVertexNormals();
+
+    const perTile = mobileDevice() ? 40 : 64;
+    const material = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: .72 });
+    const pads = makeInstanced(geometry, material, perTile * 2, 'NileShoreLilyPads');
+    const pose = new THREE.Object3D();
+    const green = new THREE.Color();
+    for (let index = 0; index < perTile; index++) {
+      const side = index % 2 ? -1 : 1;
+      const z = -hash(index, 37) * SCROLL_TILE;
+      const edge = riverHalf() + (window.NileLandscape?.shoreOffset(z, side) || 0);
+      const x = side * (edge - mix(.5, 1.1, hash(index, 38)));
+      pose.rotation.y = hash(index, 39) * Math.PI * 2;
+      pose.scale.setScalar(mix(.65, 1.3, hash(index, 40)));
+      green.setHSL(mix(.25, .34, hash(index, 41)), .43, mix(.22, .40, hash(index, 42)));
+      for (let tile = 0; tile < 2; tile++) {
+        pose.position.set(x, .055, z - tile * SCROLL_TILE);
+        pose.updateMatrix();
+        pads.setMatrixAt(index + tile * perTile, pose.matrix);
+        pads.setColorAt(index + tile * perTile, green);
+      }
+    }
+    scene.add(pads);
+    scrollLayers.push(pads);
+  }
+
   function windMaterial(options) {
     const { wind = 1, ...params } = options;
     const material = new THREE.MeshStandardMaterial(params);
@@ -1254,8 +1301,8 @@ ${shader.vertexShader}`.replace(
       }
     }
 
-    const stalkMaterial = new THREE.MeshStandardMaterial({ color: 0x7d8b4a, roughness: .96, side: THREE.DoubleSide });
-    const crownMaterial = new THREE.MeshStandardMaterial({ color: 0x9aa458, roughness: .99, side: THREE.DoubleSide });
+    const stalkMaterial = new THREE.MeshStandardMaterial({ color: 0x54774b, roughness: .96, side: THREE.DoubleSide });
+    const crownMaterial = new THREE.MeshStandardMaterial({ color: 0x91ac5d, roughness: .99, side: THREE.DoubleSide });
     const parts = [
       { geometry: mergeFromGroup(stalks), material: stalkMaterial },
       { geometry: mergeFromGroup(crowns), material: crownMaterial },
@@ -1828,43 +1875,34 @@ ${shader.vertexShader}`.replace(
   }
 
   function addClosedLid(root) {
-    if (!root || root.getObjectByName?.('V75ClosedBasketLid')) return root;
-    const material = window.assetManager?._basketMaterial?.() || new THREE.MeshStandardMaterial({ color: 0xb56f32, roughness: .94, metalness: 0 });
+    if (!root || root.getObjectByName('V75ClosedBasketLid')) return root;
     const lid = new THREE.Group();
     lid.name = 'V75ClosedBasketLid';
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(.78, .82, .12, 22), material);
-    disc.scale.z = .82;
-    disc.position.y = .71;
-    disc.castShadow = true;
-    lid.add(disc);
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(.78, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), material.clone());
-    dome.scale.set(1, .26, .82);
-    dome.position.y = .73;
-    dome.castShadow = true;
-    lid.add(dome);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(.80, .045, 6, 28), new THREE.MeshStandardMaterial({ color: 0x674020, roughness: .98 }));
-    rim.rotation.x = Math.PI / 2;
-    rim.scale.z = .82;
-    rim.position.y = .69;
-    lid.add(rim);
-    for (let i = 0; i < 9; i += 1) {
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(.09 + i * .068, .012, 4, 30),
-        new THREE.MeshBasicMaterial({ color: i % 2 ? 0x8c5325 : 0xd09149, transparent: true, opacity: .78 }),
-      );
-      ring.rotation.x = Math.PI / 2;
-      ring.scale.z = .82;
-      ring.position.y = .795;
-      lid.add(ring);
+
+    const wicker = window.assetManager?._basketMaterial?.()
+      || new THREE.MeshStandardMaterial({ color: 0xb56f32, roughness: .94 });
+    const profile = [
+      [.001, .72], [.79, .72], [.82, .75], [.83, .79],
+      [.75, .84], [.56, .90], [.30, .94], [.001, .95],
+    ].map(([radius, height]) => new THREE.Vector2(radius, height));
+    const cover = new THREE.Mesh(new THREE.LatheGeometry(profile, 48), wicker);
+    cover.scale.z = .85;
+    lid.add(cover);
+
+    // Две пряди идут по противоположным сторонам обода и перекрещиваются.
+    for (const [phase, color] of [[0, 0xa76a33], [Math.PI, 0xd99f5a]]) {
+      const strand = new THREE.Curve();
+      strand.getPoint = (t, target = new THREE.Vector3()) => {
+        const angle = t * Math.PI * 2;
+        const twist = angle * 21 + phase;
+        const radius = .815 + Math.cos(twist) * .025;
+        return target.set(Math.cos(angle) * radius, .77 + Math.sin(twist) * .027, Math.sin(angle) * radius * .85);
+      };
+      lid.add(new THREE.Mesh(
+        new THREE.TubeGeometry(strand, 126, .023, 5, true),
+        new THREE.MeshStandardMaterial({ color, roughness: .9 }),
+      ));
     }
-    // Тёплый свет изнутри: напоминание, что в корзинке ребёнок.
-    const glow = new THREE.Mesh(
-      new THREE.SphereGeometry(.42, 12, 8),
-      new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: .16, depthWrite: false }),
-    );
-    glow.position.y = .5;
-    glow.name = 'V751BasketInnerGlow';
-    lid.add(glow);
     root.add(lid);
     return root;
   }
@@ -1971,7 +2009,7 @@ ${shader.vertexShader}`.replace(
     if (!player || !visual) return;
     if (basketVisual) player.remove(basketVisual);
     basketVisual = addClosedLid(visual);
-    basketVisual.scale.setScalar(.62);
+    basketVisual.scale.setScalar(BASKET_SCALE);
     basketVisual.position.y = -.30;
     basketVisual.rotation.y = Math.PI;
     basketVisual.traverse((node) => {
@@ -2009,7 +2047,7 @@ ${shader.vertexShader}`.replace(
     // Тень корзинки — тем же мягким пятном с умножением, что и у препятствий:
     // ровный тёмный круг читался как приклеенный к воде блин.
     const contact = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.9, 1.9),
+      new THREE.PlaneGeometry(2.15, 2.15),
       new THREE.MeshBasicMaterial({
         map: contactShadowTexture(),
         transparent: true,
@@ -3303,6 +3341,8 @@ ${shader.vertexShader}`.replace(
     state.multiplier = 1;
     state.nearMisses = 0;
     state.milestone = 0;
+    state.nextReflection = FIRST_REFLECTION_DISTANCE;
+    state.reflectionCount = 0;
     state.runTime = 0;
     state.over = false;
     state.paused = false;
@@ -3500,7 +3540,7 @@ ${shader.vertexShader}`.replace(
   }
 
   function togglePause(force) {
-    if (!state.playing) return;
+    if (!state.playing || dom.reflection?.open) return;
     const next = force === undefined ? !state.paused : force;
     state.paused = next;
     dom.pauseScreen?.classList.toggle('hidden', !next);
@@ -3671,6 +3711,95 @@ ${shader.vertexShader}`.replace(
     haptic('medium');
     updateHud();
     return true;
+  }
+
+  const REFLECTIONS = [
+    {
+      title: 'Who proved to be a neighbor?',
+      reference: 'Luke 10:30–37',
+      question: 'An injured person is lying by the road. You can help, but you will be late. What will you do?',
+      choices: ['I will stop and get help for him', 'I will go on and hope someone else stops'],
+      note: 'The Samaritan bandaged his wounds, took him to an inn and made sure he would receive further care. Jesus shows that a neighbor is someone who acts with mercy.',
+    },
+    {
+      title: 'Joseph had power',
+      reference: 'Genesis 50:15–21',
+      question: 'Joseph’s brothers sold him, and now they fear he will take revenge. What could he do?',
+      choices: ['Remind them of their debt and leave them afraid', 'Reassure them and care for their families'],
+      note: 'Joseph reassured his brothers and promised to provide for them and their children. He remembered the wrong they had done and saw how God brought good out of it.',
+    },
+    {
+      title: 'Ruth stays by her side',
+      reference: 'Ruth 1:14–18',
+      question: 'Naomi is going home alone and tells Ruth she can go back to her family. What does Ruth choose?',
+      choices: ['Go with Naomi to an unfamiliar land', 'Stay in the land she knows'],
+      note: 'Ruth went with Naomi and told her that Naomi’s people would be her people and Naomi’s God her God. She put loyalty into practice by sharing Naomi’s difficult journey.',
+    },
+    {
+      title: 'Two small coins',
+      reference: 'Mark 12:41–44',
+      question: 'The rich give a great deal, and a widow gives two small coins. What does Jesus draw his disciples’ attention to?',
+      choices: ['To the largest amount', 'To what each person gave out of what they had'],
+      note: 'Jesus noticed the widow. The two coins were all she had to live on. The amount alone cannot tell us what generosity cost the person who gave it.',
+    },
+    {
+      title: 'Helping in practice',
+      reference: 'James 2:14–17',
+      question: 'You meet someone who has no food or warm clothes. What will you do?',
+      choices: ['I will encourage them and share what they need', 'I will wish them well and go on my way'],
+      note: 'James gives this very example when he talks about faith and works. When someone lacks the essentials, care becomes tangible through whatever help we can offer.',
+    },
+  ];
+
+  let reflectionIndex = 0;
+
+  function openReflection() {
+    const dialog = dom.reflection;
+    if (!dialog?.showModal) {
+      state.nextReflection = Infinity;
+      return;
+    }
+    state.reflectionCount += 1;
+    state.nextReflection = state.reflectionCount < REFLECTIONS.length ? state.distance + REFLECTION_INTERVAL : Infinity;
+    const reflection = REFLECTIONS[reflectionIndex];
+    dom.reflectionTitle.textContent = reflection.title;
+    dom.reflectionReference.textContent = reflection.reference;
+    dom.reflectionQuestion.textContent = reflection.question;
+    dom.reflectionQuestion.hidden = false;
+    dom.reflectionNote.hidden = true;
+    dom.reflectionChoices.replaceChildren(...reflection.choices.map((choice) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = choice;
+      button.addEventListener('click', () => {
+        dom.reflectionNote.textContent = reflection.note;
+        dom.reflectionNote.hidden = false;
+        dom.reflectionNote.focus({ preventScroll: true });
+        dom.reflectionChoices.hidden = true;
+        dom.reflectionQuestion.hidden = true;
+      });
+      return button;
+    }));
+    dom.reflectionChoices.hidden = false;
+    dialog.showModal();
+    dom.reflectionTitle.focus({ preventScroll: true });
+    state.paused = true;
+    window.gameAudio?.suspend?.();
+  }
+
+  function bindReflections() {
+    try {
+      const saved = Number(localStorage.getItem(REFLECTION_KEY));
+      if (Number.isInteger(saved) && saved >= 0 && saved < REFLECTIONS.length) reflectionIndex = saved;
+    } catch { /* приватный режим */ }
+
+    dom.reflectionContinue?.addEventListener('click', () => dom.reflection.close());
+    dom.reflection?.addEventListener('close', () => {
+      reflectionIndex = (reflectionIndex + 1) % REFLECTIONS.length;
+      try { localStorage.setItem(REFLECTION_KEY, String(reflectionIndex)); } catch { /* приватный режим */ }
+      if (document.hidden) togglePause(true);
+      else togglePause(false);
+    });
   }
 
   function checkMilestones() {
@@ -3887,6 +4016,7 @@ ${shader.vertexShader}`.replace(
 
     updateHud();
     window.gameAudio?.setIntensity?.(clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed) * .7 + (state.multiplier - 1) * .1, 0, 1));
+    if (state.distance >= state.nextReflection && !state.airborne && state.dive <= 0) openReflection();
   }
 
   /* ------------------------------------------------------------------ *
@@ -4090,6 +4220,7 @@ ${shader.vertexShader}`.replace(
     buildWater();
     buildBanks();
     buildBankDetail();
+    buildShallows();
     buildPyramids();
     buildTorches();
     buildBirds();
@@ -4372,7 +4503,7 @@ ${shader.vertexShader}`.replace(
     player.rotation.y = damp(player.rotation.y, -drift * .12, 6, dt);
     if (basketVisual) {
       const squash = state.dive > 0 ? .84 : state.airborne ? 1.05 : 1;
-      basketVisual.scale.setScalar(damp(basketVisual.scale.x, .62 * squash, 9, dt));
+      basketVisual.scale.setScalar(damp(basketVisual.scale.x, BASKET_SCALE * squash, 9, dt));
       // На прыжке корзинку слегка проворачивает вокруг оси — заметно на глаз.
       basketVisual.rotation.y = damp(basketVisual.rotation.y, Math.PI + (state.airborne ? Math.sin(t * 5) * .16 : 0), 6, dt);
     }
@@ -4428,7 +4559,8 @@ ${shader.vertexShader}`.replace(
       camera.fov = damp(camera.fov, targetFov, 3, dt);
       camera.updateProjectionMatrix();
     }
-    camera.lookAt(state.x * .84, .1 + state.y * .35, -16.5);
+    const portrait = camera.aspect < 1;
+    camera.lookAt(state.x * .84, (portrait ? -1.1 : .1) + state.y * .35, -16.5);
 
     // Источник тени едет за корзинкой: карта тени тратится на то, что в кадре.
     if (sun) {
@@ -4682,8 +4814,8 @@ ${shader.vertexShader}`.replace(
     const river = ctx.createLinearGradient(0, hy, 0, h);
     const night = state.biome === 3;
     river.addColorStop(0, skyTone('--sky-horizon', .95));
-    river.addColorStop(.34, night ? 'rgba(30,48,70,.94)' : 'rgba(150,140,84,.94)');
-    river.addColorStop(1, night ? 'rgba(12,20,32,.98)' : 'rgba(78,76,40,.98)');
+    river.addColorStop(.34, night ? 'rgba(30,48,70,.94)' : '#598e91');
+    river.addColorStop(1, night ? 'rgba(12,20,32,.98)' : '#134a4d');
     ctx.fillStyle = river;
     ctx.fillRect(0, hy, w, h - hy);
 
@@ -4874,7 +5006,7 @@ ${shader.vertexShader}`.replace(
     const x = anchor.x;
     const lift = state.y * anchor.size * .42;
     const y = anchor.y + Math.sin(state.elapsed * 2.2) * 2 - lift;
-    const size = clamp(anchor.size * .78, 62, 108) * (state.dive > 0 ? .88 : 1);
+    const size = clamp(anchor.size * .78, 72, 121) * (state.dive > 0 ? .88 : 1);
     ctx.save();
     ctx.translate(x, y);
 
@@ -4947,6 +5079,11 @@ ${shader.vertexShader}`.replace(
     ctx.strokeStyle = '#6a3b1c';
     ctx.lineWidth = Math.max(2.4, size * .045);
     ctx.beginPath(); ctx.ellipse(0, -size * .07, size * .44, size * .245, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = '#dca568';
+    ctx.lineWidth = Math.max(1, size * .014);
+    ctx.setLineDash([size * .042, size * .024]);
+    ctx.stroke();
+    ctx.setLineDash([]);
     ctx.globalAlpha = 1;
 
     ctx.strokeStyle = 'rgba(250,242,213,.34)';
@@ -5192,6 +5329,7 @@ ${shader.vertexShader}`.replace(
   }
 
   function bindControls() {
+    bindReflections();
     lockTelegramSwipes();
     loadControlMode();
     bindPress(dom.controlModeArrows, () => applyControlMode('arrows', true));
@@ -5216,6 +5354,7 @@ ${shader.vertexShader}`.replace(
     dom.tutSkip?.addEventListener('click', closeTutorial);
 
     window.addEventListener('keydown', (event) => {
+      if (dom.reflection?.open) return;
       if (tutorialOpen) {
         // Поверх обучения стрелки листают шаги, а не двигают корзинку.
         if (event.code === 'ArrowRight' || event.code === 'Enter' || event.code === 'Space') { stepTutorial(1); event.preventDefault(); }
@@ -5254,7 +5393,7 @@ ${shader.vertexShader}`.replace(
       preventDefault не действует.
     */
     window.addEventListener('touchmove', (event) => {
-      if (tutorialOpen) return;
+      if (tutorialOpen || dom.reflection?.open) return;
       const point = event.touches[0];
       if (!point) return;
       const dx = point.clientX - touchX;

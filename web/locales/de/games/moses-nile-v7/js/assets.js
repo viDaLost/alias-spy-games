@@ -462,59 +462,73 @@ class AssetManager {
     return wrapper;
   }
 
-  _makeBasketTexture(){
-    const canvas=document.createElement('canvas');
-    canvas.width=128;canvas.height=128;
-    const ctx=canvas.getContext('2d');
-    const base=ctx.createLinearGradient(0,0,128,128);
-    base.addColorStop(0,'#e1a756');
-    base.addColorStop(.38,'#b56c2d');
-    base.addColorStop(.7,'#8d4d20');
-    base.addColorStop(1,'#cf8740');
-    ctx.fillStyle=base;ctx.fillRect(0,0,128,128);
-    ctx.strokeStyle='rgba(72,35,14,.78)';ctx.lineWidth=5;
-    for(let x=-128;x<256;x+=18){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+128,128);ctx.stroke();}
-    ctx.strokeStyle='rgba(255,220,151,.48)';ctx.lineWidth=3;
-    for(let y=7;y<128;y+=15){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(128,y);ctx.stroke();}
-    const texture=new THREE.CanvasTexture(canvas);
-    texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
-    texture.repeat.set(3.2,2.1);
-    texture.anisotropy=2;
-    return texture;
+  _makeBasketTextures() {
+    const size = 256;
+    const strands = 8;
+    const pitch = size / strands;
+    const height = new Float32Array(size * size);
+    const reeds = new Float32Array(height.length);
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const row = y / pitch;
+        const column = x / pitch;
+        const horizontalTop = (Math.floor(row) + Math.floor(column)) % 2 === 0;
+        const crosswise = horizontalTop ? row : column;
+        const lengthwise = horizontalTop ? column : row;
+        const profile = Math.max(0, Math.sin(crosswise * Math.PI % Math.PI));
+        const fibre = Math.cos(crosswise * Math.PI * 16 + Math.sin(lengthwise * Math.PI) * .65);
+        const crossing = .83 + .17 * Math.sin(Math.PI * (lengthwise % 1));
+        const index = y * size + x;
+        height[index] = Math.sqrt(profile) * crossing + fibre * .025 * profile;
+        reeds[index] = (horizontalTop ? .97 : 1.10) * (.94 + .06 * fibre);
+      }
+    }
+
+    const makeTexture = (normal) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const image = ctx.createImageData(size, size);
+      const sample = (x, y) => height[((y + size) % size) * size + (x + size) % size];
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const index = y * size + x;
+          const offset = index * 4;
+          if (normal) {
+            const dx = (sample(x - 1, y) - sample(x + 1, y)) * 2.1;
+            const dy = (sample(x, y + 1) - sample(x, y - 1)) * 2.1;
+            const length = Math.hypot(dx, dy, 1);
+            image.data[offset] = 128 + 127 * dx / length;
+            image.data[offset + 1] = 128 + 127 * dy / length;
+            image.data[offset + 2] = 128 + 127 / length;
+          } else {
+            const tone = (.39 + height[index] * .58) * reeds[index];
+            image.data[offset] = 216 * tone;
+            image.data[offset + 1] = 149 * tone;
+            image.data[offset + 2] = 79 * tone;
+          }
+          image.data[offset + 3] = 255;
+        }
+      }
+      ctx.putImageData(image, 0, 0);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(4, 1);
+      texture.anisotropy = 4;
+      if (!normal) texture.encoding = THREE.sRGBEncoding;
+      return texture;
+    };
+    return { map: makeTexture(false), normalMap: makeTexture(true) };
   }
 
-  _makeBasketNormalTexture(){
-    const canvas=document.createElement('canvas');
-    canvas.width=canvas.height=128;
-    const ctx=canvas.getContext('2d');
-    ctx.fillStyle='#8080ff';ctx.fillRect(0,0,128,128);
-    ctx.lineCap='round';
-    for(let x=-128;x<256;x+=18){
-      ctx.strokeStyle='#5a5aff';ctx.lineWidth=6;
-      ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+128,128);ctx.stroke();
-      ctx.strokeStyle='#a6a6ff';ctx.lineWidth=3;
-      ctx.beginPath();ctx.moveTo(x+4,0);ctx.lineTo(x+132,128);ctx.stroke();
-    }
-    for(let y=7;y<128;y+=15){
-      ctx.strokeStyle='#7d7dff';ctx.lineWidth=4;
-      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(128,y);ctx.stroke();
-    }
-    const texture=new THREE.CanvasTexture(canvas);
-    texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
-    texture.repeat.set(3.2,2.1);
-    return texture;
-  }
-
-  _basketMaterial(){
-    if(!this._basketMaterialCache){
-      this._basketMaterialCache=new THREE.MeshStandardMaterial({
-        color:0xc17a34,
-        map:this._makeBasketTexture(),
-        normalMap:this._makeBasketNormalTexture(),
-        normalScale:new THREE.Vector2(.75,.75),
-        roughness:.88,
-        metalness:0,
-        side:THREE.DoubleSide
+  _basketMaterial() {
+    if (!this._basketMaterialCache) {
+      this._basketMaterialCache = new THREE.MeshStandardMaterial({
+        ...this._makeBasketTextures(),
+        normalScale: new THREE.Vector2(.78, .78),
+        roughness: .91,
+        side: THREE.DoubleSide,
       });
     }
     return this._basketMaterialCache.clone();
@@ -586,7 +600,7 @@ class AssetManager {
     );
     rim.rotation.x=Math.PI/2;
     rim.position.y=.39;
-    rim.scale.z=.82;
+    rim.scale.y=.85;
     rim.castShadow=true;
     wrapper.add(rim);
 
@@ -615,11 +629,11 @@ class AssetManager {
   createProceduralBasket(){
     const group=new THREE.Group();
     const basket=new THREE.Mesh(new THREE.CylinderGeometry(.85,.6,.55,16,1,true),this._basketMaterial());
-    basket.position.y=.28;basket.castShadow=true;group.add(basket);
+    basket.position.y=.28;basket.scale.z=.85;basket.castShadow=true;group.add(basket);
     const bottom=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,.08,16),this._basketMaterial());
-    bottom.position.y=.04;bottom.castShadow=true;group.add(bottom);
+    bottom.position.y=.04;bottom.scale.z=.85;bottom.castShadow=true;group.add(bottom);
     const rim=new THREE.Mesh(new THREE.TorusGeometry(.83,.07,7,24),new THREE.MeshStandardMaterial({color:0x75401c,roughness:.92}));
-    rim.rotation.x=Math.PI/2;rim.position.y=.55;rim.castShadow=true;group.add(rim);
+    rim.rotation.x=Math.PI/2;rim.position.y=.55;rim.scale.y=.85;rim.castShadow=true;group.add(rim);
     return group;
   }
 }

@@ -197,6 +197,67 @@
     .legend .key { flex: 0 0 auto; min-width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: rgba(255, 250, 236, .9); border: 1px solid rgba(150, 116, 60, .28); font-size: 13px; }
     .legend .key .ico { width: 16px; height: 16px; color: #d1566d; }
 
+    #start-screen .panel {
+      --gold-deep: #f0c883;
+      background: linear-gradient(145deg, rgba(26,64,56,.97), rgba(20,43,42,.97));
+      color: #fff3d8;
+      border-color: #809991;
+      box-shadow: 0 20px 48px #0a211c73, inset 0 1px #fff3d822;
+    }
+    #start-screen h1 { color: #fff3d8; font-size: clamp(27px, 6vw, 40px); }
+    #start-screen .eyebrow, #start-best.is-set { color: #f0c883; }
+    #start-screen p, #start-screen .controls-hint { color: #d2e2d7; }
+    #start-screen .legend div, #start-screen .control-mode-switch { background: #99c4af18; color: #e4eee3; }
+    #start-screen .legend .key, #start-screen #help-btn { background: #183b35; color: #f0c883; border-color: #a5beac50; }
+    #start-screen .control-mode-btn:not(.is-active) { color: #e4eee3; }
+    @media (min-width: 760px) and (orientation: landscape) {
+      #start-screen { justify-content: flex-start; padding-left: clamp(24px, 6vw, 92px); }
+    }
+    @media (orientation: landscape) and (max-height: 465px) {
+      #start-screen { align-items: center; padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
+      #start-screen .panel { padding: 14px 16px 10px; }
+      #start-screen .eyebrow, #start-screen .legend, #start-screen .controls-hint:last-child { display: none; }
+    }
+
+    #river-reflection {
+      inset: var(--safe-top) 0 var(--safe-bottom);
+      width: min(calc(100% - 28px), 452px);
+      max-height: calc(100% - var(--safe-top) - var(--safe-bottom));
+      overflow: auto;
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+      padding: clamp(16px, 4vw, 28px);
+      color: #f9f3e2;
+      background: linear-gradient(155deg, #1c443c, #122d2b 75%);
+      border: 1px solid #68847a;
+      border-radius: 22px;
+      box-shadow: 0 18px 55px #08191199, inset 0 1px #ffffff19;
+    }
+    #river-reflection::backdrop { background: #071e1d80; }
+    .reflection-label { color: #f0c883; font-size: 12px; font-weight: 750; }
+    #reflection-title { margin: 5px 0 6px; font: 700 clamp(23px, 5vw, 34px)/1.12 Georgia, serif; }
+    #reflection-reference { margin: 0 0 13px; color: #a7c7b9; font-size: 13px; }
+    #reflection-question, #reflection-note { color: #f9f3e2; font-size: 15px; line-height: 1.44; }
+    #reflection-note { border-left: 2px solid #eac384; margin: 0 0 16px; padding: 4px 0 4px 12px; }
+    #reflection-choices { margin-bottom: 12px; }
+    #reflection-choices button, #reflection-continue {
+      display: block;
+      width: 100%;
+      margin-top: 7px;
+      min-height: 43px;
+      padding: 8px 12px;
+      border-radius: 11px;
+      font-size: 14px;
+      line-height: 1.3;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    #reflection-choices button { color: #fff9e9; background: #285249; border: 1px solid #638679; text-align: left; }
+    #reflection-choices button:hover { background: #315f54; }
+    #reflection-continue { color: #182b25; background: #edce92; border: 1px solid #f4dfa9; }
+    #reflection-choices button:focus-visible, #reflection-continue:focus-visible { outline: 2px solid #fff1bf; outline-offset: 2px; }
+    #reflection-title:focus, #reflection-note:focus { outline: none; }
+
     #gameover-screen, #pause-screen { align-items: center; padding-bottom: 20px; background: rgba(21, 18, 13, .5); }
     #gameover-screen h1 { color: #733d2c; }
     .result { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 14px 0 10px; }
@@ -510,7 +571,7 @@
     <div class="panel">
       <span class="eyebrow">The journey begins</span>
       <h1>Moses on the Nile</h1>
-      <p>Guide the sealed basket downstream: switch lanes, ride the wave, dive under the reeds and collect lotuses.</p>
+      <p>Guide the basket down the Nile. Stop along the river to reflect on choices people made in the Bible.</p>
       <div class="legend">
         <div><span class="key">◀▶</span>lane change</div>
         <div><span class="key">▲</span>wave: over the log</div>
@@ -593,6 +654,16 @@
     </div>
   </div>
 
+  <dialog id="river-reflection" aria-labelledby="reflection-title" aria-describedby="reflection-reference">
+    <span class="reflection-label">A stop by the river</span>
+    <h2 id="reflection-title" tabindex="-1"></h2>
+    <p id="reflection-reference"></p>
+    <p id="reflection-question"></p>
+    <div id="reflection-choices"></div>
+    <p id="reflection-note" tabindex="-1" hidden></p>
+    <button id="reflection-continue" type="button">Continue the journey</button>
+  </dialog>
+
   <div id="pause-screen" class="screen hidden">
     <div class="panel">
       <span class="eyebrow">The current is paused</span>
@@ -632,11 +703,11 @@
   <script src="../../locales/en/games/moses-nile-v7/js/landscape.js?v=774"></script>
   <script src="../../locales/en/games/moses-nile-v7/js/shaders.js?v=774"></script>
   <script src="../../locales/en/games/moses-nile-v7/js/fx.js?v=770"></script>
-  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="../../locales/en/games/moses-nile-v7/js/assets.js?v=770&r=770"><\/script>');else window.assetManager={};</script>
+  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="../../locales/en/games/moses-nile-v7/js/assets.js?v=775&r=775"><\/script>');else window.assetManager={};</script>
   <link rel="stylesheet" href="../../styles/sabbath-access.css" />
   <script src="../../js/sabbath-clock.js?v=4"></script>
   <script src="../../js/sabbath-access.js?v=5"></script>
-  <script type="application/x-app-access" data-app-access-src="../../locales/en/games/moses-nile-v7/js/game-v75.js?v=774&r=774"></script>
+  <script type="application/x-app-access" data-app-access-src="../../locales/en/games/moses-nile-v7/js/game-v75.js?v=775&r=775"></script>
   <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){try{localStorage.setItem('moses-nile-tutorial-seen-v1','1')}catch(e){}setTimeout(()=>{document.getElementById('tut-skip')?.click();document.getElementById('start-btn')?.click()},1600)}</script>
 </body>
 </html>
