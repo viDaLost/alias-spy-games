@@ -324,8 +324,21 @@ async function search(p,query) {
   offline.close();
   const late = await page({now:'2026-11-29T08:00Z',zone:'Asia/Tokyo',local:saved});
   ok(late.w.SabbathAccess.status().mandatory,'a missed Wednesday stays pending until the player returns');
+  const confirm = late.w.document.querySelector('[data-sabbath-confirm]');
+  ok(confirm.disabled,'confirmation requires a selected city');
   late.w.document.querySelector('[data-city="Берлин"]').click();
-  ok(!late.w.SabbathAccess.status().mandatory && late.w.SabbathAccess.authorize('alias'),'a valid city completes the reminder');
+  ok(!confirm.disabled && late.w.SabbathAccess.status().mandatory,'choosing a city still requires OK');
+  confirm.click();
+  ok(!late.w.SabbathAccess.status().mandatory && !late.w.document.querySelector('#sabbath-dialog'),'OK saves the city and closes the reminder');
+  const storage = late.w.localStorage;
+  const confirmed = Object.fromEntries(Object.keys(storage).map(key=>[key,JSON.parse(storage.getItem(key))]));
+  const reopened = await page({now:'2026-12-01T22:59Z',local:confirmed});
+  ok(!reopened.w.document.querySelector('#sabbath-dialog'),'guest confirmation survives reopening through Tuesday');
+  reopened.setTime('2026-12-01T23:00Z');
+  reopened.w.SabbathAccess.refresh();
+  ok(reopened.w.document.querySelector('#sabbath-dialog[data-mandatory="true"]'),'prompt returns at Wednesday midnight in Berlin');
+  ok(!reopened.w.document.querySelector('[data-sabbath-confirm]').disabled,'the already saved city can be confirmed directly');
+  reopened.close();
   late.close();
 }
 {
@@ -344,13 +357,31 @@ async function search(p,query) {
     }),
   })});
   p.w.document.querySelector('[data-city="Берлин"]').click();
+  ok(!resolveSave,'selecting a preset does not save the account city');
+  p.w.document.querySelector('[data-sabbath-confirm]').click();
   await flush();
   ok(p.w.SabbathAccess.status().mandatory,'the notification stays until the server accepts the city');
   resolveSave();await flush();
   ok(!p.w.SabbathAccess.status().mandatory,'server confirmation closes the mandatory gate');
+  ok(!p.w.document.querySelector('#sabbath-dialog'),'successful account confirmation closes the dialog');
   ok(p.w.SabbathAccess.status().city.timeZone==='Europe/Berlin','confirmed city corrects the automatic time zone');
+  p.w.SabbathAccess.openCityPicker();
   ok(!p.w.document.querySelector('[data-city="Москва"]'),'confirmation on Wednesday locks editing immediately');
   p.close();
+
+  const confirmed = profile;
+  profile = null;
+  const reopened = await page({now:'2026-11-25T12:00Z',city:berlin,local:{'sabbath-pending-week-v1':Clock.FIRST_WEEK},account:()=>({
+    sabbathProfile:()=>profile,sabbathSignedIn:()=>true,
+  })});
+  ok(!reopened.w.document.querySelector('#sabbath-dialog'),'a fast clock never opens the prompt while the signed-in profile is loading');
+  profile = confirmed;
+  reopened.w.dispatchEvent(new reopened.w.Event('app-access:sabbath'));
+  ok(!reopened.w.document.querySelector('#sabbath-dialog'),'reopening a confirmed account keeps the prompt closed after synchronization');
+  reopened.setTime('2026-12-01T23:00Z');
+  reopened.w.SabbathAccess.refresh();await flush();
+  ok(reopened.w.document.querySelector('#sabbath-dialog[data-mandatory="true"]'),'a confirmed account is prompted again the following Wednesday');
+  reopened.close();
 }
 for(const url of ['/js/sabbath-clock.js','/js/sabbath-access.js','/styles/sabbath-access.css']) {
   let body,status;ok(serveSabbathTestAsset({url},{writeHead:value=>{status=value;},end:value=>{body=value;}}),'isolated Nile fixture serves shared policy');ok(status===200&&body.length>0,'fixture gets actual policy source');
