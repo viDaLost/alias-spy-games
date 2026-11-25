@@ -16,8 +16,8 @@ const runtimeFiles = fs.readdirSync(path.join(gameRoot, 'js')).filter((name) => 
 const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
 
 for (const token of [
-  'V7.5.2 · LOADING',
-  'game-v75.js?v=777',
+  'V7.5.3 · LOADING',
+  'game-v75.js?v=778',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
   'js/shaders.js',
@@ -234,7 +234,7 @@ try {
   if (initial.mode !== 'fallback' || !initial.fallbackClass) throw new Error(`Fallback did not initialize: ${JSON.stringify(initial)}`);
   if (!initial.background.includes('gradient')) throw new Error(`The procedural sky gradient is not applied: ${initial.background}`);
   if (!initial.controlsInsideViewport) throw new Error('Mobile controls are clipped');
-  if (!initial.badge.startsWith('V7.5.2 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
+  if (!initial.badge.startsWith('V7.5.3 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
 
   // Первый запуск открывает обучение поверх меню — проверка проходит его
   // насквозь и заодно убеждается, что шаги листаются и экран закрывается.
@@ -296,17 +296,31 @@ try {
   });
   if (!running.playing || !running.startHidden || running.distance < 8 || running.painted < 200) throw new Error(`Fallback gameplay is not visibly running: ${JSON.stringify(running)}`);
   if (running.hearts !== 3) throw new Error(`The run should start with three hearts, got ${running.hearts}`);
-  const targetLane = await page.evaluate(() => window.__mosesV75State.items.find(item => item.type === 'scroll')?.lane);
-  if (targetLane === undefined) throw new Error('The first river scroll did not spawn');
-  const currentLane = await page.evaluate(() => window.__mosesV75State.lane);
-  for (let remaining = Math.abs(currentLane - targetLane); remaining > 0; remaining -= 1) {
-    await page.keyboard.press(currentLane > targetLane ? 'ArrowLeft' : 'ArrowRight');
+  await page.evaluate(() => { window.__mosesV75State.invulnerable = 90; });
+  async function answerQuestion(index, correct) {
+    await page.waitForFunction((index) => window.__mosesV75State.activeStudy?.question === index, index, { timeout: 22000 });
+    const state = await page.evaluate(() => {
+      const { lane, activeStudy } = window.__mosesV75State;
+      return { lane, correctSide: activeStudy.correctSide };
+    });
+    const rightLane = state.correctSide === 'right' ? 2 : 0;
+    const targetLane = correct ? rightLane : 2 - rightLane;
+    for (let remaining = Math.abs(state.lane - targetLane); remaining > 0; remaining -= 1) {
+      await page.keyboard.press(state.lane > targetLane ? 'ArrowLeft' : 'ArrowRight');
+    }
+    await page.waitForFunction((count) => window.__mosesV75State.studyResults.length >= count, index + 1, { timeout: 9000 });
+    const answered = await page.evaluate((index) => {
+      const { studyResults, playing, distance } = window.__mosesV75State;
+      return { status: studyResults[index].result, playing, distance };
+    }, index);
+    if (answered.status !== (correct ? 'correct' : 'incorrect') || !answered.playing) {
+      throw new Error(`Unexpected answer result: ${JSON.stringify(answered)}`);
+    }
+    await page.waitForFunction((distance) => window.__mosesV75State.distance > distance + 6, answered.distance);
   }
-  await page.waitForFunction(() => window.__mosesV75State.scrolls.size === 1, null, { timeout: 9000 });
-  const scrollPosition = await page.evaluate(() => window.__mosesV75State.distance);
-  await page.waitForFunction((distance) => window.__mosesV75State.distance > distance + 6, scrollPosition);
-  if (await page.locator('dialog[open]').count()) throw new Error('Picking up a scroll interrupted the run');
-  if (await page.locator('#scroll-count').textContent() !== '1') throw new Error('The scroll counter did not update');
+  await answerQuestion(0, true);
+  await answerQuestion(1, false);
+  if (await page.locator('dialog[open]').count()) throw new Error('A Bible question interrupted the run');
   await page.evaluate(() => { window.__mosesV75State.rush = 2.5; });
   await page.waitForFunction(() => window.__mosesV75State.speed >= 29);
   await page.keyboard.press('KeyP');
@@ -321,8 +335,15 @@ try {
   await page.waitForFunction((distance) => window.__mosesV75State.distance > distance + 3, paused.distance);
   const resumed = await snapshot();
   if (resumed.speed < paused.speed || resumed.rush <= 0) throw new Error('Momentum or boost did not survive resuming');
+  await page.keyboard.press('KeyP');
+  await page.locator('#study-quit-btn').click();
+  if (await page.locator('#study-score').textContent() !== '1 / 2') throw new Error('The Bible review has the wrong score');
+  const review = await page.locator('#river-journal-entries').textContent();
+  if (!review.includes('Исход 2:2') || !review.includes('Из тростника') || !review.includes('Исход 2:3')) {
+    throw new Error('The review is missing the correct facts or their verses');
+  }
   if (errors.length) throw new Error(`Fallback page errors: ${errors.join(' | ')}`);
-  console.log('OK: Moses Nile runs without WebGL, scroll pickup preserves movement, and a pause freezes speed, distance and active boosts.');
+  console.log('OK: Moses Nile runs without WebGL, Bible answers preserve movement and the review cites Exodus, and a pause freezes speed, distance and active boosts.');
 } finally {
   await context.close();
   await browser.close();

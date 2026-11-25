@@ -24,7 +24,7 @@
    * 1. Константы                                                        *
    * ------------------------------------------------------------------ */
 
-  const VERSION = 'V7.5.2';
+  const VERSION = 'V7.5.3';
   const EDITION = 'RUNNER II';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
@@ -37,8 +37,11 @@
   const HINT_KEY = 'moses-nile-hint-seen-v2';
   const TUTORIAL_KEY = 'moses-nile-tutorial-seen-v1';
   const CONTROL_MODE_KEY = 'moses-nile-control-mode-v1';
-  const FIRST_SCROLL_DISTANCE = 120;
-  const SCROLL_INTERVAL = 255;
+  const FIRST_STUDY_DISTANCE = 200;
+  const STUDY_INTERVAL = 340;
+  const STUDY_SECONDS = 4.8;
+  const STUDY_MAX_LEAD = 155;
+  const STUDY_BUOY_COLORS = [0xe1ad64, 0x73bdaf];
   const INPUT_BUFFER = .17;
   const SWIPE_THRESHOLD = 24;
 
@@ -173,7 +176,6 @@
 
   const PICKUPS = {
     lotus:  { radius: .92 },
-    scroll: { radius: 1.06 },
     shield: { radius: 1.0 },
     magnet: { radius: 1.0 },
     rush:   { radius: 1.0 },
@@ -240,9 +242,16 @@
     grade: pick('scene-grade'),
     sceneBg: pick('scene-bg'),
     biomeName: pick('biome-name'),
-    scrollCount: pick('scroll-count'),
-    scrollJournal: pick('river-journal'),
-    scrollEntries: pick('river-journal-entries'),
+    study: pick('river-study'),
+    studyQuestion: pick('study-question'),
+    studyProgress: pick('study-progress'),
+    studyLeft: pick('study-left'),
+    studyRight: pick('study-right'),
+    studyCountdown: pick('study-countdown'),
+    studyJournal: pick('river-journal'),
+    studyScore: pick('study-score'),
+    studyEntries: pick('river-journal-entries'),
+    review: pick('study-quit-btn'),
     hazardMarkers: Array.from(document.querySelectorAll('#hazard-markers i')),
   };
 
@@ -313,9 +322,10 @@
     qualityHold: 0,
     runTime: 0,
     milestone: 0,
-    nextScrollDistance: FIRST_SCROLL_DISTANCE,
-    scrollIndex: 0,
-    scrolls: new Set(),
+    studyDistance: FIRST_STUDY_DISTANCE,
+    studyIndex: 0,
+    activeStudy: null,
+    studyResults: [],
     best: { score: 0, distance: 0, lotuses: 0 },
     quality: 1,
     fpsAverage: 60,
@@ -2983,27 +2993,25 @@ ${shader.vertexShader}`.replace(
     return group;
   }
 
-  function createScroll() {
-    const scroll = new THREE.Group();
-    const paper = new THREE.MeshStandardMaterial({ color: 0xe8c787, roughness: .86, side: THREE.DoubleSide });
-    const edge = new THREE.MeshStandardMaterial({ color: 0xbe8b46, roughness: .88 });
-    const seal = new THREE.MeshStandardMaterial({ color: 0x9e3325, roughness: .59 });
-    const page = new THREE.Mesh(new THREE.BoxGeometry(1.07, .065, .72), paper);
-    scroll.add(page);
-    for (const side of [-1, 1]) {
-      const curl = new THREE.Mesh(new THREE.CylinderGeometry(.15, .15, 1.22, 12), edge);
-      curl.rotation.z = Math.PI / 2;
-      curl.position.set(0, .024, side * .34);
-      scroll.add(curl);
+  function createStudyBuoys() {
+    const group = new THREE.Group();
+    const baseGeometry = new THREE.CylinderGeometry(.48, .35, .22, 12);
+    const panelGeometry = new THREE.BoxGeometry(.66, .78, .12);
+    for (const [index, lane] of [0, 2].entries()) {
+      const color = STUDY_BUOY_COLORS[index];
+      const base = new THREE.Mesh(baseGeometry, new THREE.MeshStandardMaterial({ color: 0x72533a, roughness: .88 }));
+      const panel = new THREE.Mesh(panelGeometry, new THREE.MeshStandardMaterial({
+        color, emissive: color, emissiveIntensity: .18, roughness: .66,
+      }));
+      base.position.x = LANES[lane];
+      panel.position.set(LANES[lane], .47, 0);
+      group.add(base, panel);
     }
-    const stamp = new THREE.Mesh(new THREE.CylinderGeometry(.14, .16, .056, 12), seal);
-    stamp.position.set(.17, .047, .04);
-    scroll.add(stamp);
-    return scroll;
+    return group;
   }
 
   const FACTORY = {
-    scroll: createScroll,
+    study: createStudyBuoys,
     lotus: createLotus,
     rock: createRock,
     log: createLog,
@@ -3126,8 +3134,8 @@ ${shader.vertexShader}`.replace(
     уклоняться было уже нечем — смена дорожки одна занимает четверть секунды.
     Метровый минимум остаётся, чтобы на медленном старте не было пустоты.
   */
-  function cruiseSpeed() {
-    return Math.min(TUNE.maxSpeed, TUNE.baseSpeed + state.distance * TUNE.speedRamp);
+  function cruiseSpeed(distance = state.distance) {
+    return Math.min(TUNE.maxSpeed, TUNE.baseSpeed + distance * TUNE.speedRamp);
   }
 
   function rowGap() {
@@ -3156,6 +3164,7 @@ ${shader.vertexShader}`.replace(
       if (rowIndex > 1) addItem(rowIndex === 2 ? 'rock' : 'log', 1, z);
       return;
     }
+    if (generateStudyRow(z)) return;
     const biome = BIOMES[state.biome];
     const weights = biome.weights;
     const cells = [null, null, null];
@@ -3224,17 +3233,6 @@ ${shader.vertexShader}`.replace(
     const options = free.length ? free : reach.flatMap((reachable, lane) => reachable ? [lane] : []);
     const lane = options[Math.floor(hash(z, 27) * options.length)];
 
-    const distance = state.distance - z;
-    if (free.length && distance >= state.nextScrollDistance && state.scrolls.size < RIVER_SCROLLS.length) {
-      const index = state.scrollIndex % RIVER_SCROLLS.length;
-      state.scrollIndex = index + 1;
-      state.nextScrollDistance = distance + SCROLL_INTERVAL;
-      if (!state.scrolls.has(index)) {
-        addItem('scroll', lane, z - 3.8).scroll = index;
-        return;
-      }
-    }
-
     const roll = hash(z, 33);
     if (roll > .975) addItem('mercy', lane, z - 2.4);
     else if (roll > .952) addItem('rush', lane, z - 2.4);
@@ -3249,6 +3247,24 @@ ${shader.vertexShader}`.replace(
         if (arc) item.hover = Math.sin((i + 1) / (chainLength + 1) * Math.PI) * .58;
       }
     }
+  }
+
+  function generateStudyRow(z) {
+    if (state.studyIndex >= STUDY_QUESTIONS.length) return false;
+    const distance = state.distance - z;
+    // Резервируем место для чтения вопроса в русле до двух указателей.
+    if (distance < state.studyDistance - STUDY_MAX_LEAD - 15) return false;
+    state.reachable.fill(true);
+    if (distance < state.studyDistance) {
+      for (const lane of [0, 1, 2]) addItem('lotus', lane, z - 2);
+      return true;
+    }
+    const item = addItem('study', 1, z);
+    item.question = state.studyIndex++;
+    item.correctSide = Math.random() < .5 ? 'left' : 'right';
+    item.lead = Math.min(STUDY_MAX_LEAD, cruiseSpeed(distance) * STUDY_SECONDS);
+    state.studyDistance = distance + STUDY_INTERVAL;
+    return true;
   }
 
   function addItem(type, laneIndex, z) {
@@ -3357,7 +3373,7 @@ ${shader.vertexShader}`.replace(
     });
     scene.add(mesh);
     item.mesh = mesh;
-    if (!item.shadow && item.type !== 'gate') {
+    if (!item.shadow && item.type !== 'gate' && item.type !== 'study') {
       item.shadow = makeContactShadow((OBSTACLES[item.type]?.radius || .9) * 1.15);
       scene.add(item.shadow);
     }
@@ -3400,7 +3416,6 @@ ${shader.vertexShader}`.replace(
     if (dom.total) dom.total.textContent = String(Math.floor(state.score));
     if (dom.comboValue) dom.comboValue.textContent = `×${state.multiplier}`;
     if (dom.combo) dom.combo.classList.toggle('is-live', state.multiplier > 1);
-    if (dom.scrollCount) dom.scrollCount.textContent = String(state.scrolls.size);
     if (dom.hearts) {
       const nodes = dom.hearts.children;
       for (let i = 0; i < nodes.length; i += 1) nodes[i].classList.toggle('is-lost', i >= state.hearts);
@@ -3437,9 +3452,10 @@ ${shader.vertexShader}`.replace(
     state.multiplier = 1;
     state.nearMisses = 0;
     state.milestone = 0;
-    state.nextScrollDistance = FIRST_SCROLL_DISTANCE;
-    state.scrollIndex = 0;
-    state.scrolls.clear();
+    state.studyDistance = FIRST_STUDY_DISTANCE;
+    state.studyIndex = 0;
+    state.studyResults.length = 0;
+    hideStudy();
     state.runTime = 0;
     state.over = false;
     state.paused = false;
@@ -3605,7 +3621,7 @@ ${shader.vertexShader}`.replace(
     try { localStorage.setItem(HINT_KEY, '1'); } catch {}
   }
 
-  function endGame(message) {
+  function endGame(message, voluntary = false) {
     if (state.over) return;
     state.playing = false;
     state.over = true;
@@ -3617,7 +3633,8 @@ ${shader.vertexShader}`.replace(
     if (dom.finalDistance) dom.finalDistance.textContent = `${distance} м`;
     if (dom.finalScore) dom.finalScore.textContent = String(state.lotuses);
     if (dom.finalTotal) dom.finalTotal.textContent = String(score);
-    renderScrollJournal();
+    hideStudy();
+    renderStudyJournal();
     const isRecord = score > (state.best.score || 0);
     if (isRecord) {
       state.best = { score, distance, lotuses: state.lotuses };
@@ -3631,8 +3648,9 @@ ${shader.vertexShader}`.replace(
       dom.bestLine.classList.toggle('is-record', isRecord);
     }
     dom.gameOverScreen?.classList.remove('hidden');
-    window.gameAudio?.playGameOver?.();
     window.gameAudio?.setMenuMode?.(true);
+    if (voluntary) return;
+    window.gameAudio?.playGameOver?.();
     fx?.shake?.(.5, 2.4);
     flash('rgba(120, 34, 22, .45)', 520);
     haptic('heavy');
@@ -3643,6 +3661,7 @@ ${shader.vertexShader}`.replace(
     const next = force === undefined ? !state.paused : force;
     state.paused = next;
     if (next) clearBufferedInput();
+    dom.review.hidden = state.studyResults.length === 0;
     dom.pauseScreen?.classList.toggle('hidden', !next);
     dom.body.classList.toggle('is-paused', next);
     if (next) window.gameAudio?.suspend?.();
@@ -3657,6 +3676,7 @@ ${shader.vertexShader}`.replace(
     dom.gameOverScreen?.classList.add('hidden');
     dom.body.classList.remove('is-playing', 'is-paused', 'is-over');
     dom.startScreen?.classList.remove('hidden');
+    hideStudy();
     clearItems();
     window.gameAudio?.resume?.();
     window.gameAudio?.setMenuMode?.(true);
@@ -3794,17 +3814,6 @@ ${shader.vertexShader}`.replace(
   }
 
   function collectPickup(item) {
-    if (item.type === 'scroll') {
-      const scroll = RIVER_SCROLLS[item.scroll];
-      if (!scroll || state.scrolls.has(item.scroll)) return;
-      state.scrolls.add(item.scroll);
-      addScore(75);
-      toast(scroll.title, scroll.reference, 'story');
-      fx?.burst?.(item.x, .65, item.z, [1, .82, .43], 18, .9);
-      window.gameAudio?.playPowerup?.();
-      haptic('light');
-      return;
-    }
     if (item.type === 'lotus') {
       state.lotuses += 1;
       bumpCombo();
@@ -3841,46 +3850,93 @@ ${shader.vertexShader}`.replace(
     return true;
   }
 
-  const RIVER_SCROLLS = [
+  const STUDY_QUESTIONS = [
     {
-      title: 'Miriam en la orilla',
-      reference: 'Éxodo 2:4–8',
-      note: 'La hermana de Moisés observaba la cesta desde lejos. Cuando la hija del faraón encontró al niño, Miriam se ofreció a buscarle una nodriza.',
+      question: '¿Cuánto tiempo escondió la madre al bebé?',
+      answer: 'Tres meses',
+      other: 'Un mes',
+      reference: 'Éxodo 2:2',
+      note: 'Su madre escondió al niño durante tres meses. Cuando ya no pudo ocultarlo, preparó una cesta.',
     },
     {
-      title: 'El grano de José',
-      reference: 'Génesis 41:47–49, 56–57',
-      note: 'José almacenó grano en los años de abundancia. Cuando llegó el hambre, abrió los graneros y la gente acudió a comprar alimento.',
+      question: '¿De qué estaba hecha la cesta?',
+      answer: 'De juncos',
+      other: 'De madera',
+      reference: 'Éxodo 2:3',
+      note: 'Su madre impermeabilizó una cesta de juncos y la dejó con el bebé entre los juncos de la orilla.',
     },
     {
-      title: 'La misericordia del samaritano',
-      reference: 'Lucas 10:33–35',
-      note: 'El samaritano vendó al herido, lo llevó a una posada y se encargó de que siguieran cuidándolo.',
+      question: '¿Quién vigiló la cesta desde lejos?',
+      answer: 'La hermana de Moisés',
+      other: 'Su padre',
+      reference: 'Éxodo 2:4',
+      note: 'Su hermana observó desde lejos para ver qué le pasaría a su hermano.',
     },
     {
-      title: 'Dos monedas pequeñas',
-      reference: 'Marcos 12:41–44',
-      note: 'Jesús se fijó en la viuda. Las dos monedas eran todo lo que tenía para vivir. La cantidad por sí sola no revela cuánto le costó a una persona ser generosa.',
+      question: '¿Quién vio la cesta entre los juncos?',
+      answer: 'La hija del faraón',
+      other: 'Una sirvienta',
+      reference: 'Éxodo 2:5–6',
+      note: 'La hija del faraón vio la cesta y envió a una sirvienta a recogerla. Al ver llorar al bebé, sintió compasión por él.',
     },
     {
-      title: 'La lealtad de Rut',
-      reference: 'Rut 1:16–17',
-      note: 'Rut acompañó a Noemí a una tierra desconocida. Compartió su camino y llamó suyo al Dios de Noemí.',
+      question: '¿Quién amamantó al bebé?',
+      answer: 'Su madre',
+      other: 'La hija del faraón',
+      reference: 'Éxodo 2:7–9',
+      note: 'Su hermana se ofreció a buscar una nodriza y trajo a la propia madre de Moisés. La hija del faraón le pidió que amamantara al niño.',
+    },
+    {
+      question: '¿Por qué le pusieron el nombre de Moisés?',
+      answer: 'Lo sacaron del agua',
+      other: 'Así se llamaba su padre',
+      reference: 'Éxodo 2:10',
+      note: 'Cuando el niño creció, la hija del faraón lo adoptó como hijo. Explicó su nombre recordando que lo había sacado del agua.',
     },
   ];
 
-  function renderScrollJournal() {
-    dom.scrollJournal.hidden = state.scrolls.size === 0;
-    dom.scrollJournal.open = false;
-    dom.scrollEntries.replaceChildren(...Array.from(state.scrolls, (index) => {
-      const scroll = RIVER_SCROLLS[index];
+  function hideStudy() {
+    state.activeStudy = null;
+    if (dom.study) dom.study.hidden = true;
+  }
+
+  function updateStudy(item) {
+    if (item.z < -item.lead) return false;
+    const question = STUDY_QUESTIONS[item.question];
+    if (state.activeStudy !== item) {
+      state.activeStudy = item;
+      dom.studyQuestion.textContent = question.question;
+      dom.studyProgress.textContent = `${item.question + 1} / ${STUDY_QUESTIONS.length}`;
+      dom.studyLeft.textContent = item.correctSide === 'left' ? question.answer : question.other;
+      dom.studyRight.textContent = item.correctSide === 'right' ? question.answer : question.other;
+      dom.study.hidden = false;
+    }
+    const side = state.x < -LANES[2] * .5 ? 'left' : state.x > LANES[2] * .5 ? 'right' : 'center';
+    if (dom.study.dataset.side !== side) dom.study.dataset.side = side;
+    dom.studyCountdown.style.transform = `scaleX(${clamp(-item.z / item.lead, 0, 1)})`;
+    if (item.z < 0) return false;
+    const result = side === 'center' ? 'skipped' : side === item.correctSide ? 'correct' : 'incorrect';
+    state.studyResults.push({ question, result });
+    hideStudy();
+    const title = result === 'correct' ? 'Respuesta correcta' : result === 'skipped' ? 'Pregunta omitida' : 'Revisa tu respuesta';
+    toast(title, `${question.answer} · ${question.reference}`, 'story');
+    return true;
+  }
+
+  function renderStudyJournal() {
+    dom.studyJournal.hidden = state.studyResults.length === 0;
+    dom.studyJournal.open = false;
+    const correct = state.studyResults.filter((entry) => entry.result === 'correct').length;
+    dom.studyScore.textContent = `${correct} / ${state.studyResults.length}`;
+    dom.studyEntries.replaceChildren(...state.studyResults.map(({ question, result }) => {
       const entry = document.createElement('li');
       const title = document.createElement('strong');
       const reference = document.createElement('small');
       const note = document.createElement('p');
-      title.textContent = scroll.title;
-      reference.textContent = scroll.reference;
-      note.textContent = scroll.note;
+      const status = result === 'correct' ? 'Correcto' : result === 'skipped' ? 'Пропуск' : 'Error';
+      title.textContent = question.question;
+      reference.textContent = `${status} · ${question.answer} · ${question.reference}`;
+      note.textContent = question.note;
       entry.append(title, reference, note);
       return entry;
     }));
@@ -3988,6 +4044,10 @@ ${shader.vertexShader}`.replace(
         item.mesh = null;
       }
       if (!item.mesh && item.z > MESH_RANGE) attachMesh(item);
+      if (item.type === 'study') {
+        if (updateStudy(item)) removeItem(i);
+        continue;
+      }
 
       if (item.type === 'lotus') {
         if (state.magnet > 0 && item.z > -16) {
@@ -4130,7 +4190,7 @@ ${shader.vertexShader}`.replace(
   const projectedHazard = THREE ? new THREE.Vector3() : null;
   const nextHazards = [null, null, null];
   const hazardIcons = {
-    low: '#ico-wave-up', high: '#ico-wave-down', ground: '#ico-veer', scroll: '#ico-scroll',
+    low: '#ico-wave-up', high: '#ico-wave-down', ground: '#ico-veer',
   };
 
   function updateHazardMarkers() {
@@ -4139,7 +4199,7 @@ ${shader.vertexShader}`.replace(
     if (state.playing && !state.paused) {
       const ahead = state.speed * 2.25;
       for (const item of state.items) {
-        if ((!item.clearance && item.type !== 'scroll') || item.scored || item.z > -1.8 || item.z < -ahead) continue;
+        if (!item.clearance || item.scored || item.z > -1.8 || item.z < -ahead) continue;
         const current = nextHazards[item.lane];
         if (!current || item.z > current.z) nextHazards[item.lane] = item;
       }
@@ -4156,7 +4216,7 @@ ${shader.vertexShader}`.replace(
         x = projected.x;
         y = projected.y - projected.size * .65;
       } else {
-        const height = item.type === 'scroll' ? 1.36 : item.type === 'gate' || item.type === 'boat' ? 3.2 : 2;
+        const height = item.type === 'gate' || item.type === 'boat' ? 3.2 : 2;
         projectedHazard.set(item.x, height, item.z).project(camera);
         x = (projectedHazard.x + 1) * w / 2;
         y = (1 - projectedHazard.y) * h / 2;
@@ -4165,7 +4225,7 @@ ${shader.vertexShader}`.replace(
       if (marker.hidden) continue;
       marker.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
       marker.classList.toggle('is-urgent', item.z > -state.speed * .65);
-      const action = item.clearance || item.type;
+      const action = item.clearance;
       if (marker.dataset.action !== action) {
         marker.dataset.action = action;
         marker.querySelector('use').setAttribute('href', hazardIcons[action]);
@@ -4422,9 +4482,8 @@ ${shader.vertexShader}`.replace(
       */
       if (item.z < -108) continue;
       switch (item.type) {
-        case 'scroll':
-          mesh.position.y = .2 + Math.sin(t * 2.0 + item.phase) * .07;
-          mesh.rotation.set(.34, Math.sin(t * 1.2 + item.phase) * .22, .09);
+        case 'study':
+          mesh.position.y = .065 + Math.sin(t * 2 + item.phase) * .05;
           break;
         case 'lotus':
           mesh.rotation.y += dt * 1.15;
@@ -5063,16 +5122,15 @@ ${shader.vertexShader}`.replace(
       }
       ctx.fillStyle = '#f0cd70';
       ctx.beginPath(); ctx.arc(0, -p.size * .08, p.size * .05, 0, Math.PI * 2); ctx.fill();
-    } else if (item.type === 'scroll') {
-      ctx.rotate(-.12);
-      const w = p.size * .76, h = p.size * .45;
-      ctx.fillStyle = '#e9c88f';
-      ctx.fillRect(-w / 2, -h, w, h);
-      ctx.strokeStyle = '#7f5029';
-      ctx.lineWidth = Math.max(1, p.size * .055);
-      ctx.strokeRect(-w / 2, -h, w, h);
-      ctx.fillStyle = '#a54029';
-      ctx.beginPath(); ctx.arc(w * .13, -h * .48, p.size * .083, 0, Math.PI * 2); ctx.fill();
+    } else if (item.type === 'study') {
+      const tones = ['#e1ad64', '#73bdaf'];
+      for (const [index, lane] of [0, 2].entries()) {
+        const branch = projectFallback({ ...item, x: LANES[lane] });
+        ctx.fillStyle = '#72533a';
+        ctx.fillRect(branch.x - p.x - p.size * .24, 0, p.size * .48, p.size * .18);
+        ctx.fillStyle = tones[index];
+        ctx.fillRect(branch.x - p.x - p.size * .17, -p.size * .52, p.size * .34, p.size * .55);
+      }
     } else if (item.type === 'rock') {
       ctx.fillStyle = '#6b6053';
       ctx.beginPath(); ctx.ellipse(0, 0, p.size * .40, p.size * .27, -.12, 0, Math.PI * 2); ctx.fill();
@@ -5515,6 +5573,11 @@ ${shader.vertexShader}`.replace(
     dom.restart?.addEventListener('click', startGame);
     dom.resume?.addEventListener('click', () => togglePause(false));
     dom.quit?.addEventListener('click', quitToMenu);
+    dom.review?.addEventListener('click', () => {
+      togglePause(false);
+      endGame('Recorrido terminado.', true);
+      if (state.studyResults.length) dom.studyJournal.open = true;
+    });
     dom.help?.addEventListener('click', () => openTutorial(0));
     dom.tutNext?.addEventListener('click', () => stepTutorial(1));
     dom.tutBack?.addEventListener('click', () => stepTutorial(-1));
