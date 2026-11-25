@@ -193,7 +193,7 @@
       float horizon = smoothstep(0.25, 0.98, vUv.y);
 
       // Русло темнее по центру — это читается как глубина.
-      float channel = smoothstep(0.62, 0.0, vShore);
+      float channel = 1.0 - smoothstep(0.0, 0.62, vShore);
       vec3 base = mix(uDeep, uShallow, depthMix * 0.62 + vCrest * 0.10);
       base = mix(base, uDeep * 0.72, channel * 0.34);
 
@@ -204,7 +204,7 @@
       vec3 reflected = reflect(-viewDir, reflectionNormal);
       float skyward = clamp(reflected.y, 0.0, 1.0);
       vec3 skyGradient = mix(uSky, uSky * 0.66 + uSunColor * 0.26, pow(skyward, 0.7));
-      base = mix(base, skyGradient, clamp(fresnel * 0.48 + horizon * 0.35, 0.0, 0.78));
+      base = mix(base, skyGradient, clamp(fresnel * 0.43 + horizon * 0.30, 0.0, 0.72));
       vec3 reflectedScene = pyramidReflection(reflected, skyGradient);
       base = mix(base, reflectedScene, uReflectionStrength * (0.16 + fresnel * 0.72));
 
@@ -225,7 +225,7 @@
         фрагментный шейдер дешевеет на треть.
       */
       float silt = nnoise(vUv * vec2(2.2, 9.0) + vec2(0.0, uTime * -0.035));
-      color = mix(color, color * (0.70 + silt * 0.66), 0.62);
+      color = mix(color, color * (0.84 + silt * 0.34), 0.57);
       if (uDetail > 0.5) {
         float siltFine = fbm(vUv * vec2(7.5, 34.0) + vec2(uTime * 0.02, uTime * -0.12));
         color *= 0.93 + siltFine * 0.16;
@@ -249,7 +249,7 @@
       float bankFoam = smoothstep(0.90, 1.0, vShore);
       float crestFoam = smoothstep(0.72, 0.98, vCrest) * uFoam;
       float wakeDist = length(vWorld.xz - uPlayer.xz);
-      float wake = smoothstep(3.2, 0.55, wakeDist) * uWakeStrength;
+      float wake = (1.0 - smoothstep(0.55, 3.2, wakeDist)) * uWakeStrength;
       // Каждое препятствие расталкивает воду вокруг себя.
       for (int i = 0; i < 6; i++) {
         float power = uDisturb[i].z;
@@ -266,7 +266,7 @@
       }
       float foamNoise = nnoise(vUv * vec2(22.0, 190.0) + vec2(uTime * 0.2, uTime * -1.5));
       float foam = clamp((bankFoam * 0.62 + crestFoam * 0.55 + wake) * (0.34 + foamNoise * 0.72), 0.0, 1.0);
-      color = mix(color, uFoamColor, foam * 0.72);
+      color = mix(color, uFoamColor, foam * 0.56);
 
       // Глубина берётся с той же поверхности, что строит дно, а не из UV.
       // Ил поглощает свет по длине пути: мелководье просвечивает, середина
@@ -803,7 +803,7 @@
             // Диск солнца, тёплая дымка и мягкие перистые облака.
             float sun = max(dot(dir, normalize(uSunDir)), 0.0);
             float corona = pow(sun, 48.0) * 0.20 + pow(sun, 390.0) * 0.23;
-            float disk = smoothstep(0.99964, 0.99982, sun);
+            float disk = smoothstep(0.99987, 0.99994, sun);
             sky += uSunColor * (corona * (1.0 - uStorm * 0.45) + disk * 0.76);
 
             // Пыль: два слоя шума, ползущие поперёк с разной скоростью.
@@ -872,7 +872,7 @@
           void main(){
             vec2 p = vec2(vUv.x * 4.0 * uScale + uTime * uSpeed, vUv.y * 2.2 * uScale);
             float veil = fbm(p) * 0.7 + fbm(p * 2.7 + 11.0) * 0.3;
-            float fade = smoothstep(0.0, 0.30, vUv.y) * smoothstep(1.0, 0.55, vUv.y);
+            float fade = smoothstep(0.0, 0.30, vUv.y) * (1.0 - smoothstep(0.55, 1.0, vUv.y));
             float alpha = pow(clamp(veil, 0.0, 1.0), 1.7) * fade * uStrength;
             if (alpha < 0.004) discard;
             gl_FragColor = vec4(uColor, alpha);

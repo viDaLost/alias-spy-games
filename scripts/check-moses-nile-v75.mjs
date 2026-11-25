@@ -16,8 +16,8 @@ const runtimeFiles = fs.readdirSync(path.join(gameRoot, 'js')).filter((name) => 
 const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
 
 for (const token of [
-  'V7.5.1 · LOADING',
-  'game-v75.js?v=776',
+  'V7.5.2 · LOADING',
+  'game-v75.js?v=777',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
   'js/shaders.js',
@@ -234,7 +234,7 @@ try {
   if (initial.mode !== 'fallback' || !initial.fallbackClass) throw new Error(`Fallback did not initialize: ${JSON.stringify(initial)}`);
   if (!initial.background.includes('gradient')) throw new Error(`The procedural sky gradient is not applied: ${initial.background}`);
   if (!initial.controlsInsideViewport) throw new Error('Mobile controls are clipped');
-  if (!initial.badge.startsWith('V7.5.1 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
+  if (!initial.badge.startsWith('V7.5.2 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
 
   // Первый запуск открывает обучение поверх меню — проверка проходит его
   // насквозь и заодно убеждается, что шаги листаются и экран закрывается.
@@ -296,8 +296,33 @@ try {
   });
   if (!running.playing || !running.startHidden || running.distance < 8 || running.painted < 200) throw new Error(`Fallback gameplay is not visibly running: ${JSON.stringify(running)}`);
   if (running.hearts !== 3) throw new Error(`The run should start with three hearts, got ${running.hearts}`);
+  const targetLane = await page.evaluate(() => window.__mosesV75State.items.find(item => item.type === 'scroll')?.lane);
+  if (targetLane === undefined) throw new Error('The first river scroll did not spawn');
+  const currentLane = await page.evaluate(() => window.__mosesV75State.lane);
+  for (let remaining = Math.abs(currentLane - targetLane); remaining > 0; remaining -= 1) {
+    await page.keyboard.press(currentLane > targetLane ? 'ArrowLeft' : 'ArrowRight');
+  }
+  await page.waitForFunction(() => window.__mosesV75State.scrolls.size === 1, null, { timeout: 9000 });
+  const scrollPosition = await page.evaluate(() => window.__mosesV75State.distance);
+  await page.waitForFunction((distance) => window.__mosesV75State.distance > distance + 6, scrollPosition);
+  if (await page.locator('dialog[open]').count()) throw new Error('Picking up a scroll interrupted the run');
+  if (await page.locator('#scroll-count').textContent() !== '1') throw new Error('The scroll counter did not update');
+  await page.evaluate(() => { window.__mosesV75State.rush = 2.5; });
+  await page.waitForFunction(() => window.__mosesV75State.speed >= 29);
+  await page.keyboard.press('KeyP');
+  const snapshot = () => page.evaluate(() => {
+    const { speed, rush, distance } = window.__mosesV75State;
+    return { speed, rush, distance };
+  });
+  const paused = await snapshot();
+  await page.waitForTimeout(400);
+  if (JSON.stringify(await snapshot()) !== JSON.stringify(paused)) throw new Error('Speed or boost changed during a pause');
+  await page.keyboard.press('KeyP');
+  await page.waitForFunction((distance) => window.__mosesV75State.distance > distance + 3, paused.distance);
+  const resumed = await snapshot();
+  if (resumed.speed < paused.speed || resumed.rush <= 0) throw new Error('Momentum or boost did not survive resuming');
   if (errors.length) throw new Error(`Fallback page errors: ${errors.join(' | ')}`);
-  console.log('OK: Moses Nile V7.5.1 uses local 3D models, a procedural sandstorm sky, GLSL water/wind shaders and lane+jump+dive gameplay, plus an unclipped playable no-WebGL fallback.');
+  console.log('OK: Moses Nile runs without WebGL, scroll pickup preserves movement, and a pause freezes speed, distance and active boosts.');
 } finally {
   await context.close();
   await browser.close();

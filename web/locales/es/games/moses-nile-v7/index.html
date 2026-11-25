@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
   <meta name="theme-color" content="#b79869">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Moisés: Viaje por el Nilo — V7.5.1</title>
+  <title>Moisés: Viaje por el Nilo — V7.5.2</title>
   <link rel="stylesheet" href="../../styles/typography.css">
   <style>
     :root {
@@ -229,20 +229,12 @@
     #start-screen .btn { border-radius: 14px; }
     body:not(.is-playing) #hud { visibility: hidden; }
 
-    #landing-meter {
-      position: relative; align-self: center; margin-top: 1px; min-height: 26px;
-      overflow: hidden; padding: 4px 10px 5px; gap: 5px; align-items: center;
-      border-radius: 7px; background: #0d2d2cec; color: #fff1ca;
-      border: 1px solid #f1d48a5c; font-size: 11px; line-height: 1.15;
-      font-weight: 750; font-variant-numeric: tabular-nums;
+    #scroll-meter {
+      align-self: center; min-height: 24px; display: inline-flex; gap: 6px; align-items: center;
+      padding: 3px 9px; border-radius: 999px; background: #172e25e8; color: #ffde96;
+      border: 1px solid #d9b97960; font-size: 11px; font-weight: 750;
     }
-    #landing-meter:not([hidden]) { display: inline-flex; }
-    #landing-meter.is-near { background: #59431dec; border-color: #f1d48a94; }
-    #landing-meter .ico { width: 13px; height: 13px; }
-    #landing-fill {
-      position: absolute; height: 2px; inset: auto 0 0; background: #f4ce80;
-      transform: scaleX(0); transform-origin: left;
-    }
+    #scroll-meter .ico { width: 14px; height: 14px; }
     #hazard-markers { position: absolute; z-index: 8; inset: 0; pointer-events: none; overflow: hidden; }
     #hazard-markers i {
       position: absolute; top: 0; left: 0; width: 30px; height: 29px;
@@ -253,6 +245,7 @@
     #hazard-markers i:not([hidden]) { display: flex; }
     #hazard-markers i[data-action="high"] { background: #153640ef; border-color: #bbe6ecad; color: #c5f0f6; }
     #hazard-markers i[data-action="ground"] { background: #432c23ef; border-color: #ffd0b6bc; color: #ffd8bb; }
+    #hazard-markers i[data-action="scroll"] { background: #503b19ef; border-color: #f8d18ae0; color: #ffdf8e; }
     #hazard-markers i.is-urgent { border-width: 2px; }
     #hazard-markers svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.1; }
 
@@ -265,47 +258,20 @@
       #start-screen h1 { font-size: 31px; }
     }
 
-    #river-reflection {
-      inset: var(--safe-top) 0 var(--safe-bottom);
-      width: min(calc(100% - 28px), 452px);
-      max-height: calc(100% - var(--safe-top) - var(--safe-bottom));
-      overflow: auto;
-      touch-action: pan-y;
-      overscroll-behavior: contain;
-      padding: clamp(16px, 4vw, 28px);
-      color: #f9f3e2;
-      background: linear-gradient(155deg, #1c443c, #122d2b 75%);
-      border: 1px solid #68847a;
-      border-radius: 22px;
-      box-shadow: 0 18px 55px #08191199, inset 0 1px #ffffff19;
+    .toast-story { background: #263124f2; border-color: #e1bb73a0; }
+    .toast-story span { color: #f4e4c1; font-size: 11px; }
+    .eyebrow { display: block; margin-bottom: 7px; color: #96703c; font-size: 11px; font-weight: 800; }
+    #gameover-screen .panel {
+      max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 88px);
+      overflow-y: auto; touch-action: pan-y;
     }
-    #river-reflection::backdrop { background: #071e1d80; }
-    .reflection-label { color: #f0c883; font-size: 12px; font-weight: 750; }
-    #reflection-title { margin: 5px 0 6px; font: 650 clamp(23px, 5vw, 34px)/1.12 var(--font-ui, system-ui); }
-    #reflection-reference { margin: 0 0 13px; color: #a7c7b9; font-size: 13px; }
-    #reflection-question, #reflection-note { color: #f9f3e2; font-size: 15px; line-height: 1.44; }
-    #reflection-note { border-left: 2px solid #eac384; margin: 0 0 16px; padding: 4px 0 4px 12px; }
-    #reflection-choices { margin-bottom: 12px; }
-    #reflection-choices button, #reflection-continue {
-      display: block;
-      width: 100%;
-      margin-top: 7px;
-      min-height: 43px;
-      padding: 8px 12px;
-      border-radius: 11px;
-      font-size: 14px;
-      line-height: 1.3;
-      font-weight: 650;
-      cursor: pointer;
-    }
-    #reflection-choices button { color: #fff9e9; background: #285249; border: 1px solid #638679; text-align: left; }
-    #reflection-choices button:hover { background: #315f54; }
-    #reflection-continue { color: #182b25; background: #edce92; border: 1px solid #f4dfa9; }
-    #reflection-choices button:focus-visible, #reflection-continue:focus-visible { outline: 2px solid #fff1bf; outline-offset: 2px; }
-    #reflection-title:focus, #reflection-note:focus { outline: none; }
+    #river-journal { margin: 0 0 14px; color: #3e3929; text-align: left; }
+    #river-journal summary { min-height: 36px; padding: 9px; font-size: 13px; font-weight: 750; cursor: pointer; }
+    #river-journal-entries { margin: 0; padding: 0 9px; list-style: none; }
+    #river-journal-entries li + li { border-top: 1px solid #e0d1b4; padding-top: 9px; }
+    #river-journal-entries small { display: block; margin: 2px 0 5px; color: #6d562f; }
+    #river-journal-entries p { font-size: 12px; line-height: 1.44; }
 
-    #gameover-screen, #pause-screen { align-items: center; padding-bottom: 20px; background: rgba(21, 18, 13, .5); }
-    #gameover-screen h1 { color: #733d2c; }
     .result { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 14px 0 10px; }
     .result div { padding: 10px 6px; border-radius: 14px; background: rgba(117, 88, 49, .10); color: #574634; font-size: 11px; }
     .result b { display: block; margin-top: 3px; color: #2e2419; font-size: 17px; font-variant-numeric: tabular-nums; }
@@ -477,11 +443,6 @@
   <script src="vendor/three-r128.min.js"></script>
   <script src="vendor/GLTFLoader-r128.js"></script>
   <script src="vendor/OBJLoader-r128.js"></script>
-  <script>
-    if(!window.THREE)document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
-    if(window.THREE&&!window.THREE.GLTFLoader)document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>');
-    if(window.THREE&&!window.THREE.OBJLoader)document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"><\/script>');
-  </script>
 </head>
 <body class="is-loading">
   <div id="scene-bg" role="img" aria-label="Cielo sobre el Nilo en una tormenta de arena"></div>
@@ -545,6 +506,9 @@
       <symbol id="ico-veer" viewBox="0 0 32 32"><path d="M5 16h22M10 11l-5 5 5 5m12-10 5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="ico-left" viewBox="0 0 32 32"><path d="m19 7-9 9 9 9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="ico-right" viewBox="0 0 32 32"><path d="m13 7 9 9-9 9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="ico-scroll" viewBox="0 0 32 32">
+        <path d="M8 7h18l-3 18H5L8 7Zm4 5h9m-10 4h8m-9 4h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
     </defs>
   </svg>
 
@@ -583,10 +547,9 @@
       <div class="hud-mini" id="biome-name">Remanso de papiro</div>
       <div class="hud-mini" id="combo-chip"><span id="combo-mult">×1</span></div>
     </div>
-    <div id="landing-meter" hidden>
-      <svg class="ico" aria-hidden="true" viewBox="0 0 32 32"><use href="#ico-path"/></svg>
-      <span>Próxima parada</span> <strong id="landing-distance">110</strong><span>м</span>
-      <span id="landing-fill" aria-hidden="true"></span>
+    <div id="scroll-meter" aria-label="Pergaminos encontrados">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 32 32"><use href="#ico-scroll"/></svg>
+      <span><strong id="scroll-count">0</strong> / 5</span>
     </div>
   </div>
   <div id="hazard-markers" aria-hidden="true">
@@ -626,7 +589,7 @@
   <div id="start-screen" class="screen">
     <div class="panel">
       <h1>Moisés en el Nilo</h1>
-      <p>Guía la cesta por el Nilo. Detente en la orilla para reflexionar sobre las decisiones de personas de la Biblia.</p>
+      <p>Guía la cesta por el Nilo y recoge pergaminos con relatos bíblicos.</p>
       <button id="help-btn" type="button" aria-label="Abrir el tutorial">?</button>
       <div class="control-mode-switch" role="group" aria-label="Способ управления">
         <button class="control-mode-btn" id="control-mode-arrows" type="button" aria-pressed="false">Botones</button>
@@ -702,16 +665,6 @@
     </div>
   </div>
 
-  <dialog id="river-reflection" aria-labelledby="reflection-title" aria-describedby="reflection-reference">
-    <span class="reflection-label">Una pausa en la orilla</span>
-    <h2 id="reflection-title" tabindex="-1"></h2>
-    <p id="reflection-reference"></p>
-    <p id="reflection-question"></p>
-    <div id="reflection-choices"></div>
-    <p id="reflection-note" tabindex="-1" hidden></p>
-    <button id="reflection-continue" type="button">Continuar el viaje</button>
-  </dialog>
-
   <div id="pause-screen" class="screen hidden">
     <div class="panel">
       <span class="eyebrow">La corriente está detenida</span>
@@ -733,11 +686,15 @@
         <div>Puntos<b id="final-total">0</b></div>
       </div>
       <p id="best-line">Mejor resultado: 0</p>
+      <details id="river-journal" hidden>
+        <summary>Pergaminos encontrados</summary>
+        <ul id="river-journal-entries"></ul>
+      </details>
       <button class="btn" id="restart-btn" type="button">INTENTAR DE NUEVO</button>
     </div>
   </div>
 
-  <div id="version-badge">V7.5.1 · LOADING</div>
+  <div id="version-badge">V7.5.2 · LOADING</div>
   <!--
     Игра открывается и отдельной страницей (превью, прямая ссылка в Telegram),
     поэтому SDK подключается здесь, а не только в оболочке приложения. Тег
@@ -749,13 +706,13 @@
   <script src="../../locales/es/games/moses-nile-v7/js/sound.js?v=770&r=770"></script>
   <script src="../../locales/es/games/moses-nile-v7/js/materials.js?v=774"></script>
   <script src="../../locales/es/games/moses-nile-v7/js/landscape.js?v=774"></script>
-  <script src="../../locales/es/games/moses-nile-v7/js/shaders.js?v=776"></script>
+  <script src="../../locales/es/games/moses-nile-v7/js/shaders.js?v=777"></script>
   <script src="../../locales/es/games/moses-nile-v7/js/fx.js?v=770"></script>
-  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="../../locales/es/games/moses-nile-v7/js/assets.js?v=776&r=776"><\/script>');else window.assetManager={};</script>
+  <script src="../../locales/es/games/moses-nile-v7/js/assets.js?v=777"></script>
   <link rel="stylesheet" href="../../styles/sabbath-access.css" />
   <script src="../../js/sabbath-clock.js?v=4"></script>
   <script src="../../js/sabbath-access.js?v=5"></script>
-  <script type="application/x-app-access" data-app-access-src="../../locales/es/games/moses-nile-v7/js/game-v75.js?v=776&r=776"></script>
+  <script type="application/x-app-access" data-app-access-src="../../locales/es/games/moses-nile-v7/js/game-v75.js?v=777&r=777"></script>
   <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){try{localStorage.setItem('moses-nile-tutorial-seen-v1','1')}catch(e){}setTimeout(()=>{document.getElementById('tut-skip')?.click();document.getElementById('start-btn')?.click()},1600)}</script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 class AssetManager {
   constructor(){
-    this.gltfLoader=new THREE.GLTFLoader();
-    this.objLoader=new THREE.OBJLoader();
+    this.gltfLoader=THREE.GLTFLoader?new THREE.GLTFLoader():null;
+    this.objLoader=THREE.OBJLoader?new THREE.OBJLoader():null;
     this.basketModel=null;
     this.models={};
     this.environmentPromise=null;
@@ -15,24 +15,30 @@ class AssetManager {
   }
 
   async loadBasketModel(){
-    const localObjPaths=['/web/assets/models/moses-nile/woven-basket.obj','models/basket.obj','models/woven-basket.obj'];
+    if (this.basketModel) return this.basketModel.clone(true);
+    if (!this.basketPromise) this.basketPromise=this._loadBasket();
+    return (await this.basketPromise).clone(true);
+  }
+
+  async _loadBasket(){
+    const localObjPaths=['models/woven-basket.obj','models/basket.obj'];
     for(const path of localObjPaths){
       try{
-        const response=await fetch(path,{cache:'no-store'});
+        const response=await fetch(path,{cache:'force-cache'});
         if(!response.ok)continue;
         const parsed=this._parseBasketObj(await response.text());
         if(parsed){
           console.log(`[AssetManager] woven basket parsed: ${path}`);
           window.__mosesBasketSource='woven-obj';
           this.basketModel=this._prepareBasket(parsed);
-          return this.basketModel.clone(true);
+          return this.basketModel;
         }
       }catch(err){
         console.warn(`[AssetManager] woven basket parse failed: ${path}`,err?.message||err);
       }
     }
 
-    const candidatePaths=['models/basket.glb','models/woven-basket.glb','basket.glb','woven_basket.glb','basket.obj'];
+    const candidatePaths=this.objLoader?['models/basket.obj']:[];
     for(const path of candidatePaths){
       try{
         const model=await this._tryLoad(path);
@@ -40,7 +46,7 @@ class AssetManager {
           console.log(`[AssetManager] basket loader fallback: ${path}`);
           window.__mosesBasketSource='loader-fallback';
           this.basketModel=this._prepareBasket(model);
-          return this.basketModel.clone(true);
+          return this.basketModel;
         }
       }catch{}
     }
@@ -54,16 +60,16 @@ class AssetManager {
     if(this.environmentPromise)return this.environmentPromise;
     const sources={
       rock:'models/environment/nature_pack/Rock_1.glb',
+      log:'models/environment/survival_pack/WoodLog.glb',
+      papyrus:'models/v75/papyrus.glb',
+      ship:'models/v75/ship.glb',
       broadleaf:'models/environment/nature_pack/Plant_2.glb',
       bush:'models/environment/nature_pack/Bush_1.glb',
       grass:'models/environment/nature_pack/Grass.glb',
       bankPlant:'models/environment/nature_pack/Plant_1.glb',
       palm:'models/environment/nature_pack/PalmTree_4.glb',
-      log:'models/environment/survival_pack/WoodLog.glb',
       boat:'models/v73/Boat.glb',
       flowers:'models/v73/Flowers.glb',
-      papyrus:'models/v75/papyrus.glb',
-      ship:'models/v75/ship.glb'
     };
     this.environmentPromise=Promise.all(Object.entries(sources).map(async([key,url])=>{
       try{
@@ -81,7 +87,6 @@ class AssetManager {
   async preloadGameplayModels(){
     if(this.gameplayPromise)return this.gameplayPromise;
     this.gameplayPromise=(async()=>{
-      await this.preloadEnvironmentModels();
       const sources={
         crocodile:'models/v73/crocodile.glb',
         lotus:'models/v75/lotus.glb',
@@ -93,7 +98,7 @@ class AssetManager {
         tokenRush:'models/v75/wings.glb',
         tokenMercy:'models/v75/heart.glb'
       };
-      await Promise.all(Object.entries(sources).map(async([key,url])=>{
+      const gameplay=Object.entries(sources).map(async([key,url])=>{
         try{
           const model=await this._tryLoad(url);
           if(/^token/.test(key))this.models[key]=this._prepareToken(model,key);
@@ -103,14 +108,14 @@ class AssetManager {
         }catch(err){
           console.warn(`[AssetManager] gameplay fallback: ${key}`,err?.message||err);
         }
-      }));
+      });
+      await Promise.all([this.preloadEnvironmentModels(),this.preloadHippoRigs(),...gameplay]);
       // Настоящий лотос лежит в GLB; собственная OBJ-модель остаётся
       // запасной на случай, если пакет не приехал.
       if(!this.models.lotus&&this.models.lotusFallback){
         this.models.lotus=this.models.lotusFallback;
         this.sources.lotus=this.sources.lotusFallback;
       }
-      await this.preloadHippoRigs();
       window.__mosesV75ModelSources={...this.sources};
       return this.models;
     })();
@@ -125,6 +130,7 @@ class AssetManager {
     Копий немного: больше двух-трёх бегемотов на экране не бывает.
   */
   async preloadHippoRigs(copies=5){
+    if(!this.gltfLoader)return [];
     if(this.hippoPromise)return this.hippoPromise;
     this.hippoPromise=(async()=>{
       const response=await fetch('models/v75/hippo.glb',{cache:'force-cache'});
@@ -254,6 +260,7 @@ class AssetManager {
     return new Promise((resolve,reject)=>{
       const glb=/\.gl(?:b|tf)$/i.test(url);
       const loader=glb?this.gltfLoader:this.objLoader;
+      if(!loader){reject(new Error(`No loader for ${url}`));return;}
       loader.load(url,res=>resolve(glb?res.scene:res),undefined,reject);
     });
   }
@@ -285,7 +292,7 @@ class AssetManager {
               name:material.name||child.name,
               uvScale:.85,
               normalScale:.9,
-              bleach:.18
+              bleach:.08
             });
             return next;
           });
@@ -618,13 +625,13 @@ class AssetManager {
 
   createProceduralBasket(){
     const group=new THREE.Group();
-    const basket=new THREE.Mesh(new THREE.CylinderGeometry(.85,.6,.55,16,1,true),this._basketMaterial());
-    basket.position.y=.28;basket.scale.z=.85;basket.castShadow=true;group.add(basket);
-    const bottom=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,.08,16),this._basketMaterial());
-    bottom.position.y=.04;bottom.scale.z=.85;bottom.castShadow=true;group.add(bottom);
-    const rim=new THREE.Mesh(new THREE.TorusGeometry(.83,.07,7,24),new THREE.MeshStandardMaterial({color:0x75401c,roughness:.92}));
-    rim.rotation.x=Math.PI/2;rim.position.y=.55;rim.scale.y=.85;rim.castShadow=true;group.add(rim);
+    const profile=[[0,.03],[.42,.03],[.56,.08],[.67,.23],[.75,.43],[.80,.61],[.81,.74]]
+      .map(([radius,height])=>new THREE.Vector2(radius,height));
+    const basket=new THREE.Mesh(new THREE.LatheGeometry(profile,40),this._basketMaterial());
+    basket.scale.z=.85;
+    basket.castShadow=true;
+    group.add(basket);
     return group;
   }
 }
-window.assetManager=new AssetManager();
+if (window.THREE) window.assetManager=new AssetManager();
