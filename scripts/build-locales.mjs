@@ -15,6 +15,7 @@ export function canMake(word, letters) {
 }
 export async function buildLocales(root, jsOptions) {
   const dictionaries = readTranslations(root);
+  const nileTranslations = readTranslations(root, ['nile-study.tsv']);
   const outputs = new Map();
   const runtimeSources = [fs.readFileSync(path.join(root,'index.html'),'utf8'),
     fs.readFileSync(path.join(root,'cloudflare/full-preview/public/index.html'),'utf8'),
@@ -30,8 +31,10 @@ export async function buildLocales(root, jsOptions) {
   const localizedPath = (file,lang) => `web/locales/${lang}/${file.replace(/^web\//,'')}`;
   for (const lang of languages) {
     const dict = dictionaries[lang];
+    const nileDict = { ...dict, ...nileTranslations[lang] };
+    const dictionaryFor = file => file.startsWith('web/games/moses-nile-v7/') ? nileDict : dict;
     const rewrite = source => source.replace(/web\/(?:js|games|data)\/[A-Za-z0-9_./-]+/g, file => files.has(file) ? localizedPath(file,lang) : file);
-    const localJS = file => rewrite(translateJS(fs.readFileSync(path.join(root,file),'utf8'),dict)).replaceAll("'install.html'",JSON.stringify(localizedPath('install.html',lang))).replaceAll('"install.html"',JSON.stringify(localizedPath('install.html',lang)))
+    const localJS = file => rewrite(translateJS(fs.readFileSync(path.join(root,file),'utf8'),dictionaryFor(file))).replaceAll("'install.html'",JSON.stringify(localizedPath('install.html',lang))).replaceAll('"install.html"',JSON.stringify(localizedPath('install.html',lang)))
       .replaceAll('${SHELL_URL}/install.html', '${SHELL_URL}/'+localizedPath('install.html',lang))
       .replaceAll("'ru-RU'",JSON.stringify(lang)).replaceAll('"ru-RU"',JSON.stringify(lang));
     for (const file of sourceFiles) {
@@ -44,7 +47,7 @@ export async function buildLocales(root, jsOptions) {
           return `url(${quote}${path.posix.relative(path.posix.dirname(localizedPath(file,lang)),target)}${quote})`;
         });
       } else {
-        text = translate(text,dict).replace('lang="ru"',`lang="${lang}"`);
+        text = translate(text,dictionaryFor(file)).replace('lang="ru"',`lang="${lang}"`);
         // The embedded runner keeps its original asset base: no model/texture duplication.
         const base = path.posix.relative(path.posix.dirname(localizedPath(file,lang)),path.posix.dirname(file)) + '/';
         text = text.replace('<head>',`<head>\n  <base href="${base}" />`);
