@@ -2682,7 +2682,9 @@ html.theme-dark .sabbath-schedule {
 html.theme-dark .sabbath-game-name {
   color: #745dae !important;
 }
-html.theme-dark .sabbath-presets [aria-pressed="true"] {
+html.theme-dark .sabbath-presets [aria-pressed="true"],
+html.theme-dark .sabbath-city-result[aria-pressed="true"],
+html.theme-dark .sabbath-confirm:not(:disabled) {
   background: #3f28b4 !important;
   border-color: #3f28b4 !important;
 }
