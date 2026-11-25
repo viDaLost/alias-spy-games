@@ -23,7 +23,7 @@
   let savedCity = readCity(), guestWeek = readLocal(GUEST_WEEK);
   let seenPendingWeek = Number(readLocal(PENDING_WEEK)) || 0;
   let city = savedCity || autoCity(), pendingGame = null, modal = null, returnFocus = null, editing = false;
-  let saving = false, saveError = '';
+  let saving = false, saveError = '', confirmationCity = null;
   let resumeAfterSync = null;
   let timer = null, standalone = null, catalogPromise = null, searchVersion = 0;
   const waiters = new Set();
@@ -93,7 +93,8 @@
     const topLevel = window.parent === window;
     const week = now === null ? null : Clock.weekFor(now,place.timeZone);
     const confirmedWeek = profile?.confirmedWeek || 0;
-    const due = week !== null && account ? week : Math.max(week || 0, seenPendingWeek);
+    // The public clock can respond before the signed-in player's saved confirmation.
+    const due = signedIn ? (account ? week ?? account.week : 0) : Math.max(week || 0, seenPendingWeek);
     const mandatory = topLevel && due >= Clock.FIRST_WEEK && due > confirmedWeek;
     return {...schedule,now,city:place,week,mandatory,confirmedWeek,signedIn,citySelected:Boolean(selectedCity),
       selectedCity,lockedUntil:profile?.lockedUntil || 0};
@@ -121,18 +122,19 @@
       saving = true;
       const save = window.AppAccess.sabbathRequest;
       Promise.resolve().then(async () => {
-        if (!window.AppAccess.sabbathProfile()) await window.AppAccess.verify();
+        const profile = window.AppAccess.sabbathProfile();
+        if (!profile || (state.mandatory && profile.week < state.week)) await window.AppAccess.verify();
         const week = window.AppAccess.sabbathProfile()?.week;
         if (week === undefined) throw new Error('Не удалось проверить расписание. Повторите попытку.');
         await save('confirm',{week,city:chosen});
-        finishSelection(chosen);
+        finishSelection(chosen,state.mandatory);
       }).catch(error => { saveError = error.message; })
         .finally(() => { saving = false; if (modal) renderModal(); });
       renderModal();
       return;
     }
     if (state.mandatory) {
-      const lockWeek = Math.max(state.week,Clock.weekFor(state.now,chosen.timeZone));
+      const lockWeek = Math.max(state.week,seenPendingWeek,Clock.weekFor(state.now,chosen.timeZone));
       const oldWindow = Clock.weekWindow(state.week,state.city);
       const effectiveUntil = phaseLocked(state) && oldWindow.end > state.now ? oldWindow.end : null;
       guestWeek = {confirmedWeek:lockWeek,city:chosen,place:state.city,effectiveUntil,
@@ -142,18 +144,20 @@
       guestWeek = {...guestWeek,city:chosen,effectiveUntil:null};
       writeLocal(GUEST_WEEK,guestWeek);
     }
-    finishSelection(chosen);
+    finishSelection(chosen,state.mandatory);
   }
-  function finishSelection(chosen) {
+  function finishSelection(chosen,wasMandatory) {
     savedCity = city = chosen;
     writeLocal(KEY,chosen);
     const resume = pendingGame;
-    editing = !resume;
+    const state = status();
+    const canResume = resume && !state.mandatory && (state.allowed || !restricted(resume)) && !standalone;
+    if (canResume || (wasMandatory && !state.mandatory && !resume)) close();
+    else editing = !resume;
     check();
     notifyCityChange();
     if (modal) renderModal();
-    if (resume && status().allowed && !standalone) {
-      close();
+    if (canResume) {
       if(resume === 'biblical-match-three') window.openBiblicalMatchThree?.(); else window.showGame?.(resume);
     }
   }
@@ -169,7 +173,7 @@
   }
   function close() {
     if (status().mandatory) return;
-    searchVersion++;pendingGame=null;editing=false;resumeAfterSync=null;
+    searchVersion++;pendingGame=null;editing=false;resumeAfterSync=null;confirmationCity=null;
     modal?.remove();modal=null;document.documentElement.classList.remove('sabbath-dialog-open');
     returnFocus?.focus?.();returnFocus=null;
   }
@@ -238,17 +242,45 @@
       } else if (cityLocked) {
         if (state.now >= state.lockedUntil) shell.append(textNode('p','Desde el jueves la ciudad se mantiene fija hasta que termine la pausa del sábado.'));
       } else {
+        const selected = mandatory ? confirmationCity || state.selectedCity : state.selectedCity;
+        const isSelected = (value,choice) => choice?.name === value.name && choice.timeZone === value.timeZone
+          && choice.latitude === value.latitude && choice.longitude === value.longitude;
+        const confirm = mandatory ? button('OK',()=>saveCity(confirmationCity || state.selectedCity),'sabbath-button sabbath-confirm') : null;
+        const selectedLabel = mandatory ? textNode('p','','sabbath-city-current') : null;
+        if (confirm) {
+          confirm.dataset.sabbathConfirm='';
+          selectedLabel.setAttribute('aria-live','polite');
+        }
+        const updateSelection = choice => {
+          selectedLabel.textContent = choice ? choice.name : '';
+          selectedLabel.hidden = !choice;
+          confirm.disabled = !choice || saving;
+        };
+        const cityOption = (label,value,cls) => {
+          const option = button(label,()=>{
+            if (!mandatory) { saveCity(value); return; }
+            confirmationCity = value;
+            for (const previous of shell.querySelectorAll('[aria-pressed="true"]')) previous.setAttribute('aria-pressed','false');
+            option.setAttribute('aria-pressed','true');
+            updateSelection(value);
+          },cls);
+          option.setAttribute('aria-pressed',String(isSelected(value,confirmationCity || selected)));
+          return option;
+        };
         const presets=textNode('div','','sabbath-presets');presets.setAttribute('aria-label','Selección rápida de ciudad');
         const choices = [state.selectedCity, place.automatic && Clock.validCity(place) ? place : null, ...Clock.CITIES].filter(Boolean);
         const seen = new Set();
         for (const value of choices) {
           if (seen.has(value.name)) continue;
           seen.add(value.name);
-          const option=button(value.name,()=>saveCity(value));option.dataset.city=value.name;
-          option.setAttribute('aria-pressed',String(state.selectedCity?.timeZone===value.timeZone&&state.selectedCity?.name===value.name));
+          const option=cityOption(value.name,value);option.dataset.city=value.name;
           presets.append(option);
         }
-        shell.append(presets);appendSearch(shell);
+        shell.append(presets);appendSearch(shell,cityOption);
+        if (confirm) {
+          updateSelection(selected);
+          shell.append(selectedLabel,confirm);
+        }
       }
       if (saveError || saving) {
         const notice=textNode('p',saving?'Guardando la ciudad…':saveError);
@@ -292,7 +324,7 @@
       .catch(error=>{catalogPromise=null;throw error;});
     return catalogPromise;
   }
-  function appendSearch(shell) {
+  function appendSearch(shell,cityOption) {
     const form=document.createElement('form');form.className='sabbath-city-form';
     const label=textNode('label','Buscar otra ciudad');label.htmlFor='sabbath-city';
     const input=document.createElement('input');input.id='sabbath-city';input.type='search';input.minLength=2;input.maxLength=100;
@@ -316,7 +348,7 @@
         }
         results.replaceChildren();const found=buckets.flat().slice(0,12);
         if(!found.length)results.textContent='No se encontró la ciudad. Especifica el nombre y el país.';
-        for(const value of found)results.append(button(value.name+', '+countryName(value.country),()=>saveCity(value),'sabbath-button sabbath-city-result'));
+        for(const value of found)results.append(cityOption(value.name+', '+countryName(value.country),value,'sabbath-button sabbath-city-result'));
       } catch {if(version===searchVersion&&modal)results.textContent='No se pudo cargar el directorio de ciudades. Vuelve a buscar.';}
       finally {submit.disabled=false;}
     });
@@ -350,14 +382,15 @@
       (window.appGoToMainMenu||window.goToMainMenu)?.();
       present(active,state.mandatory);
     }
-    if (state.mandatory && state.week > seenPendingWeek) {
+    if (!state.signedIn && state.mandatory && state.week > seenPendingWeek) {
       seenPendingWeek = state.week;
       writeLocal(PENDING_WEEK,state.week);
-    } else if (!state.mandatory && seenPendingWeek && state.confirmedWeek >= seenPendingWeek) {
+    } else if (!state.signedIn && !state.mandatory && seenPendingWeek && state.confirmedWeek >= seenPendingWeek) {
       seenPendingWeek = 0;
       writeLocal(PENDING_WEEK,0);
     }
     if (state.mandatory && modal?.dataset.mandatory !== 'true') present(null,true);
+    if (!state.mandatory && !saving && !pendingGame && modal?.dataset.mandatory === 'true') close();
     if(standalone&&!standalone.bridgePending&&!state.allowed){
       if (standalone.started) {
         standalone.started = false;

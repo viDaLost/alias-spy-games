@@ -45,7 +45,7 @@ const sorted = (values) => [...values].sort();
 assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedWebRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);
 assert(JSON.stringify(sorted(androidRoutes)) === JSON.stringify(sorted(expectedNativeRoutes)), `unexpected packaged Android routes: ${sorted(androidRoutes).join(', ')}`);
 
-// Android 3.0.18 uses the exact production Web catalog copied into the APK after
+// Android 3.0.19 uses the exact production Web catalog copied into the APK after
 // the encrypted native OTP gate. WebViewAssetLoader serves those packaged bytes
 // from Android's private HTTPS appassets origin. This gives Web/Android feature
 // parity without using GitHub Pages as an origin alias or runtime dependency.
@@ -128,10 +128,10 @@ for (const { meta, worker } of gameHosts) {
 const gradle = read('android-app/app/build.gradle');
 const androidMenu = read('web/js/android-download-menu.js');
 const releaseWorkflow = read('.github/workflows/build-android-apk.yml');
-assert(gradle.includes('versionCode 45') && gradle.includes("versionName '3.0.18-standalone'"), 'APK version must be 3.0.18-standalone (45)');
+assert(gradle.includes('versionCode 46') && gradle.includes("versionName '3.0.19-standalone'"), 'APK version must be 3.0.19-standalone (46)');
 assert(gradle.includes("implementation 'androidx.webkit:webkit:1.14.0'"), 'APK is missing the Kotlin-compatible AndroidX WebKit');
 assert(androidMenu.includes('BibleGames-Android-latest.apk'), 'Web download menu does not point to the stable latest APK');
-assert(releaseWorkflow.includes('BibleGames-Android-3.0.18-standalone.apk'), 'Android release workflow does not publish the versioned 3.0.18 standalone APK');
+assert(releaseWorkflow.includes('BibleGames-Android-3.0.19-standalone.apk'), 'Android release workflow does not publish the versioned 3.0.19 standalone APK');
 assert(releaseWorkflow.includes('BibleGames-Android-latest.apk'), 'Android release workflow does not publish the stable latest APK alias');
 
 console.log(`Web/Android parity passed: standalone bundled Web UI with ${webRoutes.size} routes + ${androidRoutes.size} packaged native compatibility routes, with no GitHub Pages runtime origin.`);
