@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
   <meta name="theme-color" content="#b79869">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Moisés: Viaje por el Nilo — V7.5.2</title>
+  <title>Moisés: Viaje por el Nilo — V7.5.3</title>
   <link rel="stylesheet" href="../../styles/typography.css">
   <style>
     :root {
@@ -229,12 +229,30 @@
     #start-screen .btn { border-radius: 14px; }
     body:not(.is-playing) #hud { visibility: hidden; }
 
-    #scroll-meter {
-      align-self: center; min-height: 24px; display: inline-flex; gap: 6px; align-items: center;
-      padding: 3px 9px; border-radius: 999px; background: #172e25e8; color: #ffde96;
-      border: 1px solid #d9b97960; font-size: 11px; font-weight: 750;
+    #river-study {
+      position: absolute; top: calc(var(--safe-top) + 121px); left: 50%; z-index: 12;
+      transform: translateX(-50%); width: min(344px, calc(100% - 94px));
+      padding: 10px 10px 12px; overflow: hidden; box-sizing: border-box;
+      background: #192b24f2; border: 1px solid #d7af6b99; border-radius: 14px;
+      color: #fbefd7; text-align: center; pointer-events: none;
     }
-    #scroll-meter .ico { width: 14px; height: 14px; }
+    .is-paused #river-study { visibility: hidden; }
+    #river-study small { color: #ebd1a3; font-size: 10px; font-weight: 700; }
+    #study-question { margin: 3px 0 7px; color: inherit; font-size: 14px; line-height: 1.18; font-weight: 750; }
+    .study-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .study-answer {
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      min-height: 30px; padding: 3px; border-radius: 7px; border: 1px solid #e1ad646b;
+      color: #f5ddb7; font-size: 12px; line-height: 1.18; font-weight: 700;
+    }
+    .study-answer:last-child { border-color: #73bdaf80; color: #c1f0e7; }
+    #river-study[data-side="left"] .study-answer:first-child { background: #d7aa5540; border-color: #e1ad64; }
+    #river-study[data-side="right"] .study-answer:last-child { background: #73bdaf40; border-color: #73bdaf; }
+    #study-countdown {
+      position: absolute; bottom: 0; left: 0; height: 3px; width: 100%;
+      background: #e4bd78; transform-origin: left;
+    }
+    .study-source { display: inline-block; margin: 0 9px 8px; color: #5e4421; font-size: 12px; }
     #hazard-markers { position: absolute; z-index: 8; inset: 0; pointer-events: none; overflow: hidden; }
     #hazard-markers i {
       position: absolute; top: 0; left: 0; width: 30px; height: 29px;
@@ -245,7 +263,6 @@
     #hazard-markers i:not([hidden]) { display: flex; }
     #hazard-markers i[data-action="high"] { background: #153640ef; border-color: #bbe6ecad; color: #c5f0f6; }
     #hazard-markers i[data-action="ground"] { background: #432c23ef; border-color: #ffd0b6bc; color: #ffd8bb; }
-    #hazard-markers i[data-action="scroll"] { background: #503b19ef; border-color: #f8d18ae0; color: #ffdf8e; }
     #hazard-markers i.is-urgent { border-width: 2px; }
     #hazard-markers svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.1; }
 
@@ -271,6 +288,7 @@
     #river-journal-entries li + li { border-top: 1px solid #e0d1b4; padding-top: 9px; }
     #river-journal-entries small { display: block; margin: 2px 0 5px; color: #6d562f; }
     #river-journal-entries p { font-size: 12px; line-height: 1.44; }
+    #study-reflection { margin: 8px 9px 0; padding: 9px; background: #eadcbf80; border-radius: 8px; font-size: 12px; }
 
     .result { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 14px 0 10px; }
     .result div { padding: 10px 6px; border-radius: 14px; background: rgba(117, 88, 49, .10); color: #574634; font-size: 11px; }
@@ -506,9 +524,6 @@
       <symbol id="ico-veer" viewBox="0 0 32 32"><path d="M5 16h22M10 11l-5 5 5 5m12-10 5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="ico-left" viewBox="0 0 32 32"><path d="m19 7-9 9 9 9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="ico-right" viewBox="0 0 32 32"><path d="m13 7 9 9-9 9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-      <symbol id="ico-scroll" viewBox="0 0 32 32">
-        <path d="M8 7h18l-3 18H5L8 7Zm4 5h9m-10 4h8m-9 4h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </symbol>
     </defs>
   </svg>
 
@@ -547,11 +562,16 @@
       <div class="hud-mini" id="biome-name">Remanso de papiro</div>
       <div class="hud-mini" id="combo-chip"><span id="combo-mult">×1</span></div>
     </div>
-    <div id="scroll-meter" aria-label="Pergaminos encontrados">
-      <svg class="ico" aria-hidden="true" viewBox="0 0 32 32"><use href="#ico-scroll"/></svg>
-      <span><strong id="scroll-count">0</strong> / 5</span>
-    </div>
   </div>
+  <section id="river-study" aria-live="polite" aria-labelledby="study-question" hidden>
+    <small>Libro del Éxodo <span aria-hidden="true">·</span> <span id="study-progress"></span></small>
+    <p id="study-question"></p>
+    <div class="study-answers">
+      <span class="study-answer"><span aria-hidden="true">←</span> <span id="study-left"></span></span>
+      <span class="study-answer"><span id="study-right"></span> <span aria-hidden="true">→</span></span>
+    </div>
+    <span id="study-countdown" aria-hidden="true"></span>
+  </section>
   <div id="hazard-markers" aria-hidden="true">
     <i hidden><svg viewBox="0 0 32 32"><use href="#ico-veer"/></svg></i>
     <i hidden><svg viewBox="0 0 32 32"><use href="#ico-veer"/></svg></i>
@@ -589,7 +609,7 @@
   <div id="start-screen" class="screen">
     <div class="panel">
       <h1>Moisés en el Nilo</h1>
-      <p>Guía la cesta por el Nilo y recoge pergaminos con relatos bíblicos.</p>
+      <p>Recuerda la historia de Moisés. Elige el carril izquierdo o derecho para responder. Usa el centro para saltar la pregunta.</p>
       <button id="help-btn" type="button" aria-label="Abrir el tutorial">?</button>
       <div class="control-mode-switch" role="group" aria-label="Способ управления">
         <button class="control-mode-btn" id="control-mode-arrows" type="button" aria-pressed="false">Botones</button>
@@ -671,14 +691,14 @@
       <h1>Pausa</h1>
       <p>El río esperará. Continúa cuando estés listo.</p>
       <button class="btn" id="resume-btn" type="button">CONTINUAR</button>
+      <button class="btn btn-ghost" id="study-quit-btn" type="button" hidden>Terminar y revisar las respuestas</button>
       <button class="btn btn-ghost" id="quit-btn" type="button">TERMINAR LA TRAVESÍA</button>
     </div>
   </div>
 
   <div id="gameover-screen" class="screen hidden">
     <div class="panel">
-      <span class="eyebrow">El viaje ha terminado</span>
-      <h1>El viaje se ha interrumpido</h1>
+      <h1>Resultados del recorrido</h1>
       <p id="fail-desc">La cesta chocó con un peligro del río.</p>
       <div class="result">
         <div>Distancia<b id="final-dist">0 м</b></div>
@@ -687,14 +707,16 @@
       </div>
       <p id="best-line">Mejor resultado: 0</p>
       <details id="river-journal" hidden>
-        <summary>Pergaminos encontrados</summary>
+        <summary>Repaso bíblico <span aria-hidden="true">·</span> <span id="study-score"></span></summary>
+        <a class="study-source" href="https://www.bible-center.ru/ru/bibletext/synnew_ru/ex/2:1-10" target="_blank" rel="noopener">Leer Éxodo 2:1–10 en la versión sinodal rusa</a>
         <ul id="river-journal-entries"></ul>
+        <p id="study-reflection">¿Qué hicieron la madre de Moisés, su hermana y la hija del faraón para salvar al bebé?</p>
       </details>
       <button class="btn" id="restart-btn" type="button">INTENTAR DE NUEVO</button>
     </div>
   </div>
 
-  <div id="version-badge">V7.5.2 · LOADING</div>
+  <div id="version-badge">V7.5.3 · LOADING</div>
   <!--
     Игра открывается и отдельной страницей (превью, прямая ссылка в Telegram),
     поэтому SDK подключается здесь, а не только в оболочке приложения. Тег
@@ -712,7 +734,7 @@
   <link rel="stylesheet" href="../../styles/sabbath-access.css" />
   <script src="../../js/sabbath-clock.js?v=4"></script>
   <script src="../../js/sabbath-access.js?v=5"></script>
-  <script type="application/x-app-access" data-app-access-src="../../locales/es/games/moses-nile-v7/js/game-v75.js?v=777&r=777"></script>
+  <script type="application/x-app-access" data-app-access-src="../../locales/es/games/moses-nile-v7/js/game-v75.js?v=778&r=778"></script>
   <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){try{localStorage.setItem('moses-nile-tutorial-seen-v1','1')}catch(e){}setTimeout(()=>{document.getElementById('tut-skip')?.click();document.getElementById('start-btn')?.click()},1600)}</script>
 </body>
 </html>
