@@ -24,7 +24,7 @@
    * 1. Константы                                                        *
    * ------------------------------------------------------------------ */
 
-  const VERSION = 'V7.5.1';
+  const VERSION = 'V7.5.2';
   const EDITION = 'RUNNER II';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
@@ -37,16 +37,15 @@
   const HINT_KEY = 'moses-nile-hint-seen-v2';
   const TUTORIAL_KEY = 'moses-nile-tutorial-seen-v1';
   const CONTROL_MODE_KEY = 'moses-nile-control-mode-v1';
-  const REFLECTION_KEY = 'moses-nile-reflection-v1';
-  const FIRST_REFLECTION_DISTANCE = 110;
-  const REFLECTION_INTERVAL = 300;
+  const FIRST_SCROLL_DISTANCE = 120;
+  const SCROLL_INTERVAL = 255;
   const INPUT_BUFFER = .17;
   const SWIPE_THRESHOLD = 24;
 
   const TUNE = {
-    baseSpeed: 18.5,
-    maxSpeed: 35,
-    speedRamp: 1 / 190,      // метров дистанции на +1 м/с
+    baseSpeed: 22,
+    maxSpeed: 42,
+    speedRamp: 1 / 67,       // метров дистанции на +1 м/с
     laneDamp: 13,
     jumpImpulse: 6.4,
     gravity: -17.5,
@@ -61,7 +60,7 @@
     shieldTime: 8,
     magnetTime: 10,
     rushTime: 6,
-    rushBoost: 1.42,
+    rushBoost: 1.31,
     nearMissWindow: .62,
     spawnAhead: 178,
   };
@@ -86,7 +85,7 @@
       fog: 0xc8bc9b, fogNear: 138, fogFar: 365,
       hemiSky: 0xb9d5e8, hemiGround: 0x584637, hemiPower: .38,
       sunColor: 0xffdeb0, sunPower: 1.51, sunPos: [-24, 38, 16],
-      water: { deep: 0x143b3c, shallow: 0x4a9e84, sky: 0x8cb7c5, sun: 0xffe0a8, foam: 0xf2f4df, chop: .85, glitter: 1.08, opacity: .95 },
+      water: { deep: 0x244248, shallow: 0x547d70, sky: 0x829ba6, sun: 0xffdfa8, foam: 0xe3ece1, chop: .76, glitter: 1.01, opacity: .95 },
       sky: { zenith: 0x456f95, haze: 0xdbad7e, horizon: 0xeccb9a, sun: 0xffe1a6, storm: .10, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
@@ -100,7 +99,7 @@
       fog: 0xd0cab4, fogNear: 110, fogFar: 336,
       hemiSky: 0xd4e6f6, hemiGround: 0x554c38, hemiPower: .34,
       sunColor: 0xfff4dc, sunPower: 1.62, sunPos: [-16, 46, 12],
-      water: { deep: 0x16454b, shallow: 0x53978b, sky: 0xa9c4dc, sun: 0xfff2cf, foam: 0xf6f7ec, chop: 1, glitter: 1.4, opacity: .96 },
+      water: { deep: 0x22454b, shallow: 0x619184, sky: 0x9bb3be, sun: 0xfff2cf, foam: 0xe6ece4, chop: .88, glitter: 1.16, opacity: .96 },
       sky: { zenith: 0x4272a6, haze: 0xbcb094, horizon: 0xe4d5b4, sun: 0xfff2cf, storm: .10, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
@@ -114,7 +113,7 @@
       fog: 0xb2c0ba, fogNear: 76, fogFar: 256,
       hemiSky: 0xb8cfdc, hemiGround: 0x333d36, hemiPower: .32,
       sunColor: 0xe8f0e4, sunPower: 1.4, sunPos: [-28, 34, 20],
-      water: { deep: 0x183945, shallow: 0x64938d, sky: 0xbccdbe, sun: 0xf2f7ef, foam: 0xffffff, chop: 2.1, glitter: 1.5, opacity: .98 },
+      water: { deep: 0x1c3b42, shallow: 0x547f74, sky: 0xa4b8b2, sun: 0xecf0e1, foam: 0xeaf2e9, chop: 1.55, glitter: 1.22, opacity: .98 },
       sky: { zenith: 0x3f5f74, haze: 0x8b9d96, horizon: 0xc2cec1, sun: 0xf2f7ef, storm: .62, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(40,60,60,.20), transparent 30%, transparent 66%, rgba(16,26,26,.30))',
@@ -174,6 +173,7 @@
 
   const PICKUPS = {
     lotus:  { radius: .92 },
+    scroll: { radius: 1.06 },
     shield: { radius: 1.0 },
     magnet: { radius: 1.0 },
     rush:   { radius: 1.0 },
@@ -240,17 +240,10 @@
     grade: pick('scene-grade'),
     sceneBg: pick('scene-bg'),
     biomeName: pick('biome-name'),
-    landing: pick('landing-meter'),
-    landingFill: pick('landing-fill'),
-    landingDistance: pick('landing-distance'),
+    scrollCount: pick('scroll-count'),
+    scrollJournal: pick('river-journal'),
+    scrollEntries: pick('river-journal-entries'),
     hazardMarkers: Array.from(document.querySelectorAll('#hazard-markers i')),
-    reflection: pick('river-reflection'),
-    reflectionTitle: pick('reflection-title'),
-    reflectionReference: pick('reflection-reference'),
-    reflectionQuestion: pick('reflection-question'),
-    reflectionChoices: pick('reflection-choices'),
-    reflectionNote: pick('reflection-note'),
-    reflectionContinue: pick('reflection-continue'),
   };
 
   /*
@@ -320,8 +313,9 @@
     qualityHold: 0,
     runTime: 0,
     milestone: 0,
-    nextReflection: FIRST_REFLECTION_DISTANCE,
-    reflectionCount: 0,
+    nextScrollDistance: FIRST_SCROLL_DISTANCE,
+    scrollIndex: 0,
+    scrolls: new Set(),
     best: { score: 0, distance: 0, lotuses: 0 },
     quality: 1,
     fpsAverage: 60,
@@ -409,7 +403,7 @@
     for (const old of dom.toast.children) dismissToast(old);
     dom.toast.appendChild(node);
     requestAnimationFrame(() => node.classList.add('is-in'));
-    setTimeout(() => dismissToast(node), 1450);
+    setTimeout(() => dismissToast(node), tone === 'story' ? 2800 : 1450);
   }
   function dismissToast(node) {
     if (!node.isConnected || node.classList.contains('is-out')) return;
@@ -494,7 +488,7 @@
 
   function renderPixelRatio() {
     const tier = detectTier();
-    const limit = mobileDevice() ? (tier >= 1 ? 1.45 : 1) : MAX_DPR;
+    const limit = mobileDevice() ? (tier >= 1 ? 1.25 : 1) : MAX_DPR;
     const resolution = .80 + .20 * clamp((state.quality - .35) / .3, 0, 1);
     return (window.GameDisplay?.pixelRatio(limit) ?? Math.min(window.devicePixelRatio || 1, limit)) * resolution;
   }
@@ -870,6 +864,7 @@ ${shader.vertexShader}`.replace(
     uniform float uDuneSide;
     attribute float aDuneOffset;
     varying float vDuneCrest;
+    varying vec2 vBankGround;
     float nileDune(float offset, float z, float side) {
       float near = clamp((offset + 0.8) / 2.6, 0.0, 1.0) * clamp(1.0 - (offset - 3.2) / 4.0, 0.0, 1.0);
       float k = ${DUNE_K.toFixed(9)};
@@ -914,15 +909,21 @@ ${shader.vertexShader}`.replace(
            - nileDune(aDuneOffset, nileZ - nileE, uDuneSide)) / (2.0 * nileE);
          objectNormal = normalize(vec3(-nileDx * uDuneSide, 1.0, -nileDz));
          vNormal = normalize(normalMatrix * objectNormal);
-         vDuneCrest = nileH;`,
+         vDuneCrest = nileH;
+         vBankGround = vec2(aDuneOffset, nileZ);`,
       );
-      shader.fragmentShader = `varying float vDuneCrest;\n${shader.fragmentShader}`.replace(
+      shader.fragmentShader = `varying float vDuneCrest;\nvarying vec2 vBankGround;\n${shader.fragmentShader}`.replace(
         '#include <color_fragment>',
         `#include <color_fragment>
          // Гребни выгорают и светлеют, во впадинах песок плотнее и темнее.
          float nileCrest = clamp(vDuneCrest / 2.6, -1.0, 1.0);
          diffuseColor.rgb *= 1.0 + nileCrest * 0.17;
-         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.04, 1.0, 0.93), max(nileCrest, 0.0));`,
+         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.04, 1.0, 0.93), max(nileCrest, 0.0));
+         float bankPhase = vBankGround.y * ${DUNE_K.toFixed(9)};
+         float reeds = sin(bankPhase * 7.0 + vBankGround.x * 0.8) * 0.56
+           + sin(bankPhase * 19.0 - vBankGround.x * 0.9) * 0.25;
+         float dampSoil = (1.0 - smoothstep(0.3, 3.9, vBankGround.x)) * smoothstep(-0.65, 0.46, reeds);
+         diffuseColor.rgb *= mix(vec3(1.0), vec3(0.66, 0.75, 0.49), dampSoil * 0.64);`,
       );
     });
     return material;
@@ -1557,15 +1558,15 @@ ${shader.vertexShader}`.replace(
     const specs = window.NileLandscape.PYRAMIDS;
     const masonry = window.NileLandscape.pyramidTexture(THREE);
     const sunDir = new THREE.Vector3(-.62, .34, .71).normalize();
-    const shadowTint = new THREE.Vector3(.46, .49, .60);
-    const sunTint = new THREE.Vector3(1.42, 1.20, .92);
+    const shadowTint = new THREE.Vector3(.56, .54, .50);
+    const sunTint = new THREE.Vector3(1.27, 1.15, .96);
     const normal = new THREE.Vector3();
-    const shadeGeometry = (geometry, height) => {
+    const shadeGeometry = (geometry, height, heightOffset = 0) => {
       const position = geometry.attributes.position;
       const normals = geometry.attributes.normal;
       const colors = new Float32Array(position.count * 3);
       for (let i = 0; i < position.count; i += 1) {
-        const fade = mix(.78, 1.06, clamp(position.getY(i) / height, 0, 1) ** 2);
+        const fade = mix(.78, 1.06, clamp((position.getY(i) + heightOffset) / height, 0, 1) ** 2);
         normal.set(normals.getX(i), normals.getY(i), normals.getZ(i));
         const lambert = clamp(normal.dot(sunDir) * .5 + .5, 0, 1) ** 2.2;
         colors[i * 3] = mix(shadowTint.x, sunTint.x, lambert) * fade;
@@ -1613,17 +1614,17 @@ ${shader.vertexShader}`.replace(
       // и осветлённые вершинные цвета.
       if (casing > 0) {
         const casingHeight = height * casing;
-        const cap = new THREE.Mesh(new THREE.ConeGeometry(radius * casing * 1.04, casingHeight, 4), material);
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(radius * casing * 1.012, casingHeight, 4), material);
         cap.geometry.rotateY(Math.PI / 4);
         cap.geometry.deleteAttribute('uv');
         window.NileMaterials?.applyBoxUV?.(cap.geometry, 1 / 8);
-        shadeGeometry(cap.geometry, height);
+        cap.position.y = height - casingHeight * .5;
+        shadeGeometry(cap.geometry, height, cap.position.y);
         const capColors = cap.geometry.attributes.color;
         for (let i = 0; i < capColors.count; i += 1) {
-          capColors.setXYZ(i, capColors.getX(i) * 1.22, capColors.getY(i) * 1.2, capColors.getZ(i) * 1.16);
+          capColors.setXYZ(i, capColors.getX(i) * 1.06, capColors.getY(i) * 1.05, capColors.getZ(i) * 1.04);
         }
         capColors.needsUpdate = true;
-        cap.position.y = height - casingHeight * .5;
         group.add(cap);
       }
 
@@ -1726,9 +1727,12 @@ ${shader.vertexShader}`.replace(
   function buildDunes() {
     for (const [depth, height, opacity, shade] of [[-540, 16, .62, .46], [-505, 10, .44, .34]]) {
       const positions = [];
+      const colors = [];
       const span = 1100;
       const steps = 60;
-      const crestAt = (t) => (Math.sin(t * 2.6 + depth * .01) * .55 + Math.sin(t * 1.3 + 1.7) * .45 + 1.4) * height * .5;
+      const crestAt = (t) => (Math.sin(t * 10.4 + depth * .008) * .40
+        + Math.sin(t * 16.2 + 1.7) * .12 + 1.3) * height * .56;
+      const bands = [[0, .04], [.54, .82], [.84, .65], [1, .02]];
       for (let i = 0; i < steps; i += 1) {
         const t0 = i / steps;
         const t1 = (i + 1) / steps;
@@ -1736,14 +1740,20 @@ ${shader.vertexShader}`.replace(
         const x1 = mix(-span / 2, span / 2, t1);
         const y0 = crestAt(t0);
         const y1 = crestAt(t1);
-        positions.push(x0, 0, 0, x1, 0, 0, x1, y1, 0);
-        positions.push(x0, 0, 0, x1, y1, 0, x0, y0, 0);
+        for (let band = 1; band < bands.length; band += 1) {
+          const [bottom, a] = bands[band - 1];
+          const [top, b] = bands[band];
+          positions.push(x0, y0 * bottom, 0, x1, y1 * bottom, 0, x1, y1 * top, 0);
+          positions.push(x0, y0 * bottom, 0, x1, y1 * top, 0, x0, y0 * top, 0);
+          for (const alpha of [a, a, b, a, b, b]) colors.push(1, 1, 1, alpha);
+        }
       }
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      geometry.computeVertexNormals();
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
       const material = new THREE.MeshBasicMaterial({
         color: 0xbfa176,
+        vertexColors: true,
         transparent: true,
         opacity,
         depthWrite: false,
@@ -2116,8 +2126,9 @@ ${shader.vertexShader}`.replace(
     }
 
     scene.add(player);
-    installBasket(window.assetManager?.createProceduralBasket?.() || createFallbackBasket3D());
-    window.assetManager?.loadBasketModel?.().then((model) => installBasket(model)).catch(() => {});
+    const ready = window.assetManager?.basketModel;
+    installBasket(ready?.clone(true) || window.assetManager?.createProceduralBasket?.() || createFallbackBasket3D());
+    if (!ready) window.assetManager?.loadBasketModel?.().then((model) => installBasket(model)).catch(() => {});
   }
 
   /* -- фабрики предметов -------------------------------------------- */
@@ -2146,7 +2157,7 @@ ${shader.vertexShader}`.replace(
       model.rotation.y = Math.PI * .15;
       model.name = 'V751ProjectLotusModel';
       group.add(model);
-      group.userData.assetSource = 'models/v73/lotus-flower.obj';
+      group.userData.assetSource = window.assetManager.sources.lotus;
       return group;
     }
     const petalMaterial = new THREE.MeshStandardMaterial({ color: 0xe6a3ad, roughness: .74, emissive: 0x4a161d, emissiveIntensity: .1 });
@@ -2215,7 +2226,7 @@ ${shader.vertexShader}`.replace(
       return model;
     }
     const group = new THREE.Group();
-    const stone = new THREE.MeshStandardMaterial({ color: 0x6b6152, roughness: 1, flatShading: true });
+    const stone = riverStoneMaterial();
     for (let i = 0; i < 3; i += 1) {
       const chunk = new THREE.Mesh(new THREE.DodecahedronGeometry(.5 - i * .12, 0), stone);
       chunk.position.set((hash(i, 71) - .5) * .7, .28 - i * .1, (hash(i, 72) - .5) * .6);
@@ -2476,7 +2487,7 @@ ${shader.vertexShader}`.replace(
     }
 
     group.name = 'V751PapyrusGate';
-    group.userData.assetSource = 'project-procedural';
+    group.userData.assetSource = real ? 'models/v75/papyrus.glb' : 'project-procedural';
     return mergeByMaterial(group);
   }
 
@@ -2972,7 +2983,27 @@ ${shader.vertexShader}`.replace(
     return group;
   }
 
+  function createScroll() {
+    const scroll = new THREE.Group();
+    const paper = new THREE.MeshStandardMaterial({ color: 0xe8c787, roughness: .86, side: THREE.DoubleSide });
+    const edge = new THREE.MeshStandardMaterial({ color: 0xbe8b46, roughness: .88 });
+    const seal = new THREE.MeshStandardMaterial({ color: 0x9e3325, roughness: .59 });
+    const page = new THREE.Mesh(new THREE.BoxGeometry(1.07, .065, .72), paper);
+    scroll.add(page);
+    for (const side of [-1, 1]) {
+      const curl = new THREE.Mesh(new THREE.CylinderGeometry(.15, .15, 1.22, 12), edge);
+      curl.rotation.z = Math.PI / 2;
+      curl.position.set(0, .024, side * .34);
+      scroll.add(curl);
+    }
+    const stamp = new THREE.Mesh(new THREE.CylinderGeometry(.14, .16, .056, 12), seal);
+    stamp.position.set(.17, .047, .04);
+    scroll.add(stamp);
+    return scroll;
+  }
+
   const FACTORY = {
+    scroll: createScroll,
     lotus: createLotus,
     rock: createRock,
     log: createLog,
@@ -2992,18 +3023,31 @@ ${shader.vertexShader}`.replace(
     каждый спавн заново обходит дерево модели и создаёт материалы.
   */
   const pools = new Map();
+  const meshAsset = {
+    rock: 'rock', log: 'log', croc: 'crocodile', gate: 'papyrus', boat: 'ship',
+    lotus: 'lotus', shield: 'tokenShield', magnet: 'tokenMagnet', rush: 'tokenRush', mercy: 'tokenMercy',
+  };
+
+  function assetForMesh(type) {
+    return window.assetManager?.sources?.[meshAsset[type]] || '';
+  }
 
   function acquireMesh(type) {
     const pool = pools.get(type);
-    if (pool && pool.length) {
+    const source = assetForMesh(type);
+    while (pool?.length) {
       const mesh = pool.pop();
+      if (mesh.userData.loadedSource !== source) continue;
       mesh.visible = true;
       return mesh;
     }
     const factory = FACTORY[type];
     if (!factory || !scene) return null;
     const mesh = factory();
-    if (mesh) mesh.userData.baseScale = mesh.scale.x;
+    if (mesh) {
+      mesh.userData.baseScale = mesh.scale.x;
+      mesh.userData.loadedSource = source;
+    }
     return mesh;
   }
 
@@ -3035,6 +3079,7 @@ ${shader.vertexShader}`.replace(
   function releaseMesh(type, mesh) {
     if (!mesh) return;
     if (mesh.parent) mesh.parent.remove(mesh);
+    if (mesh.userData.loadedSource !== assetForMesh(type)) return;
     mesh.visible = false;
     mesh.scale.setScalar(mesh.userData.baseScale || 1);
     let pool = pools.get(type);
@@ -3081,10 +3126,14 @@ ${shader.vertexShader}`.replace(
     уклоняться было уже нечем — смена дорожки одна занимает четверть секунды.
     Метровый минимум остаётся, чтобы на медленном старте не было пустоты.
   */
+  function cruiseSpeed() {
+    return Math.min(TUNE.maxSpeed, TUNE.baseSpeed + state.distance * TUNE.speedRamp);
+  }
+
   function rowGap() {
     const d = difficulty();
-    const beat = mix(1.45, .92, d);
-    const cruise = Math.min(TUNE.maxSpeed, TUNE.baseSpeed + state.distance * TUNE.speedRamp);
+    const beat = mix(1.45, 1.04, d);
+    const cruise = cruiseSpeed();
     const expected = cruise * (state.rush > 0 ? TUNE.rushBoost : 1);
     return Math.max(mix(24, 16, d), Math.max(state.speed, expected) * beat);
   }
@@ -3174,6 +3223,17 @@ ${shader.vertexShader}`.replace(
     const free = reach.flatMap((reachable, lane) => reachable && !cells[lane] ? [lane] : []);
     const options = free.length ? free : reach.flatMap((reachable, lane) => reachable ? [lane] : []);
     const lane = options[Math.floor(hash(z, 27) * options.length)];
+
+    const distance = state.distance - z;
+    if (free.length && distance >= state.nextScrollDistance && state.scrolls.size < RIVER_SCROLLS.length) {
+      const index = state.scrollIndex % RIVER_SCROLLS.length;
+      state.scrollIndex = index + 1;
+      state.nextScrollDistance = distance + SCROLL_INTERVAL;
+      if (!state.scrolls.has(index)) {
+        addItem('scroll', lane, z - 3.8).scroll = index;
+        return;
+      }
+    }
 
     const roll = hash(z, 33);
     if (roll > .975) addItem('mercy', lane, z - 2.4);
@@ -3340,23 +3400,11 @@ ${shader.vertexShader}`.replace(
     if (dom.total) dom.total.textContent = String(Math.floor(state.score));
     if (dom.comboValue) dom.comboValue.textContent = `×${state.multiplier}`;
     if (dom.combo) dom.combo.classList.toggle('is-live', state.multiplier > 1);
-    updateLandingMeter();
+    if (dom.scrollCount) dom.scrollCount.textContent = String(state.scrolls.size);
     if (dom.hearts) {
       const nodes = dom.hearts.children;
       for (let i = 0; i < nodes.length; i += 1) nodes[i].classList.toggle('is-lost', i >= state.hearts);
     }
-  }
-
-  function updateLandingMeter() {
-    if (!dom.landing) return;
-    dom.landing.hidden = !Number.isFinite(state.nextReflection);
-    if (dom.landing.hidden) return;
-    const meters = Math.max(0, Math.ceil(state.nextReflection - state.distance));
-    const leg = state.reflectionCount ? REFLECTION_INTERVAL : FIRST_REFLECTION_DISTANCE;
-    dom.landingFill.style.transform = `scaleX(${clamp(1 - meters / leg, 0, 1)})`;
-    const label = String(meters);
-    if (dom.landingDistance.textContent !== label) dom.landingDistance.textContent = label;
-    dom.landing.classList.toggle('is-near', meters <= 24);
   }
 
   function setBuff(node, active) {
@@ -3389,8 +3437,9 @@ ${shader.vertexShader}`.replace(
     state.multiplier = 1;
     state.nearMisses = 0;
     state.milestone = 0;
-    state.nextReflection = FIRST_REFLECTION_DISTANCE;
-    state.reflectionCount = 0;
+    state.nextScrollDistance = FIRST_SCROLL_DISTANCE;
+    state.scrollIndex = 0;
+    state.scrolls.clear();
     state.runTime = 0;
     state.over = false;
     state.paused = false;
@@ -3568,6 +3617,7 @@ ${shader.vertexShader}`.replace(
     if (dom.finalDistance) dom.finalDistance.textContent = `${distance} м`;
     if (dom.finalScore) dom.finalScore.textContent = String(state.lotuses);
     if (dom.finalTotal) dom.finalTotal.textContent = String(score);
+    renderScrollJournal();
     const isRecord = score > (state.best.score || 0);
     if (isRecord) {
       state.best = { score, distance, lotuses: state.lotuses };
@@ -3589,7 +3639,7 @@ ${shader.vertexShader}`.replace(
   }
 
   function togglePause(force) {
-    if (!state.playing || dom.reflection?.open) return;
+    if (!state.playing) return;
     const next = force === undefined ? !state.paused : force;
     state.paused = next;
     if (next) clearBufferedInput();
@@ -3676,13 +3726,6 @@ ${shader.vertexShader}`.replace(
     state.actionTime = 0;
   }
 
-  function canLand() {
-    return !state.airborne && state.dive <= 0 && state.items.every((item) => (
-      !item.clearance || item.scored || item.lane !== state.lane
-      || item.z > 2 || item.z < -state.speed * .55
-    ));
-  }
-
   function addScore(amount) {
     state.score += amount * (state.rush > 0 ? 2 : 1);
   }
@@ -3751,6 +3794,17 @@ ${shader.vertexShader}`.replace(
   }
 
   function collectPickup(item) {
+    if (item.type === 'scroll') {
+      const scroll = RIVER_SCROLLS[item.scroll];
+      if (!scroll || state.scrolls.has(item.scroll)) return;
+      state.scrolls.add(item.scroll);
+      addScore(75);
+      toast(scroll.title, scroll.reference, 'story');
+      fx?.burst?.(item.x, .65, item.z, [1, .82, .43], 18, .9);
+      window.gameAudio?.playPowerup?.();
+      haptic('light');
+      return;
+    }
     if (item.type === 'lotus') {
       state.lotuses += 1;
       bumpCombo();
@@ -3787,94 +3841,49 @@ ${shader.vertexShader}`.replace(
     return true;
   }
 
-  const REFLECTIONS = [
+  const RIVER_SCROLLS = [
     {
-      title: 'Кто оказался ближним?',
-      reference: 'Луки 10:30–37',
-      question: 'На дороге лежит раненый человек. Ты можешь помочь, но тогда опоздаешь. Что ты сделаешь?',
-      choices: ['Остановлюсь и найду ему помощь', 'Пойду дальше в надежде, что остановится кто-то другой'],
-      note: 'Самарянин перевязал раненому раны, отвёз его в гостиницу и позаботился о том, чтобы ему помогли дальше. Иисус показывает, что ближним становится тот, кто проявляет милость.',
+      title: 'Мириам у берега',
+      reference: 'Исход 2:4–8',
+      note: 'Сестра Моисея наблюдала за корзинкой издалека. Когда дочь фараона нашла ребёнка, Мириам предложила позвать кормилицу.',
     },
     {
-      title: 'У Иосифа была власть',
-      reference: 'Бытие 50:15–21',
-      question: 'Братья продали Иосифа и теперь боятся, что он им отплатит. Как он может поступить?',
-      choices: ['Напомнить им о долге и оставить в страхе', 'Успокоить их и позаботиться об их семьях'],
-      note: 'Иосиф успокоил братьев и обещал кормить их и их детей. Он помнил, какое зло они сделали, и увидел, как Бог обратил случившееся к добру.',
+      title: 'Зерно Иосифа',
+      reference: 'Бытие 41:47–49, 56–57',
+      note: 'Иосиф собирал зерно в годы изобилия. Когда настал голод, он открыл житницы, и люди приходили покупать хлеб.',
     },
     {
-      title: 'Руфь остаётся рядом',
-      reference: 'Руфь 1:14–18',
-      question: 'Ноеминь возвращается домой одна и говорит Руфи, что та может вернуться к родным. Что выбирает Руфь?',
-      choices: ['Пойти с Ноеминью в незнакомую землю', 'Остаться на родине, где всё знакомо'],
-      note: 'Руфь пошла с Ноеминью и сказала, что её народ станет её народом, а её Бог — её Богом. Её верность стала конкретным поступком: она разделила с Ноеминью трудную дорогу.',
+      title: 'Милость самарянина',
+      reference: 'Луки 10:33–35',
+      note: 'Самарянин перевязал раненому раны, отвёз его в гостиницу и позаботился о том, чтобы ему помогли дальше.',
     },
     {
       title: 'Две лепты',
       reference: 'Марка 12:41–44',
-      question: 'Богатые кладут много, а вдова — две мелкие монеты. На что Иисус обращает внимание учеников?',
-      choices: ['На самую большую сумму', 'На то, чем каждый человек поделился из того, что имел'],
       note: 'Иисус заметил вдову: две лепты были всем, что у неё было на пропитание. По одной сумме мы не видим, чего человеку стоила его щедрость.',
     },
     {
-      title: 'Помощь на деле',
-      reference: 'Иакова 2:14–17',
-      question: 'Ты встретил человека, у которого нет еды и тёплой одежды. Что ты сделаешь?',
-      choices: ['Поддержу словами и поделюсь тем, что ему нужно', 'Пожелаю ему тепла и сытости и пойду дальше'],
-      note: 'Иаков приводит именно этот пример, когда говорит о вере и делах. Если у человека нет необходимого, наша забота становится ощутимой через посильную помощь.',
+      title: 'Верность Руфи',
+      reference: 'Руфь 1:16–17',
+      note: 'Руфь пошла с Ноеминью в незнакомую землю. Она разделила с ней дорогу и назвала её Бога своим Богом.',
     },
   ];
 
-  let reflectionIndex = 0;
-
-  function openReflection() {
-    const dialog = dom.reflection;
-    if (!dialog?.showModal) {
-      state.nextReflection = Infinity;
-      return;
-    }
-    state.reflectionCount += 1;
-    state.nextReflection = state.reflectionCount < REFLECTIONS.length ? state.distance + REFLECTION_INTERVAL : Infinity;
-    const reflection = REFLECTIONS[reflectionIndex];
-    dom.reflectionTitle.textContent = reflection.title;
-    dom.reflectionReference.textContent = reflection.reference;
-    dom.reflectionQuestion.textContent = reflection.question;
-    dom.reflectionQuestion.hidden = false;
-    dom.reflectionNote.hidden = true;
-    dom.reflectionChoices.replaceChildren(...reflection.choices.map((choice) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.textContent = choice;
-      button.addEventListener('click', () => {
-        dom.reflectionNote.textContent = reflection.note;
-        dom.reflectionNote.hidden = false;
-        dom.reflectionNote.focus({ preventScroll: true });
-        dom.reflectionChoices.hidden = true;
-        dom.reflectionQuestion.hidden = true;
-      });
-      return button;
+  function renderScrollJournal() {
+    dom.scrollJournal.hidden = state.scrolls.size === 0;
+    dom.scrollJournal.open = false;
+    dom.scrollEntries.replaceChildren(...Array.from(state.scrolls, (index) => {
+      const scroll = RIVER_SCROLLS[index];
+      const entry = document.createElement('li');
+      const title = document.createElement('strong');
+      const reference = document.createElement('small');
+      const note = document.createElement('p');
+      title.textContent = scroll.title;
+      reference.textContent = scroll.reference;
+      note.textContent = scroll.note;
+      entry.append(title, reference, note);
+      return entry;
     }));
-    dom.reflectionChoices.hidden = false;
-    clearBufferedInput();
-    dialog.showModal();
-    dom.reflectionTitle.focus({ preventScroll: true });
-    state.paused = true;
-    window.gameAudio?.suspend?.();
-  }
-
-  function bindReflections() {
-    try {
-      const saved = Number(localStorage.getItem(REFLECTION_KEY));
-      if (Number.isInteger(saved) && saved >= 0 && saved < REFLECTIONS.length) reflectionIndex = saved;
-    } catch { /* приватный режим */ }
-
-    dom.reflectionContinue?.addEventListener('click', () => dom.reflection.close());
-    dom.reflection?.addEventListener('close', () => {
-      reflectionIndex = (reflectionIndex + 1) % REFLECTIONS.length;
-      try { localStorage.setItem(REFLECTION_KEY, String(reflectionIndex)); } catch { /* приватный режим */ }
-      if (document.hidden) togglePause(true);
-      else togglePause(false);
-    });
   }
 
   function checkMilestones() {
@@ -3944,8 +3953,7 @@ ${shader.vertexShader}`.replace(
     }
     state.runTime += dt;
     const rushFactor = state.rush > 0 ? TUNE.rushBoost : 1;
-    const target = Math.min(TUNE.maxSpeed, TUNE.baseSpeed + state.distance * TUNE.speedRamp);
-    state.speed = damp(state.speed, target * rushFactor, 1.6, dt);
+    state.speed = damp(state.speed, cruiseSpeed() * rushFactor, 2.3, dt);
     state.distance += state.speed * dt;
 
     state.shield = Math.max(0, state.shield - dt);
@@ -3974,6 +3982,11 @@ ${shader.vertexShader}`.replace(
     for (let i = state.items.length - 1; i >= 0; i -= 1) {
       const item = state.items[i];
       item.z += state.speed * dt;
+      // Поздний файл заменяет временную модель вдали, где подмена незаметна.
+      if (item.mesh && item.z < -32 && item.mesh.userData.loadedSource !== assetForMesh(item.type)) {
+        releaseMesh(item.type, item.mesh);
+        item.mesh = null;
+      }
       if (!item.mesh && item.z > MESH_RANGE) attachMesh(item);
 
       if (item.type === 'lotus') {
@@ -4106,7 +4119,6 @@ ${shader.vertexShader}`.replace(
 
     updateHud();
     window.gameAudio?.setIntensity?.(clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed) * .7 + (state.multiplier - 1) * .1, 0, 1));
-    if (state.distance >= state.nextReflection && canLand()) openReflection();
   }
 
   /* ------------------------------------------------------------------ *
@@ -4117,7 +4129,9 @@ ${shader.vertexShader}`.replace(
   const BLACK = THREE ? new THREE.Color(0x0b0d10) : null;
   const projectedHazard = THREE ? new THREE.Vector3() : null;
   const nextHazards = [null, null, null];
-  const hazardIcons = { low: '#ico-wave-up', high: '#ico-wave-down', ground: '#ico-veer' };
+  const hazardIcons = {
+    low: '#ico-wave-up', high: '#ico-wave-down', ground: '#ico-veer', scroll: '#ico-scroll',
+  };
 
   function updateHazardMarkers() {
     if (!dom.hazardMarkers.length) return;
@@ -4125,7 +4139,7 @@ ${shader.vertexShader}`.replace(
     if (state.playing && !state.paused) {
       const ahead = state.speed * 2.25;
       for (const item of state.items) {
-        if (!item.clearance || item.scored || item.z > -1.8 || item.z < -ahead) continue;
+        if ((!item.clearance && item.type !== 'scroll') || item.scored || item.z > -1.8 || item.z < -ahead) continue;
         const current = nextHazards[item.lane];
         if (!current || item.z > current.z) nextHazards[item.lane] = item;
       }
@@ -4142,7 +4156,7 @@ ${shader.vertexShader}`.replace(
         x = projected.x;
         y = projected.y - projected.size * .65;
       } else {
-        const height = item.type === 'gate' || item.type === 'boat' ? 3.2 : 2;
+        const height = item.type === 'scroll' ? 1.36 : item.type === 'gate' || item.type === 'boat' ? 3.2 : 2;
         projectedHazard.set(item.x, height, item.z).project(camera);
         x = (projectedHazard.x + 1) * w / 2;
         y = (1 - projectedHazard.y) * h / 2;
@@ -4151,9 +4165,10 @@ ${shader.vertexShader}`.replace(
       if (marker.hidden) continue;
       marker.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
       marker.classList.toggle('is-urgent', item.z > -state.speed * .65);
-      if (marker.dataset.action !== item.clearance) {
-        marker.dataset.action = item.clearance;
-        marker.querySelector('use').setAttribute('href', hazardIcons[item.clearance]);
+      const action = item.clearance || item.type;
+      if (marker.dataset.action !== action) {
+        marker.dataset.action = action;
+        marker.querySelector('use').setAttribute('href', hazardIcons[action]);
       }
     }
   }
@@ -4267,7 +4282,7 @@ ${shader.vertexShader}`.replace(
     for (const sheet of dustSheets) {
       if (!sheet.material.uniforms) continue;
       sheet.material.uniforms.uColor.value.copy(air.haze);
-      sheet.material.uniforms.uStrength.value = sheet.userData.baseStrength * (.25 + air.storm * .75);
+      sheet.material.uniforms.uStrength.value = sheet.userData.baseStrength * (.10 + air.storm * .70);
     }
     for (const entry of decor) {
       if (entry.kind !== 'dune' && entry.kind !== 'pyramid') continue;
@@ -4407,6 +4422,10 @@ ${shader.vertexShader}`.replace(
       */
       if (item.z < -108) continue;
       switch (item.type) {
+        case 'scroll':
+          mesh.position.y = .2 + Math.sin(t * 2.0 + item.phase) * .07;
+          mesh.rotation.set(.34, Math.sin(t * 1.2 + item.phase) * .22, .09);
+          break;
         case 'lotus':
           mesh.rotation.y += dt * 1.15;
           mesh.position.y = -.02 + item.hover + Math.sin(t * 2.4 + item.phase) * .038;
@@ -5044,6 +5063,16 @@ ${shader.vertexShader}`.replace(
       }
       ctx.fillStyle = '#f0cd70';
       ctx.beginPath(); ctx.arc(0, -p.size * .08, p.size * .05, 0, Math.PI * 2); ctx.fill();
+    } else if (item.type === 'scroll') {
+      ctx.rotate(-.12);
+      const w = p.size * .76, h = p.size * .45;
+      ctx.fillStyle = '#e9c88f';
+      ctx.fillRect(-w / 2, -h, w, h);
+      ctx.strokeStyle = '#7f5029';
+      ctx.lineWidth = Math.max(1, p.size * .055);
+      ctx.strokeRect(-w / 2, -h, w, h);
+      ctx.fillStyle = '#a54029';
+      ctx.beginPath(); ctx.arc(w * .13, -h * .48, p.size * .083, 0, Math.PI * 2); ctx.fill();
     } else if (item.type === 'rock') {
       ctx.fillStyle = '#6b6053';
       ctx.beginPath(); ctx.ellipse(0, 0, p.size * .40, p.size * .27, -.12, 0, Math.PI * 2); ctx.fill();
@@ -5383,7 +5412,7 @@ ${shader.vertexShader}`.replace(
         hearts: state.hearts,
         biome: BIOMES[state.biome].id,
         proceduralSkyVisible: true,
-        modelSources: window.__mosesV75ModelSources || {},
+        modelSources: window.assetManager?.sources || {},
       };
       return;
     }
@@ -5409,7 +5438,7 @@ ${shader.vertexShader}`.replace(
       reflectionPasses: 0,
       shadowPasses: renderer.shadowMap.enabled ? 1 : 0,
       proceduralSkyVisible: true,
-      modelSources: window.__mosesV75ModelSources || {},
+      modelSources: window.assetManager?.sources || {},
     };
   }
 
@@ -5468,7 +5497,6 @@ ${shader.vertexShader}`.replace(
   }
 
   function bindControls() {
-    bindReflections();
     lockTelegramSwipes();
     loadControlMode();
     bindPress(dom.controlModeArrows, () => applyControlMode('arrows', true));
@@ -5493,7 +5521,6 @@ ${shader.vertexShader}`.replace(
     dom.tutSkip?.addEventListener('click', closeTutorial);
 
     window.addEventListener('keydown', (event) => {
-      if (dom.reflection?.open) return;
       if (tutorialOpen) {
         // Поверх обучения стрелки листают шаги, а не двигают корзинку.
         if (event.code === 'ArrowRight' || event.code === 'Enter' || event.code === 'Space') { stepTutorial(1); event.preventDefault(); }
@@ -5620,11 +5647,8 @@ ${shader.vertexShader}`.replace(
     try {
       note(0);
       note(1);
-      // 12с — тот же потолок, что у отчёта о недогруженных людях в «Земле
-      // обетованной» (board3d.js): опаздывать можно, зависать — нет.
-      // 12с — тот же потолок, что у отчёта о недогруженных людях в «Земле
-      // обетованной» (board3d.js): опаздывать можно, зависать — нет.
-      await withTimeout(window.assetManager?.preloadGameplayModels?.() || Promise.resolve(), 12_000);
+      const assets = window.assetManager;
+      await withTimeout(Promise.all([assets?.preloadGameplayModels?.(), assets?.loadBasketModel?.()]), 12_000);
       note(2);
       buildScene();
       resize();
