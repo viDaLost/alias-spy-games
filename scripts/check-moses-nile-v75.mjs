@@ -2,6 +2,7 @@ import { serveSabbathTestAsset } from './lib/sabbath-test-assets.mjs';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
@@ -16,8 +17,9 @@ const runtimeFiles = fs.readdirSync(path.join(gameRoot, 'js')).filter((name) => 
 const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
 
 for (const token of [
-  'V7.5.3 · LOADING',
-  'game-v75.js?v=778',
+  'V7.5.4 · LOADING',
+  'game-v75.js?v=779',
+  'study-bank.js?v=779',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
   'js/shaders.js',
@@ -106,9 +108,32 @@ for (const token of [
 for (const [name, source] of [['materials.js', materials], ['shaders.js', shaders], ['fx.js', effects], ['landscape.js', fs.readFileSync(path.join(gameRoot, 'js/landscape.js'), 'utf8')]]) {
   if (/setAnimationLoop/.test(source)) throw new Error(`${name} must stay a library without its own render loop`);
 }
-const expectedRuntime = ['assets.js', 'fx.js', 'game-v75.js', 'landscape.js', 'materials.js', 'shaders.js', 'sound.js'];
+const expectedRuntime = ['assets.js', 'fx.js', 'game-v75.js', 'landscape.js', 'materials.js', 'shaders.js', 'sound.js', 'study-bank.js'];
 if (runtimeFiles.join(',') !== expectedRuntime.join(',')) {
   throw new Error(`Unexpected runtime files: ${runtimeFiles.join(', ')}`);
+}
+for (const language of ['ru', 'en', 'de', 'es']) {
+  const gameDir = language === 'ru' ? gameRoot : path.join(root, 'web/locales', language, 'games/moses-nile-v7');
+  const source = fs.readFileSync(path.join(gameDir, 'js/study-bank.js'), 'utf8');
+  const app = { window: {} };
+  vm.runInNewContext(source, app);
+  const deck = app.window.NileBibleStudy.buildDeck();
+  if (deck.length !== 100 || new Set(deck.map((entry) => entry.url)).size !== 100) {
+    throw new Error(`${language}: expected 100 distinct Bible passages`);
+  }
+  for (const [index, entry] of deck.entries()) {
+    if (!entry.testament || !entry.question.endsWith('?') || !entry.answer || !entry.other ||
+        entry.answer === entry.other || !entry.note || !/ \d+:\d+$/.test(entry.reference) ||
+        !/^https:\/\/www\.bible\.com\/ru\/bible\/400\/[A-Z0-9]+\.\d+\.\d+\.SYNO$/.test(entry.url)) {
+      throw new Error(`${language}: an invalid study card: ${JSON.stringify(entry)}`);
+    }
+    if (index > 0 && entry.testament === deck[index - 1].testament) {
+      throw new Error(`${language}: the deck should alternate between both Testaments`);
+    }
+    if (language !== 'ru' && /[А-Яа-яЁё]/.test(JSON.stringify(entry))) {
+      throw new Error(`${language}: untranslated study card: ${JSON.stringify(entry)}`);
+    }
+  }
 }
 // Людей с берегов убрали намеренно: проверка держит это состояние, чтобы
 // скелетная модель и её анимация не вернулись вместе с чужой правкой.
@@ -234,7 +259,7 @@ try {
   if (initial.mode !== 'fallback' || !initial.fallbackClass) throw new Error(`Fallback did not initialize: ${JSON.stringify(initial)}`);
   if (!initial.background.includes('gradient')) throw new Error(`The procedural sky gradient is not applied: ${initial.background}`);
   if (!initial.controlsInsideViewport) throw new Error('Mobile controls are clipped');
-  if (!initial.badge.startsWith('V7.5.3 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
+  if (!initial.badge.startsWith('V7.5.4 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
 
   // Первый запуск открывает обучение поверх меню — проверка проходит его
   // насквозь и заодно убеждается, что шаги листаются и экран закрывается.
@@ -297,29 +322,38 @@ try {
   if (!running.playing || !running.startHidden || running.distance < 8 || running.painted < 200) throw new Error(`Fallback gameplay is not visibly running: ${JSON.stringify(running)}`);
   if (running.hearts !== 3) throw new Error(`The run should start with three hearts, got ${running.hearts}`);
   await page.evaluate(() => { window.__mosesV75State.invulnerable = 90; });
-  async function answerQuestion(index, correct) {
-    await page.waitForFunction((index) => window.__mosesV75State.activeStudy?.question === index, index, { timeout: 22000 });
+  const answers = [];
+  async function answerQuestion(number, result, expectedHearts) {
+    await page.waitForFunction((number) => window.__mosesV75State.activeStudy?.number === number, number, { timeout: 22000 });
     const state = await page.evaluate(() => {
       const { lane, activeStudy } = window.__mosesV75State;
       return { lane, correctSide: activeStudy.correctSide };
     });
-    const rightLane = state.correctSide === 'right' ? 2 : 0;
-    const targetLane = correct ? rightLane : 2 - rightLane;
+    const correctLane = state.correctSide === 'right' ? 2 : 0;
+    const targetLane = result === 'skipped' ? 1 : result === 'correct' ? correctLane : 2 - correctLane;
     for (let remaining = Math.abs(state.lane - targetLane); remaining > 0; remaining -= 1) {
       await page.keyboard.press(state.lane > targetLane ? 'ArrowLeft' : 'ArrowRight');
     }
-    await page.waitForFunction((count) => window.__mosesV75State.studyResults.length >= count, index + 1, { timeout: 9000 });
-    const answered = await page.evaluate((index) => {
-      const { studyResults, playing, distance } = window.__mosesV75State;
-      return { status: studyResults[index].result, playing, distance };
-    }, index);
-    if (answered.status !== (correct ? 'correct' : 'incorrect') || !answered.playing) {
+    await page.waitForFunction((number) => window.__mosesV75State.studyResults.length === number, number, { timeout: 9000 });
+    const answered = await page.evaluate((number) => {
+      const { studyResults, playing, distance, hearts, invulnerable } = window.__mosesV75State;
+      const { result, question } = studyResults[number - 1];
+      return { result, question, playing, distance, hearts, invulnerable };
+    }, number);
+    if (answered.result !== result || answered.hearts !== expectedHearts || answered.playing !== (expectedHearts > 0) ||
+        await page.locator('#hearts span:not(.is-lost)').count() !== expectedHearts) {
       throw new Error(`Unexpected answer result: ${JSON.stringify(answered)}`);
     }
-    await page.waitForFunction((distance) => window.__mosesV75State.distance > distance + 6, answered.distance);
+    answers.push(answered.question);
+    if (answered.playing) {
+      await page.waitForFunction((distance) => window.__mosesV75State.distance > distance + 6, answered.distance);
+      const hearts = await page.evaluate(() => window.__mosesV75State.hearts);
+      if (hearts !== expectedHearts) throw new Error('A Bible question was charged more than once');
+    }
   }
-  await answerQuestion(0, true);
-  await answerQuestion(1, false);
+  await answerQuestion(1, 'correct', 3);
+  await answerQuestion(2, 'incorrect', 2);
+  await answerQuestion(3, 'skipped', 2);
   if (await page.locator('dialog[open]').count()) throw new Error('A Bible question interrupted the run');
   await page.evaluate(() => { window.__mosesV75State.rush = 2.5; });
   await page.waitForFunction(() => window.__mosesV75State.speed >= 29);
@@ -335,15 +369,23 @@ try {
   await page.waitForFunction((distance) => window.__mosesV75State.distance > distance + 3, paused.distance);
   const resumed = await snapshot();
   if (resumed.speed < paused.speed || resumed.rush <= 0) throw new Error('Momentum or boost did not survive resuming');
-  await page.keyboard.press('KeyP');
-  await page.locator('#study-quit-btn').click();
-  if (await page.locator('#study-score').textContent() !== '1 / 2') throw new Error('The Bible review has the wrong score');
-  const review = await page.locator('#river-journal-entries').textContent();
-  if (!review.includes('Исход 2:2') || !review.includes('Из тростника') || !review.includes('Исход 2:3')) {
-    throw new Error('The review is missing the correct facts or their verses');
+  await page.waitForFunction(() => window.__mosesV75State.activeStudy?.number === 4, null, { timeout: 22000 });
+  await page.evaluate(() => { window.__mosesV75State.hearts = 1; });
+  await answerQuestion(4, 'incorrect', 0);
+  if (!await page.locator('#river-journal').evaluate((journal) => journal.open)) throw new Error('The final mistake did not open Bible review');
+  if (await page.locator('#study-score').textContent() !== '1 / 4') throw new Error('The Bible review has the wrong score');
+  const entries = page.locator('#river-journal-entries li');
+  for (const [index, answer] of answers.entries()) {
+    const entry = entries.nth(index);
+    const review = await entry.textContent();
+    if (!review.includes(answer.answer) || !review.includes(answer.note) ||
+        await entry.locator('a').textContent() !== answer.reference ||
+        await entry.locator('a').getAttribute('href') !== answer.url) {
+      throw new Error('The Bible review is missing a correct answer, its explanation or its passage link');
+    }
   }
   if (errors.length) throw new Error(`Fallback page errors: ${errors.join(' | ')}`);
-  console.log('OK: Moses Nile runs without WebGL, Bible answers preserve movement and the review cites Exodus, and a pause freezes speed, distance and active boosts.');
+  console.log('OK: Moses Nile runs without WebGL. Correct answers and skips keep hearts, mistakes cost one heart and the final mistake opens review. Pause preserves speed, distance and boosts.');
 } finally {
   await context.close();
   await browser.close();

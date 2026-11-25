@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
   <meta name="theme-color" content="#b79869">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Моисей: Путь по Нилу — V7.5.3</title>
+  <title>Моисей: Путь по Нилу — V7.5.4</title>
   <link rel="stylesheet" href="../../styles/typography.css">
   <style>
     :root {
@@ -247,11 +247,12 @@
     .study-answer:last-child { border-color: #73bdaf80; color: #c1f0e7; }
     #river-study[data-side="left"] .study-answer:first-child { background: #d7aa5540; border-color: #e1ad64; }
     #river-study[data-side="right"] .study-answer:last-child { background: #73bdaf40; border-color: #73bdaf; }
+    #study-hint { margin: 5px 0 0; color: #ebd1a3; font-size: 10px; }
     #study-countdown {
       position: absolute; bottom: 0; left: 0; height: 3px; width: 100%;
       background: #e4bd78; transform-origin: left;
     }
-    .study-source { display: inline-block; margin: 0 9px 8px; color: #5e4421; font-size: 12px; }
+    .study-source { display: inline-block; margin: 0 0 8px; color: #5e4421; font-size: 12px; }
     #hazard-markers { position: absolute; z-index: 8; inset: 0; pointer-events: none; overflow: hidden; }
     #hazard-markers i {
       position: absolute; top: 0; left: 0; width: 30px; height: 29px;
@@ -287,7 +288,6 @@
     #river-journal-entries li + li { border-top: 1px solid #e0d1b4; padding-top: 9px; }
     #river-journal-entries small { display: block; margin: 2px 0 5px; color: #6d562f; }
     #river-journal-entries p { font-size: 12px; line-height: 1.44; }
-    #study-reflection { margin: 8px 9px 0; padding: 9px; background: #eadcbf80; border-radius: 8px; font-size: 12px; }
 
     .result { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 14px 0 10px; }
     .result div { padding: 10px 6px; border-radius: 14px; background: rgba(117, 88, 49, .10); color: #574634; font-size: 11px; }
@@ -563,12 +563,13 @@
     </div>
   </div>
   <section id="river-study" aria-live="polite" aria-labelledby="study-question" hidden>
-    <small>Книга Исход <span aria-hidden="true">·</span> <span id="study-progress"></span></small>
+    <small id="study-progress"></small>
     <p id="study-question"></p>
     <div class="study-answers">
       <span class="study-answer"><span aria-hidden="true">←</span> <span id="study-left"></span></span>
       <span class="study-answer"><span id="study-right"></span> <span aria-hidden="true">→</span></span>
     </div>
+    <p id="study-hint">По центру — пропуск. Ошибка −1 ♥</p>
     <span id="study-countdown" aria-hidden="true"></span>
   </section>
   <div id="hazard-markers" aria-hidden="true">
@@ -707,15 +708,13 @@
       <p id="best-line">Лучший результат: 0</p>
       <details id="river-journal" hidden>
         <summary>Разбор по Библии <span aria-hidden="true">·</span> <span id="study-score"></span></summary>
-        <a class="study-source" href="https://www.bible-center.ru/ru/bibletext/synnew_ru/ex/2:1-10" target="_blank" rel="noopener">Читать Исход 2:1–10 в Синодальном переводе</a>
         <ul id="river-journal-entries"></ul>
-        <p id="study-reflection">Что сделали мать Моисея, его сестра и дочь фараона, чтобы спасти младенца?</p>
       </details>
       <button class="btn" id="restart-btn" type="button">ПОПРОБОВАТЬ СНОВА</button>
     </div>
   </div>
 
-  <div id="version-badge">V7.5.3 · LOADING</div>
+  <div id="version-badge">V7.5.4 · LOADING</div>
   <!--
     Игра открывается и отдельной страницей (превью, прямая ссылка в Telegram),
     поэтому SDK подключается здесь, а не только в оболочке приложения. Тег
@@ -733,7 +732,8 @@
   <link rel="stylesheet" href="../../styles/sabbath-access.css" />
   <script src="../../js/sabbath-clock.js?v=4"></script>
   <script src="../../js/sabbath-access.js?v=5"></script>
-  <script type="application/x-app-access" data-app-access-src="js/game-v75.js?v=778&r=778"></script>
+  <script type="application/x-app-access" data-app-access-src="js/study-bank.js?v=779"></script>
+  <script type="application/x-app-access" data-app-access-src="js/game-v75.js?v=779&r=779"></script>
   <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){try{localStorage.setItem('moses-nile-tutorial-seen-v1','1')}catch(e){}setTimeout(()=>{document.getElementById('tut-skip')?.click();document.getElementById('start-btn')?.click()},1600)}</script>
 </body>
 </html>

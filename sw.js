@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '1cf6a5720e';
+const VERSION = '7a528ebab8';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -67,6 +67,7 @@ const PRECACHE = [
   'web/games/moses-nile-v7/js/materials.js',
   'web/games/moses-nile-v7/js/shaders.js',
   'web/games/moses-nile-v7/js/sound.js',
+  'web/games/moses-nile-v7/js/study-bank.js',
   'web/games/quartet-mobile.css',
   'web/games/quartet-table-theme.css',
   'web/games/quartet-table.css',

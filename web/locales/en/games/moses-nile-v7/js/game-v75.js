@@ -24,7 +24,7 @@
    * 1. Константы                                                        *
    * ------------------------------------------------------------------ */
 
-  const VERSION = 'V7.5.3';
+  const VERSION = 'V7.5.4';
   const EDITION = 'RUNNER II';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
@@ -324,6 +324,7 @@
     milestone: 0,
     studyDistance: FIRST_STUDY_DISTANCE,
     studyIndex: 0,
+    studyDeck: [],
     activeStudy: null,
     studyResults: [],
     best: { score: 0, distance: 0, lotuses: 0 },
@@ -3250,7 +3251,7 @@ ${shader.vertexShader}`.replace(
   }
 
   function generateStudyRow(z) {
-    if (state.studyIndex >= STUDY_QUESTIONS.length) return false;
+    if (state.studyIndex >= state.studyDeck.length) return false;
     const distance = state.distance - z;
     // Резервируем место для чтения вопроса в русле до двух указателей.
     if (distance < state.studyDistance - STUDY_MAX_LEAD - 15) return false;
@@ -3260,7 +3261,8 @@ ${shader.vertexShader}`.replace(
       return true;
     }
     const item = addItem('study', 1, z);
-    item.question = state.studyIndex++;
+    item.question = state.studyDeck[state.studyIndex];
+    item.number = ++state.studyIndex;
     item.correctSide = Math.random() < .5 ? 'left' : 'right';
     item.lead = Math.min(STUDY_MAX_LEAD, cruiseSpeed(distance) * STUDY_SECONDS);
     state.studyDistance = distance + STUDY_INTERVAL;
@@ -3454,6 +3456,7 @@ ${shader.vertexShader}`.replace(
     state.milestone = 0;
     state.studyDistance = FIRST_STUDY_DISTANCE;
     state.studyIndex = 0;
+    state.studyDeck = window.NileBibleStudy?.buildDeck() ?? [];
     state.studyResults.length = 0;
     hideStudy();
     state.runTime = 0;
@@ -3850,51 +3853,6 @@ ${shader.vertexShader}`.replace(
     return true;
   }
 
-  const STUDY_QUESTIONS = [
-    {
-      question: 'How long did his mother hide the baby?',
-      answer: 'Three months',
-      other: 'One month',
-      reference: 'Exodus 2:2',
-      note: 'His mother hid her son for three months. When she could hide him no longer, she prepared a basket.',
-    },
-    {
-      question: 'What was the basket made of?',
-      answer: 'Reeds',
-      other: 'Wood',
-      reference: 'Exodus 2:3',
-      note: 'His mother waterproofed a basket of reeds and set it with the baby among the reeds by the riverbank.',
-    },
-    {
-      question: 'Who watched the basket from a distance?',
-      answer: 'Moses’s sister',
-      other: 'His father',
-      reference: 'Exodus 2:4',
-      note: 'His sister watched from a distance to find out what would happen to her brother.',
-    },
-    {
-      question: 'Who noticed the basket in the reeds?',
-      answer: 'Pharaoh’s daughter',
-      other: 'A servant',
-      reference: 'Exodus 2:5–6',
-      note: 'Pharaoh’s daughter saw the basket and sent a servant to fetch it. When she saw the crying baby, she took pity on him.',
-    },
-    {
-      question: 'Who nursed the baby?',
-      answer: 'His mother',
-      other: 'Pharaoh’s daughter',
-      reference: 'Exodus 2:7–9',
-      note: 'His sister offered to find a nurse and brought Moses’s own mother. Pharaoh’s daughter asked her to nurse the child.',
-    },
-    {
-      question: 'Why was he named Moses?',
-      answer: 'He was drawn out of the water',
-      other: 'It was his father’s name',
-      reference: 'Exodus 2:10',
-      note: 'When the boy was older, Pharaoh’s daughter took him as her son. She explained his name by recalling how she drew him out of the water.',
-    },
-  ];
-
   function hideStudy() {
     state.activeStudy = null;
     if (dom.study) dom.study.hidden = true;
@@ -3902,11 +3860,11 @@ ${shader.vertexShader}`.replace(
 
   function updateStudy(item) {
     if (item.z < -item.lead) return false;
-    const question = STUDY_QUESTIONS[item.question];
+    const { question } = item;
     if (state.activeStudy !== item) {
       state.activeStudy = item;
       dom.studyQuestion.textContent = question.question;
-      dom.studyProgress.textContent = `${item.question + 1} / ${STUDY_QUESTIONS.length}`;
+      dom.studyProgress.textContent = `${question.testament} · ${item.number}`;
       dom.studyLeft.textContent = item.correctSide === 'left' ? question.answer : question.other;
       dom.studyRight.textContent = item.correctSide === 'right' ? question.answer : question.other;
       dom.study.hidden = false;
@@ -3918,7 +3876,19 @@ ${shader.vertexShader}`.replace(
     const result = side === 'center' ? 'skipped' : side === item.correctSide ? 'correct' : 'incorrect';
     state.studyResults.push({ question, result });
     hideStudy();
-    const title = result === 'correct' ? 'Correct answer' : result === 'skipped' ? 'Question skipped' : 'Check your answer';
+    if (result === 'incorrect') {
+      state.hearts -= 1;
+      updateHud();
+      if (state.hearts === 0) {
+        endGame('A wrong answer cost your last heart.');
+        dom.studyJournal.open = true;
+        return true;
+      }
+      flash('rgba(150, 40, 26, .25)', 300);
+      window.gameAudio?.playHit?.();
+      haptic('medium');
+    }
+    const title = result === 'correct' ? 'Correct answer' : result === 'skipped' ? 'Question skipped' : 'Wrong answer. −1 heart';
     toast(title, `${question.answer} · ${question.reference}`, 'story');
     return true;
   }
@@ -3931,13 +3901,20 @@ ${shader.vertexShader}`.replace(
     dom.studyEntries.replaceChildren(...state.studyResults.map(({ question, result }) => {
       const entry = document.createElement('li');
       const title = document.createElement('strong');
-      const reference = document.createElement('small');
+      const answer = document.createElement('small');
+      const reference = document.createElement('a');
       const note = document.createElement('p');
       const status = result === 'correct' ? 'Correct' : result === 'skipped' ? 'Пропуск' : 'Error';
       title.textContent = question.question;
-      reference.textContent = `${status} · ${question.answer} · ${question.reference}`;
+      answer.textContent = `${status} · ${question.answer}`;
+      reference.className = 'study-source';
+      reference.href = question.url;
+      reference.target = '_blank';
+      reference.rel = 'noopener';
+      reference.title = 'Russian Synodal Bible';
+      reference.textContent = question.reference;
       note.textContent = question.note;
-      entry.append(title, reference, note);
+      entry.append(title, answer, note, reference);
       return entry;
     }));
   }
@@ -4046,6 +4023,7 @@ ${shader.vertexShader}`.replace(
       if (!item.mesh && item.z > MESH_RANGE) attachMesh(item);
       if (item.type === 'study') {
         if (updateStudy(item)) removeItem(i);
+        if (!state.playing) return;
         continue;
       }
 
