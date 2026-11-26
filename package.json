@@ -41,7 +41,7 @@
     "check:admin-sections": "node scripts/check-admin-sections.mjs",
     "check:wordsearch": "node scripts/check-wordsearch-levels.mjs && node scripts/check-wordsearch-selection.mjs",
     "check:level-modal": "node scripts/check-level-modal.mjs",
-    "check:bible-wow": "node scripts/check-bible-wow-levels.mjs",
+    "check:bible-wow": "node scripts/check-bible-wow-levels.mjs && node scripts/check-bible-wow-endless.mjs",
     "build:dark": "node scripts/build-dark-theme.mjs",
     "check:dark": "node scripts/build-dark-theme.mjs --check",
     "check:sacred-fallback": "node scripts/check-sacred-word-fallback.mjs",

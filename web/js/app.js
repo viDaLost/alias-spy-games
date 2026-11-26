@@ -936,6 +936,7 @@ function cleanupActiveGame() {
   try { if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval); } catch {}
   try { window.__aliasCleanup?.(); } catch {}
   try { window.__wsCleanup?.(); } catch {}
+  try { window.__bibleWowCleanup?.(); } catch {}
   window.BibleAzbuka?.cleanup();
   try { window.__sacredWordCleanup?.(); } catch {}
   try { window.__kidsArkPairsCleanup?.(); } catch {}
