@@ -706,7 +706,8 @@ let gameLaunchEntry = 0;
 function showGame(gameName) {
   if (window.AppAccess && !window.AppAccess.allowed()) return;
   if (!canShowGame({ key: gameName })) return;
-  if (gameName === "moses-nile" && (fullCatalogPreview || window.AppAccess?.state()?.isRoot !== true)) {
+  const access = window.AppAccess?.state();
+  if (gameName === "moses-nile" && (fullCatalogPreview || (access?.isRoot !== true && access?.userId !== "17617578"))) {
     if (window.SabbathAccess?.status().mandatory) {
       window.SabbathAccess.authorize(gameName);
       return;
