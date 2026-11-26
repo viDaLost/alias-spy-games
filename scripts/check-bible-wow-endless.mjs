@@ -101,7 +101,22 @@ async function launch() {
 }
 
 await launch();
+assert.ok($('#wow-mode-menu'), 'entry opens the mode selection');
+assert.equal($('#wow-grid'), null);
 assert.equal(value('#wow-score'), 90);
+press('#wow-classic-open');
+assert.ok($('#wow-grid'));
+assert.equal($('#wow-title').textContent.trim(), 'Уровень 1');
+press('#wow-levels-open');
+assert.ok($('#wow-levels-modal').classList.contains('open'));
+press('#wow-levels-close');
+press('#wow-modes');
+assert.ok($('#wow-mode-menu'));
+press('#wow-endless-open');
+assert.ok($('#wow-duration-menu'));
+assert.equal(tick, null, 'timer starts only after choosing a duration');
+press('#wow-duration-back');
+assert.ok($('#wow-mode-menu'));
 press('#wow-endless-open');
 assert.equal(document.querySelectorAll('[data-wow-duration]').length, 3);
 press('[data-wow-duration="60"]');
@@ -159,14 +174,17 @@ assert.equal(JSON.parse(window.localStorage.getItem(recordKey))[120].words, 4);
 press('#wow-endless-change');
 press('[data-wow-duration="180"]');
 assert.equal($('#wow-endless-timer').textContent, '3:00');
-press('#wow-levels-open');
+press('#wow-modes');
 assert.equal(tick, null);
+assert.ok($('#wow-mode-menu'));
 assert.equal(value('#wow-score'), 90);
+press('#wow-classic-open');
 assert.ok($('#wow-hint'));
 assert.equal($('#wow-title').textContent.trim(), 'Уровень 1');
 
 window.__bibleWowCleanup();
 await launch();
+assert.ok($('#wow-mode-menu'), 'every new entry shows mode selection');
 press('#wow-endless-open');
 assert.equal($('[data-wow-record="60"]').textContent, String(betterScore), 'record survives leaving and reopening the game');
 press('[data-wow-duration="180"]');

@@ -93,6 +93,8 @@ try {
 
   async function enterLevel() {
     await page.evaluate(() => window.showGame('bible-wow'));
+    await page.waitForSelector('#wow-classic-open', { timeout: 15_000 });
+    await page.click('#wow-classic-open');
     await page.waitForSelector('.wow-cell', { timeout: 15_000 });
     await page.waitForFunction(() => {
       const button = document.querySelector('.wow-btn-let');

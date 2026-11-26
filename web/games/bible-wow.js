@@ -306,14 +306,83 @@ function startBibleWowGame(levelsUrl) {
         transform:none;
     }
 
+    /* Reserve real layout space for the wallet, including large balances. */
+    body[data-current-game="bible-wow"] .wow-wrap .wow-head {
+      display: grid !important; grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px; padding: 0 !important;
+    }
+    body[data-current-game="bible-wow"] .wow-wrap .wow-head-row { min-width: 0; }
+    body[data-current-game="bible-wow"] .wow-wrap .wow-head-row .wow-chip {
+      min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.15; text-align: center;
+    }
+    body[data-current-game="bible-wow"] .wow-wrap .wow-stars-floating {
+      position: static !important; min-width: 0 !important; white-space: nowrap;
+    }
+    .wow-mode-label { cursor: default; }
+    .wow-mode-screen {
+      width: min(100%, 640px); margin: 0 auto; display: grid; gap: 14px;
+      padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+      box-sizing: border-box; color: var(--ink, #172554);
+    }
+    .wow-mode-screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .wow-mode-screen-head .wow-chip { min-height: 44px; border-radius: 16px; padding-inline: 16px; }
+    .wow-mode-balance { white-space: nowrap; padding: 10px 13px; border-radius: 16px; background: var(--card-bg, #fff); font-weight: 900; }
+    .wow-mode-intro { padding: 14px 4px 5px; text-align: left; }
+    .wow-mode-intro h2 { margin: 0 0 5px; font-size: clamp(25px, 6.4vw, 34px); line-height: 1.12; font-weight: 900; color: inherit; }
+    .wow-mode-intro p { margin: 0; color: var(--ink-soft, #64748b); font-size: 14px; line-height: 1.45; }
+    .wow-mode-card {
+      appearance: none; width: 100%; min-width: 0; min-height: 145px;
+      display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 12px;
+      align-items: center; text-align: left; padding: 17px 13px;
+      background: var(--card-bg, #fff); border: 1px solid var(--line, #dbeafe);
+      color: var(--ink, #172554); border-radius: 26px;
+      box-shadow: 0 12px 24px rgba(49, 46, 129, .10); cursor: pointer;
+      font: inherit; transition: transform .15s, box-shadow .15s;
+    }
+    .wow-mode-card:active, .wow-duration-card:active { transform: scale(.98); }
+    .wow-mode-card:focus-visible, .wow-duration-card:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+    .wow-mode-art { width: 84px; height: 84px; border-radius: 23px; display: grid; place-items: center; box-shadow: inset 0 1px 1px #ffffff60, 0 7px 15px #4f46e52b; }
+    .wow-mode-art-levels { background: linear-gradient(145deg, #6556fb, #139cdd); }
+    .wow-mode-art-timed { background: linear-gradient(145deg, #13b9a5, #087fbc); }
+    .wow-mode-crossword { display: grid; grid-template-columns: repeat(3, 15px); grid-template-rows: repeat(3, 15px); gap: 3px; }
+    .wow-mode-crossword i { background: #fff; border-radius: 4px; box-shadow: 0 2px 4px #24388740; }
+    .wow-mode-crossword i:nth-child(1) { grid-area: 1 / 2; }
+    .wow-mode-crossword i:nth-child(2) { grid-area: 2 / 1; }
+    .wow-mode-crossword i:nth-child(3) { grid-area: 2 / 2; }
+    .wow-mode-crossword i:nth-child(4) { grid-area: 2 / 3; }
+    .wow-mode-crossword i:nth-child(5) { grid-area: 3 / 2; }
+    .wow-mode-clock { display: block; width: 49px; height: 49px; border: 5px solid #fff; border-radius: 50%; position: relative; box-shadow: 0 4px 8px #07598545; }
+    .wow-mode-clock::before, .wow-mode-clock::after { content: ''; position: absolute; left: 50%; top: 50%; width: 4px; border-radius: 5px; background: #fff; transform-origin: 50% 0; }
+    .wow-mode-clock::before { height: 15px; transform: translateX(-50%) rotate(180deg); }
+    .wow-mode-clock::after { height: 12px; transform: translateX(-50%) rotate(-55deg); }
+    .wow-mode-copy { display: grid; gap: 6px; min-width: 0; }
+    .wow-mode-copy strong { font-size: clamp(19px, 4.9vw, 24px); font-weight: 900; line-height: 1.12; }
+    .wow-mode-copy small { font-size: 13px; line-height: 1.35; color: var(--ink-soft, #64748b); font-weight: 600; }
+    .wow-mode-meta { justify-self: start; border-radius: 9px; padding: 5px 9px; background: #dbeafe; color: #2449a5; font-size: 12px; font-weight: 800; line-height: 1.25; }
+    .wow-mode-card-timed .wow-mode-meta { background: #ccfbf1; color: #0f766e; }
+    .wow-mode-arrow { font-size: 28px; color: var(--ink-soft, #64748b); font-weight: 500; }
+    .wow-duration-options { display: grid; gap: 10px; }
+    .wow-duration-note { display: grid; gap: 5px; padding: 0 4px; line-height: 1.45; }
+    .wow-duration-note p { margin: 0; }
+    .wow-duration-card {
+      appearance: none; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      width: 100%; min-height: 76px; padding: 16px; border-radius: 21px;
+      background: var(--card-bg, #fff); border: 1px solid var(--line, #dbeafe);
+      color: var(--ink, #172554); text-align: left; font: inherit; cursor: pointer;
+      box-shadow: 0 7px 19px rgba(49, 46, 129, .08);
+    }
+    .wow-duration-card > strong { font-size: 22px; font-weight: 900; }
+    .wow-duration-record { margin-left: auto; font-size: 13px; color: var(--ink-soft, #64748b); text-align: right; }
+    .wow-duration-record b { display: block; font-size: 18px; color: var(--ink, #172554); font-variant-numeric: tabular-nums; }
+    html.theme-dark .wow-mode-card, html.theme-dark .wow-duration-card, html.theme-dark .wow-mode-balance { background: #191e32; color: #f1f5ff; border-color: #353e58; }
+    html.theme-dark .wow-mode-screen, html.theme-dark .wow-duration-record b { color: #f1f5ff; }
+    html.theme-dark .wow-mode-copy small, html.theme-dark .wow-mode-intro p, html.theme-dark .wow-duration-record { color: #b8c3dd; }
+    @media (max-width: 360px) {
+      .wow-mode-card { grid-template-columns: 64px minmax(0, 1fr) auto; gap: 10px; padding: 13px 11px; min-height: 130px; }
+      .wow-mode-art { width: 64px; height: 64px; border-radius: 18px; }
+      .wow-mode-clock { width: 42px; height: 42px; }
+    }
     /* The timed game uses the same crossword and wheel as the numbered levels. */
-    body[data-current-game="bible-wow"] .wow-head:not(.wow-timed-head) .wow-head-row {
-      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    }
-    body[data-current-game="bible-wow"] #wow-endless-open {
-      background: var(--wow-accent) !important; color: var(--wow-accent-text) !important;
-      text-align: center; line-height: 1.15; white-space: normal; overflow-wrap: anywhere; min-width: 0; padding-inline: 4px !important;
-    }
     .wow-timed-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
     .wow-timed-stat {
       text-align: center; background: var(--card-bg, #fff); color: var(--ink, #111827);
@@ -340,8 +409,6 @@ function startBibleWowGame(levelsUrl) {
     body[data-current-game="bible-wow"] .wow-timed .wow-controls { padding: 8px !important; gap: 6px !important; }
     body[data-current-game="bible-wow"] .wow-timed .wow-wheel-wrap { margin: 4px 0 8px !important; }
     body[data-current-game="bible-wow"] .wow-timed .wow-actions { grid-template-columns: 1fr !important; }
-    .wow-endless-option { width: 100%; text-align: left; color: var(--ink, #111827); background: var(--card-bg, #fff); }
-    .wow-endless-option strong { display: block; }
     .wow-endless-summary { display: grid; gap: 8px; margin: 12px 0; }
     .wow-endless-summary > div { display: flex; justify-content: space-between; gap: 8px; }
     .wow-endless-summary b { font-variant-numeric: tabular-nums; }
@@ -670,19 +737,37 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function openEndlessPicker() {
-    clearTimeout(st.advanceTimer);
-    st.advanceTimer = null;
     readEndlessRecords();
     st.endlessPools ||= buildEndlessPools(st.sourceLevels);
     if (!st.endlessPools.length) return;
-    const modal = document.getElementById('wow-endless-modal');
-    if (!modal) return;
-    document.getElementById('wow-endless-result')?.classList.remove('open');
-    for (const duration of [60, 120, 180]) {
-      const record = st.records[duration];
-      modal.querySelector(`[data-wow-record="${duration}"]`).textContent = record ? String(record.score) : '—';
-    }
-    modal.classList.add('open');
+    detachWheelHandlers();
+    stopEndless();
+    container.innerHTML = `
+      <section class="wow-mode-screen" id="wow-duration-menu">
+        <div class="wow-mode-screen-head">
+          <button class="wow-chip btn" id="wow-duration-back">‹ Режимы</button>
+        </div>
+        <div class="wow-mode-intro">
+          <h2>На время</h2>
+          <p>Выберите время</p>
+        </div>
+        <div class="wow-duration-options">
+          ${[60, 120, 180].map(duration => `<button class="wow-duration-card" data-wow-duration="${duration}">
+            <strong>${duration / 60} ${'мин'}</strong>
+            <span class="wow-duration-record">Личный рекорд<b data-wow-record="${duration}">${st.records[duration]?.score ?? '—'}</b></span>
+            <span aria-hidden="true" class="wow-mode-arrow">›</span>
+          </button>`).join('')}
+        </div>
+        <div class="wow-duration-note wow-muted">
+          <p>Собирайте слова. После четырёх найденных слов появится новая подборка.</p>
+          <p>100 очков за слово и до 50 за скорость. Звёзды не начисляются.</p>
+        </div>
+      </section>`;
+    container.scrollTop = 0;
+    document.getElementById('wow-duration-back').addEventListener('click', renderModeMenu);
+    container.querySelectorAll('[data-wow-duration]').forEach(button => {
+      button.addEventListener('click', () => startEndless(Number(button.dataset.wowDuration)));
+    });
   }
 
   function startEndless(duration) {
@@ -958,6 +1043,50 @@ function startBibleWowGame(levelsUrl) {
 
 
   // -------------------- UI Render --------------------
+  function renderModeMenu() {
+    detachWheelHandlers();
+    stopEndless();
+    st.inputPath = [];
+    st.inputWord = '';
+    const levelId = st.levels[st.levelIndex]?.id ?? 1;
+    container.innerHTML = `
+      <section class="wow-mode-screen" id="wow-mode-menu">
+        <div class="wow-mode-screen-head">
+          <button class="wow-chip btn" id="wow-menu">‹ Меню</button>
+          <span class="wow-mode-balance">⭐ <span id="wow-score">${coinsAvailable()}</span></span>
+        </div>
+        <div class="wow-mode-intro">
+          <h2>Выберите режим</h2>
+          <p>Библейские слова</p>
+        </div>
+        <button class="wow-mode-card" id="wow-classic-open">
+          <span class="wow-mode-art wow-mode-art-levels" aria-hidden="true"><span class="wow-mode-crossword"><i></i><i></i><i></i><i></i><i></i></span></span>
+          <span class="wow-mode-copy">
+            <strong>Уровни</strong>
+            <small>Проходите кроссворды и собирайте звёзды.</small>
+            <span class="wow-mode-meta">Уровень ${levelId} / ${st.levels.length}</span>
+          </span>
+          <span class="wow-mode-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="wow-mode-card wow-mode-card-timed" id="wow-endless-open">
+          <span class="wow-mode-art wow-mode-art-timed" aria-hidden="true"><span class="wow-mode-clock"></span></span>
+          <span class="wow-mode-copy">
+            <strong>На время</strong>
+            <small>Бесконечные кроссворды и личные рекорды.</small>
+            <span class="wow-mode-meta">1–3 ${'мин'}</span>
+          </span>
+          <span class="wow-mode-arrow" aria-hidden="true">›</span>
+        </button>
+      </section>`;
+    container.scrollTop = 0;
+    document.getElementById('wow-menu').addEventListener('click', () => {
+      cleanupAll();
+      goToMainMenu();
+    });
+    document.getElementById('wow-classic-open').addEventListener('click', startLevel);
+    document.getElementById('wow-endless-open').addEventListener('click', openEndlessPicker);
+  }
+
   function renderGame() {
     const lvl = st.currLevel;
     const timed = !!st.endless;
@@ -965,9 +1094,8 @@ function startBibleWowGame(levelsUrl) {
       <div class="wow-wrap${timed ? ' wow-timed' : ''}">
         <div class="wow-head${timed ? ' wow-timed-head' : ''}">
            <div class="wow-head-row">
-             <div class="wow-chip btn" id="wow-menu">Меню</div>
-             <div class="wow-chip btn" id="wow-levels-open">Уровни</div>
-             ${timed ? '' : `<button class="wow-chip btn" id="wow-endless-open">На время</button>`}
+             <button class="wow-chip btn" id="wow-modes">‹ Режимы</button>
+             ${timed ? '<span class="wow-chip wow-mode-label">На время</span>' : '<button class="wow-chip btn" id="wow-levels-open">Уровни</button>'}
             </div>
             ${timed ? '<div class="wow-stars wow-stars-floating" id="wow-endless-timer">0:00</div>' : `<div class="wow-stars wow-stars-floating">⭐ <span id="wow-score">${coinsAvailable()}</span></div>`}
          </div>
@@ -1010,22 +1138,6 @@ function startBibleWowGame(levelsUrl) {
            </div>
         </div>
 
-        <div class="wow-modal" id="wow-endless-modal">
-          <div class="wow-modal-card" role="dialog" aria-label="Бесконечный режим">
-            <div class="wow-modal-top">
-              <div class="wow-modal-title">Бесконечный режим</div>
-              <button class="wow-x" id="wow-endless-close">✕</button>
-            </div>
-            <p>Собирайте слова. После четырёх найденных слов появится новая подборка.</p>
-            <p class="wow-muted">100 очков за слово и до 50 за скорость. Звёзды не начисляются.</p>
-            <div class="wow-list">
-              ${[60, 120, 180].map(duration => `<button class="wow-item wow-endless-option" data-wow-duration="${duration}">
-                <strong>${duration / 60} ${'мин'}</strong>
-                <span class="wow-muted">Рекорд <b data-wow-record="${duration}">—</b></span>
-              </button>`).join('')}
-            </div>
-          </div>
-        </div>
         ${timed ? `<div class="wow-modal" id="wow-endless-result">
           <div class="wow-modal-card" role="dialog" aria-label="Результат">
             <div class="wow-modal-title" id="wow-endless-result-title"></div>
@@ -1039,7 +1151,7 @@ function startBibleWowGame(levelsUrl) {
             <div class="wow-endless-buttons">
               <button class="wow-chip btn" id="wow-endless-retry">Ещё раз</button>
               <button class="wow-chip" id="wow-endless-change">Выбрать время</button>
-              <button class="wow-chip" id="wow-endless-levels">К уровням</button>
+              <button class="wow-chip" id="wow-endless-modes">Режимы</button>
             </div>
           </div>
         </div>` : ''}
@@ -1068,10 +1180,7 @@ function startBibleWowGame(levelsUrl) {
       </div>
     `;
 
-    document.getElementById("wow-menu")?.addEventListener("click", () => {
-      cleanupAll();
-      goToMainMenu();
-    });
+    document.getElementById('wow-modes').addEventListener('click', renderModeMenu);
 
     document.getElementById("wow-prev")?.addEventListener("click", () => {
       if (st.levelIndex <= 0) return;
@@ -1099,21 +1208,9 @@ function startBibleWowGame(levelsUrl) {
     document.getElementById("wow-reveal")?.addEventListener("click", () => revealWordPaid());
     document.getElementById("wow-reset")?.addEventListener("click", () => resetLevel());
 
-    const returnToLevels = () => { detachWheelHandlers(); stopEndless(); startLevel(); };
-    document.getElementById('wow-endless-open')?.addEventListener('click', openEndlessPicker);
-    const endlessModal = document.getElementById('wow-endless-modal');
-    endlessModal.querySelectorAll('[data-wow-duration]').forEach(button => {
-      button.addEventListener('click', () => startEndless(Number(button.dataset.wowDuration)));
-    });
-    const closeEndlessPicker = () => {
-      endlessModal.classList.remove('open');
-      if (st.endless?.finished) document.getElementById('wow-endless-result')?.classList.add('open');
-    };
-    document.getElementById('wow-endless-close').addEventListener('click', closeEndlessPicker);
-    endlessModal.addEventListener('pointerdown', event => { if (event.target === endlessModal) closeEndlessPicker(); });
     document.getElementById('wow-endless-retry')?.addEventListener('click', () => startEndless(st.endless.duration));
     document.getElementById('wow-endless-change')?.addEventListener('click', openEndlessPicker);
-    document.getElementById('wow-endless-levels')?.addEventListener('click', returnToLevels);
+    document.getElementById('wow-endless-modes')?.addEventListener('click', renderModeMenu);
 
     const levelsModal = document.getElementById("wow-levels-modal");
     const bonusModal = document.getElementById("wow-bonus-modal");
@@ -1121,7 +1218,6 @@ function startBibleWowGame(levelsUrl) {
     const closeModal = (m) => m?.classList.remove("open");
 
     document.getElementById("wow-levels-open")?.addEventListener("click", () => {
-      if (st.endless) { returnToLevels(); return; }
       renderLevelsList();
       openModal(levelsModal);
     });
@@ -1730,8 +1826,8 @@ function startBibleWowGame(levelsUrl) {
       // букв тот же, а какие слова из него основные — решает web/js/word-games-shuffle.js.
       st.levels = window.WordGameShuffle?.wow(st.levels) || st.levels;
       if (!st.levels.length) throw new Error("No levels");
-      if (st.levelIndex >= st.levels.length) st.levelIndex = 0;
-      startLevel();
+      st.levelIndex = clamp(Math.floor(st.levelIndex || 0), 0, st.levels.length - 1);
+      renderModeMenu();
     })
     .catch(e => {
       if (st.closed) return;
