@@ -176,6 +176,24 @@ try {
   await favoritePage.waitForFunction(() => document.body.dataset.currentGame === 'bible-geography');
   await favoriteContext.close();
 
+  id = '17617578'; isRoot = false; isDelegate = false; allowed = true;
+  const invitedContext = await contextFor();
+  const invitedPage = await invitedContext.newPage();
+  await invitedPage.goto(base);
+  await invitedPage.waitForFunction(() => window.AppAccess?.state().userId === '17617578');
+  assert.equal(await invitedPage.evaluate(() => window.AppAccess.state().isRoot), false);
+  await invitedPage.evaluate(() => {
+    const sabbath = window.SabbathAccess;
+    window.SabbathAccess = { ...sabbath, authorize: () => true };
+    window.showGame('moses-nile');
+    window.SabbathAccess = sabbath;
+  });
+  const invitedNile = invitedPage.locator('#game-container iframe[src*="moses-nile-v7"]');
+  await invitedNile.waitFor();
+  await invitedNile.contentFrame().locator('html.standalone-access-allowed').waitFor({ state: 'attached' });
+  assert.equal(await invitedNile.contentFrame().locator('script[src*="game-v75.js"]').count(), 1);
+  await invitedContext.close();
+
   id = '666666666'; isRoot = false; isDelegate = true; allowed = true;
   const delegatedContext = await contextFor({ social: true });
   const delegatedPage = await delegatedContext.newPage();
