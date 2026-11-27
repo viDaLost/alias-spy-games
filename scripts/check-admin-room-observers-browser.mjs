@@ -251,7 +251,7 @@ try {
     `монитор «Двенадцати колен» не открылся: «${tribesText.slice(0, 160)}»`);
 
   const azbukaText=await observe('1000008','Мария');
-  need(azbukaText.includes('До удаления')&&azbukaText.includes('40 очков')&&azbukaText.includes('Всем привет'), 'Монитор Азбуки не показывает раунд, участников и срок удаления');
+  need(/до удаления/i.test(azbukaText)&&azbukaText.includes('40 очков')&&azbukaText.includes('Всем привет'), `Монитор Азбуки не показывает участников и срок удаления: ${azbukaText.slice(0,400)}`);
 
   need(observerAsks.length > 0 && observerAsks.every((ask) => ask.auth === `Bearer ${TOKEN}`),
     'монитор спрашивал комнату без токена администратора');
