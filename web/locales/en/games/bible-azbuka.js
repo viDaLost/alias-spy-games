@@ -24,7 +24,7 @@
 
   function loadAssets() {
     assets ||= Promise.all([
-      loadText('web/locales/en/games/bible-azbuka.html?v=2'),
+      loadText('web/locales/en/games/bible-azbuka.html?v=3'),
       loadText('web/locales/en/games/bible-azbuka.css?v=1'),
     ]).catch(error => {
       assets = null;
@@ -355,11 +355,13 @@
       if(JSON.stringify(readAnswers())!==JSON.stringify(submitted))return toast('Ответы изменились — проверь ещё раз');
       cats.forEach((_,i)=>{
        const node=$('review-'+i),list=r.rows[i];
+       ensureInputs(i,Math.max(1,list.length));
+       [...$('entry-'+i).querySelectorAll('input')].forEach((input,j)=>input.value=list[j]?.word||'');
        node.replaceChildren();
        if(!list.length){node.className='review bad';node.textContent='Нет ответа';return;}
        list.forEach((answer,j)=>{
         const p=document.createElement('div');p.className=answer.valid?'review ok':'review bad';
-        p.textContent=(answer.valid?'✓ ':'✕ ')+answer.word+' — '+(answer.valid?'подтверждено по Библии':answer.reason);
+        p.textContent=(answer.valid?'✓ ':'✕ ')+answer.word+' — '+(answer.valid?'подтверждено по Библии'+(answer.reference?' ('+answer.reference+')':''):answer.reason);
         if(!answer.valid&&answer.suggestions?.length)answer.suggestions.forEach(s=>{
          const b=document.createElement('button');b.type='button';b.textContent='Исправить: '+s;b.onclick=()=>{
           const input=[...$('entry-'+i).querySelectorAll('input')].filter(field=>field.value.trim())[j];if(input){input.value=s;changed();input.focus()}
@@ -370,7 +372,8 @@
       });
       verified=r.complete;
       $('stop').disabled=!r.complete;
-      $('game-notice').textContent=r.complete?'Все категории проверены. '+(room.mode==='stop'?'Можешь нажать СТОП!':'Ответы сохраняются до сигнала таймера.'):'Исправь ошибки или добавь правильные ответы. Отмеченные варианты не засчитываются.';
+      const missing=cats.filter((_,i)=>!r.rows[i].some(answer=>answer.valid));
+      $('game-notice').textContent=r.complete?'Все категории проверены. '+(room.mode==='stop'?'Можешь нажать СТОП!':'Ответы сохраняются до сигнала таймера.'):'Enter at least one correct answer for each category: '+missing.join(', ')+'.';
       toast(r.complete?'Проверка пройдена!':'Есть ошибки — смотри подсказки');
      }catch(e){toast(e.message)}finally{$('check').disabled=false}
     }

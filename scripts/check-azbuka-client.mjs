@@ -31,7 +31,13 @@ async function scenario(kind){
     requests.push({path,payload,options});
     if(kind==='resume')return Response.json({error:'Комната не найдена'},{status:404});
     if(path.endsWith('/leave')||path.endsWith('/offline'))return Response.json({ok:true,closed:true});
-    return Response.json(kind==='leave-playing'?{...current,phase:'playing',letter:'А',roundId:'test-round'}:current);
+    if(path.endsWith('/draft')) return Response.json({ok:true});
+    if(kind==='multiple-answers'&&path.endsWith('/check'))return Response.json({complete:true,rows:[
+      [{word:'Давид',valid:true,reference:'1 Цар 16:21'},{word:'Даниил',valid:true,reference:'Езд 8:2'}],
+      [{word:'Дамаск',valid:true}],[{word:'дуб',valid:true}],[{word:'дом',valid:true,reference:'Быт 19:2'}],
+      [{word:'дромадер',valid:true,reference:'Ис 60:6'}],
+    ]});
+    return Response.json(['leave-playing','multiple-answers'].includes(kind)?{...current,phase:'playing',letter:'Д',roundId:'test-round'}:current);
   }};
   try{
     w.eval(source);
@@ -42,7 +48,17 @@ async function scenario(kind){
       root.getElementById('create').click();
       await wait();
       assert.equal(JSON.parse(w.localStorage.getItem(storageKey)).code,current.code);
-      if(kind==='leave'||kind==='leave-playing'){
+      if(kind==='multiple-answers'){
+        for(const [i,answer] of ['Давид Даниил','Дамаск','дуб','дом','дромадер'].entries()){
+          const input=root.querySelector(`#entry-${i} input`);input.value=answer;input.dispatchEvent(new w.Event('input'));
+        }
+        root.getElementById('check').click();
+        await wait();
+        assert.deepEqual([...root.querySelectorAll('#entry-0 input')].map(input=>input.value),['Давид','Даниил']);
+        assert.match(root.getElementById('review-4').textContent,/Ис 60:6/);
+        assert.equal(root.getElementById('stop').disabled,false);
+        root.getElementById('home').click();
+      } else if(kind==='leave'||kind==='leave-playing'){
         assert.equal(root.getElementById('leave-row').hidden,false);
         root.getElementById('leave-room').click();
         assert(requests.some(r=>r.path===`${current.code}/leave`&&r.options.keepalive));
@@ -56,5 +72,5 @@ async function scenario(kind){
   }finally{w.BibleAzbuka?.cleanup();w.close();}
 }
 
-for(const kind of ['leave','leave-playing','home','hide','resume'])await scenario(kind);
+for(const kind of ['leave','leave-playing','home','hide','resume','multiple-answers'])await scenario(kind);
 console.log('Azbuka returns to the main menu after the last player leaves, the app goes offline, or a saved room has expired.');

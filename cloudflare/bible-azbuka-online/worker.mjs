@@ -1,7 +1,7 @@
 import dictionary from './synodal-dictionary.json' with { type: 'json' };
 const synodalCategories = dictionary.categories;
 const CATEGORIES = ['Имя', 'Город или местность', 'Растение', 'Предмет', 'Животное'];
-const LETTERS = [...'АБВГДЕИКЛМНОПРСТ'];
+const LETTERS = [...'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ'];
 const MAX_PLAYERS = 16;
 const ROUND_COUNT = 5;
 const validRoundCount = value => [5,10,15].includes(value) ? value : ROUND_COUNT;
@@ -21,10 +21,32 @@ const json = (value, status = 200) => new Response(JSON.stringify(value), {
 const error = (message, status = 400, extra = {}) => json({error:message,...extra},status);
 const randomToken = () => [...crypto.getRandomValues(new Uint8Array(24))].map(x=>x.toString(16).padStart(2,'0')).join('');
 const code = () => [...crypto.getRandomValues(new Uint8Array(6))].map(n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n % 32]).join('');
+// Preserve a confirmed multiword name or place before interpreting spaces as separators.
+function splitAnswers(value, category) {
+  return String(value ?? '').slice(0,240).split(/[,;\n\r/]+/).flatMap(part=>{
+    const word=clean(part);
+    if(!word)return [];
+    if(Object.hasOwn(category.answers,normalize(word)))return [word];
+    const parts=word.split(/\s+/);
+    if(parts.length>1&&parts.length<=3&&parts.every(p=>Object.hasOwn(category.answers,normalize(p))))return parts;
+    return [word];
+  });
+}
 const candidates = data => Array.from({length:5},(_,i)=>{
   const words = Array.isArray(data?.[i]) ? data[i] : [];
-  return [...new Set(words.slice(0,3).map(x=>clean(x)).filter(Boolean).map(x=>x.slice(0,80)))];
+  return [...new Set(words.slice(0,3).flatMap(value=>splitAnswers(value,synodalCategories[i])))].slice(0,3);
 });
+// Require at least two distinct biblical answers per category so a letter does
+// not force every player to select the same animal or plant.
+const playableLetters=LETTERS.filter(letter=>synodalCategories.every(category=>{
+  const keys=category.options.filter(word=>normalize(word)[0]===normalize(letter))
+    .map(word=>normalize(category.answers[normalize(word)]?.[0]||word));
+  return new Set(keys).size>=2;
+}));
+function formatReference(reference) {
+  const [book,verse]=String(reference||'').split(' ');
+  return dictionary.books[book]&&verse?`${dictionary.books[book][1]} ${verse}`:reference;
+}
 const userView = p => ({id:p.id,name:p.name,score:p.score,ready:!!p.ready,online:Date.now()-p.lastSeen<ONLINE_TIMEOUT});
 function validate(dictionary, words, letter) {
   return words.map(word=>{
@@ -36,7 +58,7 @@ function validate(dictionary, words, letter) {
       const other = CATEGORIES.filter((_,index)=>Object.hasOwn(synodalCategories[index].answers,key));
       return {word,valid:false,reason:other.length?'В словаре это другая категория: '+other.join(', '):'Нет в словаре этой категории'};
     }
-    return {word,valid:true,key:normalize(record[0]),canonical:record[0],reference:record[2]};
+    return {word,valid:true,key:normalize(record[0]),canonical:record[0],reference:formatReference(record[2])};
   });
 }
 function suggest(category, word, letter) {
@@ -332,8 +354,7 @@ export class AzbukaRoom {
       if(r.players.length<2)return error('Для онлайн-игры нужны минимум два игрока');
       if(r.phase==='finished'){r.round=0;r.used=[];r.players.forEach(p=>p.score=0);}
       else if(r.phase==='results')r.round+=1;
-      const usable=LETTERS.filter(letter=>dictionary.categories.every(c=>(c.options||[]).some(w=>normalize(w)[0]===normalize(letter))));
-      const pool=usable.filter(letter=>!r.used.includes(letter));
+      const pool=playableLetters.filter(letter=>!r.used.includes(letter));
       if(!pool.length)return error('Нет подходящих букв в словаре');
       r.letter=pool[crypto.getRandomValues(new Uint32Array(1))[0]%pool.length];
       r.used.push(r.letter);r.results=null;r.phase='playing';r.roundId=randomToken();
