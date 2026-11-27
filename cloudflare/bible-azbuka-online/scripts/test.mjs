@@ -170,6 +170,33 @@ const next = await invoke(room, 'start', ADMIN);
 assert.equal(next.round, 1);
 assert.notEqual(next.letter, start.letter);
 
+// A delayed draft from the preceding round cannot populate the current answer form.
+assert.notEqual(next.roundId,start.roundId);
+assert.equal((await invoke(room,'draft',ADMIN,{roundId:start.roundId,answers:choices})).status,409);
+assert((await invoke(room,'state',ADMIN)).ownDraft.every(words=>!words.length));
+const presenceId='a'.repeat(32);
+assert.equal((await invoke(room,'draft',ADMIN,{roundId:next.roundId,answers:[['новый']],presenceId,presenceSequence:2})).status,200);
+await invoke(room,'draft',ADMIN,{roundId:next.roundId,answers:[['старый']],presenceId,presenceSequence:1});
+assert.deepEqual((await invoke(room,'state',ADMIN)).ownDraft[0],['новый']);
+const leaving=makeRoom();
+await invoke(leaving,'init',ADMIN,{code:'LEAV23',name:'Мария',mode:'stop'});
+await invoke(leaving,'join',GUEST,{name:'Анна'});
+await invoke(leaving,'start',ADMIN);
+assert.equal((await invoke(leaving,'leave',ADMIN)).status,200);
+const remaining=await invoke(leaving,'state',GUEST);
+assert.equal(remaining.hostId,remaining.selfId);
+assert.equal(remaining.phase,'lobby');
+assert.equal((await invoke(leaving,'state',ADMIN)).status,401);
+assert.equal((await invoke(leaving,'leave',GUEST)).closed,true);
+assert.equal((await invoke(leaving,'state',GUEST)).status,404);
+
+const longer=makeRoom();
+const longerLobby=await invoke(longer,'init',ADMIN,{code:'RUND23',name:'Ведущий',rounds:10});
+assert.equal(longerLobby.rounds,10);
+assert.equal((await invoke(longer,'settings',ADMIN,{mode:'stop',rounds:15})).rounds,15);
+await invoke(longer,'join',GUEST,{name:'Анна'});
+assert.equal((await invoke(longer,'start',ADMIN)).rounds,15);
+
 const timed = makeRoom();
 await invoke(timed, 'init', ADMIN, { code: 'TMED32', name: 'Руфь', mode: 'timed', duration: 30 });
 await invoke(timed, 'join', GUEST, { name: 'Лия' });

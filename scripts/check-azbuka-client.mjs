@@ -31,7 +31,7 @@ async function scenario(kind){
     requests.push({path,payload,options});
     if(kind==='resume')return Response.json({error:'Комната не найдена'},{status:404});
     if(path.endsWith('/leave')||path.endsWith('/offline'))return Response.json({ok:true,closed:true});
-    return Response.json(current);
+    return Response.json(kind==='leave-playing'?{...current,phase:'playing',letter:'А',roundId:'test-round'}:current);
   }};
   try{
     w.eval(source);
@@ -42,7 +42,11 @@ async function scenario(kind){
       root.getElementById('create').click();
       await wait();
       assert.equal(JSON.parse(w.localStorage.getItem(storageKey)).code,current.code);
-      if(kind==='leave')root.getElementById('leave-room').click();
+      if(kind==='leave'||kind==='leave-playing'){
+        assert.equal(root.getElementById('leave-row').hidden,false);
+        root.getElementById('leave-room').click();
+        assert(requests.some(r=>r.path===`${current.code}/leave`&&r.options.keepalive));
+      } else if(kind==='home')root.getElementById('home').click();
       else {hidden=true;w.document.dispatchEvent(new w.Event('visibilitychange'));}
       await wait();
     }
@@ -52,5 +56,5 @@ async function scenario(kind){
   }finally{w.BibleAzbuka?.cleanup();w.close();}
 }
 
-for(const kind of ['leave','hide','resume'])await scenario(kind);
+for(const kind of ['leave','leave-playing','home','hide','resume'])await scenario(kind);
 console.log('Azbuka returns to the main menu after the last player leaves, the app goes offline, or a saved room has expired.');

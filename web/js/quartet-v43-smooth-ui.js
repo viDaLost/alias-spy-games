@@ -3,7 +3,6 @@
   if (window.__QUARTET_V43_SMOOTH_UI__) return;
   window.__QUARTET_V43_SMOOTH_UI__ = true;
 
-  const catalog = new Map();
   const imageCache = window.__quartetV43ImageCache || new Map();
   window.__quartetV43ImageCache = imageCache;
 
@@ -24,7 +23,6 @@
   const svgQr = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm9-2h2v2h-2v-2Zm4 0h3v3h-2v-1h-1v-2Zm-5 4h3v4h-3v-4Zm5 1h3v3h-5v-2h2v-1Z"/></svg>';
   const svgChat = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 5v2h12V9H6Zm0 4v2h8v-2H6Z"/></svg>';
 
-  loadCatalog();
   start();
 
   function start() {
@@ -55,25 +53,6 @@
     window.visualViewport?.addEventListener('resize', scheduleSync, { passive: true });
     window.visualViewport?.addEventListener('scroll', scheduleSync, { passive: true });
     scheduleSync();
-  }
-
-  async function loadCatalog() {
-    try {
-      const response = await fetch('web/data/quartet_bible.json?v=43', { cache: 'force-cache' });
-      if (!response.ok) return;
-      const data = await response.json();
-      for (const quartet of data?.quartets || []) {
-        for (const card of quartet.cards || []) {
-          const title = String(card.title || '').trim();
-          const id = String(card.id || '').trim();
-          const art = String(card.art || `web/assets/quartet/cards/${encodeURIComponent(id)}.webp`).trim();
-          if (title && id) catalog.set(title, { id, art });
-        }
-      }
-      scheduleEnhanceMedia();
-    } catch (error) {
-      console.warn('[Quartet V43] catalog enhancer unavailable', error);
-    }
   }
 
   function isQuartet() {
@@ -319,11 +298,9 @@
   function enableCardFirstSelection(root) {
     for (const button of root?.querySelectorAll('button.qv2-playing-card.is-missing') || []) {
       const title = String(button.querySelector('.qv2-playing-card-title')?.textContent || '').trim();
-      const card = catalog.get(title);
-      if (!card?.id) continue;
+      if (!button.dataset.cardId) continue;
       button.disabled = false;
       button.dataset.action = 'select-card';
-      button.dataset.cardId = card.id;
       button.classList.add('is-selectable', 'qv4-card-first-ready');
       button.setAttribute('aria-label', `${title}, недостающая карта. Нажмите, чтобы выбрать`);
     }

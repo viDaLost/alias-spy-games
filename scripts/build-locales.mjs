@@ -61,7 +61,8 @@ export async function buildLocales(root, jsOptions) {
     const transformData = value => {
       if (typeof value==='string') return dict[value] || translate(value,dict);
       if (Array.isArray(value)) return value.map(transformData);
-      if (value?.id==='apostles_james') return {...value,title:{en:'James',de:'Jakobus',es:'Santiago'}[lang]};
+      if (value?.id==='apostles_james') return {...value,title:{en:'James, son of Zebedee',de:'Jakobus, Sohn des Zebedäus',es:'Santiago, hijo de Zebedeo'}[lang]};
+      if (value?.id==='patriarchs_jacob') return {...value,title:{en:'Jacob (Israel)',de:'Jakob (Israel)',es:'Jacob (Israel)'}[lang]};
       // Омонимы общего словаря: «Вирсавия» — и жена Давида, и город, «Сила» — и сила,
       // и спутник Павла. Запись сама говорит, как её назвать на каждом языке.
       if (value && typeof value==='object' && !Array.isArray(value) && value.i18n) {

@@ -24,7 +24,7 @@
 
   function loadAssets() {
     assets ||= Promise.all([
-      loadText('web/locales/es/games/bible-azbuka.html?v=1'),
+      loadText('web/locales/es/games/bible-azbuka.html?v=2'),
       loadText('web/locales/es/games/bible-azbuka.css?v=1'),
     ]).catch(error => {
       assets = null;
@@ -80,7 +80,7 @@
   function mount(root) {
     const $ = id => root.getElementById(id);
     let disposed = false;
-    let room = null, view = '', round = -1, verified = false, timeoutAt = 0;
+    let room = null, view = '', round = -1, roundId = null, verified = false, timeoutAt = 0;
     let pollBusy = false, actionBusy = false, pollPaused = false, errors = 0, pollAfter = 0;
     let saveTimer = 0, toastTimer = 0, lastMsg = '', lastPlayers = '';
     const presenceId = Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -110,6 +110,11 @@
     function remember(code) {
       try { localStorage.setItem(SESSION, JSON.stringify({ code, nick: $('nickname').value.trim() })); }
       catch { /* The room code can still be used to reconnect. */ }
+    }
+
+    function leaveMembership(code) {
+      if (!code) return;
+      void window.AppAccess.azbukaRequest(`${code}/leave`, presencePayload(), {keepalive:true}).catch(()=>{});
     }
 
     function setBusy(id, busy) { $(id).disabled = busy; }
@@ -143,7 +148,8 @@
     async function api(action, data, code = room?.code) {
       if(disposed||document.hidden)throw new Error('Игра приостановлена');
       const path = action === 'create' ? 'create' : `${code}/${action}`;
-      const response = await window.AppAccess.azbukaRequest(path, presencePayload(data || {}));
+      const roundData = ['draft','check','stop'].includes(action) ? {roundId:room?.roundId??null} : {};
+      const response = await window.AppAccess.azbukaRequest(path, presencePayload({...data,...roundData}));
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         if (response.status===404&&code&&!disposed&&(room?.code===code||saved().code===code)) closedRoom(code);
@@ -157,6 +163,7 @@
       room = null;
       view = '';
       round = -1;
+      roundId = null;
       lastMsg = '';
       lastPlayers = '';
       $('hero-info').textContent = 'Juego en línea';
@@ -164,7 +171,7 @@
     }
 
     function enter(result) {
-      if (disposed) {notifyOffline(result.code);return;}
+      if (disposed) {leaveMembership(result.code);return;}
       offlineCode='';
       pollPaused = false;
       pollAfter = 0;
@@ -190,11 +197,12 @@
         const settings = action === 'create' ? {
           mode: root.querySelector('input[name="mode"]:checked').value,
           duration: Number($('duration').value),
+          rounds: Number($('rounds').value),
         } : {};
         enter(await api(action, { name, ...settings }, target));
       } catch (error) {
         toast(error.message);
-        if (error.status === 404 && target === saved().code) remember('');
+        if ([401,403,404,409].includes(error.status) && target && target === saved().code) remember('');
       } finally {
         actionBusy = false;
         setBusy('create', false);
@@ -215,15 +223,8 @@
       try {
         const result = await api(action, data);
         if (disposed) return;
-        if (action === 'leave') {
-          if (result.closed) {closedRoom(room.code);return;}
-          remember('');
-          $('join-code').value = '';
-          welcome();
-        } else {
-          paint(result);
-          if (action === 'settings') toast('Настройки сохранены');
-        }
+        paint(result);
+        if (action === 'settings') toast('Настройки сохранены');
       } catch (error) { toast(error.message); }
       finally {
         actionBusy = false;
@@ -265,9 +266,9 @@
     $('share-room').onclick = () => {
       if (room) void window.RoomInvite.openQr(GAME, room.code, 'Alfabeto bíblico');
     };
-    $('leave-room').onclick = () => updateRoom('leave', {}, 'leave-room');
+    $('leave-room').onclick = () => window.goToMainMenu();
     $('save-settings').onclick = () => updateRoom('settings', {
-      mode: $('lobby-mode').value, duration: Number($('lobby-duration').value),
+      mode: $('lobby-mode').value, duration: Number($('lobby-duration').value), rounds: Number($('lobby-rounds').value),
     }, 'save-settings');
     $('start').onclick = () => updateRoom('start', {}, 'start');
     $('next-round').onclick = () => updateRoom('start', {}, 'next-round');
@@ -328,7 +329,7 @@
      verified=false;$('stop').disabled=true;$('check').disabled=false;$('save-label').textContent='Черновик сохранён';$('game-notice').textContent='Ответы сохраняются автоматически. Соперники увидят их только по окончании раунда.';
     }
     function sameRound(previous){
-     return room?.code===previous.code&&room.phase==='playing'&&room.round===previous.round;
+     return room?.code===previous.code&&room.phase==='playing'&&room.round===previous.round&&room.roundId===previous.roundId;
     }
     function changed(){verified=false;$('stop').disabled=true;cats.forEach((_,i)=>{$('review-'+i).replaceChildren()});
      $('save-label').textContent='Сохраняем…';clearTimeout(saveTimer);
@@ -348,6 +349,7 @@
      try{
       const current=room;
       await api('draft',{answers:submitted});
+      if(!sameRound(current)||disposed)return;
       const r=await api('check',{answers:submitted});
       if(!sameRound(current)||disposed)return;
       if(JSON.stringify(readAnswers())!==JSON.stringify(submitted))return toast('Ответы изменились — проверь ещё раз');
@@ -382,7 +384,7 @@
      $('result-title').textContent=r.finished?'🏆 Ganador — '+res.players[0]?.name:'Результаты раунда';
      $('result-reason').textContent=res.reason==='stop'?'СТОП нажал '+(res.stopper||'jugador')+'. Все ответы закрыты.':'Время вышло. Все ответы закрыты.';
      $('result-rows').innerHTML=res.players.map((p,i)=>'<tr><td>'+(i===0?'🥇 ':'')+esc(p.name)+'</td><td class="points">+'+p.added+'</td><td><b>'+p.total+'</b></td></tr>').join('');
-     $('result-details').innerHTML=res.players.map(p=>'<details class="details"><summary>'+esc(p.name)+' — показать ответы</summary><table><tbody>'+p.answers.map(x=>'<tr><td>'+esc(x.category)+'</td><td><b>'+esc(x.word)+'</b>'+(x.reference?'<br><small>'+esc(x.reference)+'</small>':'')+'</td><td class="best">+'+x.points+'</td></tr>').join('')+'</tbody></table></details>').join('');
+     $('result-details').innerHTML=res.players.map(p=>'<details class="details"><summary>'+esc(p.name)+' — показать ответы</summary><table><tbody>'+p.answers.map(x=>'<tr><td>'+esc(x.category)+'</td><td><b>'+esc(x.word)+'</b>'+(x.reference?'<br><small>'+esc(x.reference)+'</small>':'')+(x.all?.length?'<br><small>'+x.all.map(a=>esc(a.word)+(a.valid?' ✓':' — '+esc(a.reason))).join('<br>')+'</small>':'')+'</td><td class="best">+'+x.points+'</td></tr>').join('')+'</tbody></table></details>').join('');
      $('next-round').hidden=r.selfId!==r.hostId;
      $('next-round').textContent=r.finished?'↻ Nueva partida':'▶ Следующий раунд';
      $('wait-next').hidden=r.selfId===r.hostId;
@@ -392,7 +394,7 @@
       if (disposed) return;
       room = result;
       const host = result.selfId === result.hostId;
-      const ids = ['players-pane', 'chat-pane'];
+      const ids = ['players-pane', 'chat-pane', 'leave-row'];
       playerCards(result);
       renderChat(result);
       $('start-wrap').hidden = result.phase !== 'lobby' || !host;
@@ -400,12 +402,12 @@
 
       if (result.phase === 'lobby') {
         ids.unshift('lobby');
-        ids.push('leave-row');
         if (host) ids.push('settings-pane');
         $('room-code').textContent = result.code;
         if (view !== 'lobby') {
           $('lobby-mode').value = result.mode;
           $('lobby-duration').value = String(result.duration);
+          $('lobby-rounds').value = String(result.rounds||5);
           $('lobby-mode').onchange();
         }
         $('start').disabled = result.players.length < 2;
@@ -415,9 +417,11 @@
         $('hero-info').textContent = 'Sala ' + result.code;
       } else if (result.phase === 'playing') {
         ids.push('playing');
-        if (view !== 'playing' || round !== result.round) {
+        if (view !== 'playing' || round !== result.round || roundId !== result.roundId) {
+          clearTimeout(saveTimer);
           buildForm(result);
           round = result.round;
+          roundId = result.roundId;
           window.scrollTo({ top: 0, behavior: 'auto' });
         }
         $('letter').textContent = result.letter;
@@ -431,9 +435,12 @@
       } else {
         ids.push('results');
         $('hero-info').textContent = result.finished ? 'Partida terminada' : 'Итоги раунда';
-        if (view !== result.phase || round !== result.round) {
+        $('next-round').hidden = !host;
+        $('wait-next').hidden = host;
+        if (view !== result.phase || round !== result.round || roundId !== result.roundId) {
           resultTable(result);
           round = result.round;
+          roundId = result.roundId;
         }
       }
       view = result.phase;
@@ -467,7 +474,7 @@
         if ([401, 403, 404].includes(error.status)) {
           pollPaused = true;
           welcome();
-          if (error.status === 404) remember('');
+          remember('');
           toast(error.message);
         } else {
           if (!errors) toast('Связь с комнатой прервалась. Переподключаемся…');
@@ -593,6 +600,11 @@
     const directCode = new URLSearchParams(location.search).get('room');
     const incoming = roomCode(invite?.room || directCode || session.code);
     if (incoming) {
+      if (roomCode(directCode)) {
+        const url = new URL(location.href);
+        url.searchParams.delete('room');
+        history.replaceState(history.state, '', url.href);
+      }
       $('join-code').value = incoming;
       void joinRoom(incoming);
     }
@@ -608,7 +620,9 @@
     window.addEventListener('roominvitechange', acceptRoomInvite);
     return () => {
       disposed = true;
-      notifyOffline();
+      const code = room?.code || saved().code;
+      remember('');
+      leaveMembership(code);
       window.AppPresenceContext?.clearRoom?.(GAME);
       closeScan();
       window.RoomQrScanner?.close();

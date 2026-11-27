@@ -4,7 +4,7 @@
   if (window.__QUARTET_V45_CARD_ID_FIX__) return;
   window.__QUARTET_V45_CARD_ID_FIX__ = true;
 
-  const CATALOG_URL = 'web/data/quartet_bible.json?v=45';
+  const CATALOG_URL = 'web/data/quartet_bible.json?v=46';
   const GROUP_PREFIX = 'qv2-group-';
   const cardIdByGroupAndTitle = new Map([
     // Defensive bootstrap for duplicate display names before the catalog request resolves.
@@ -12,6 +12,8 @@
     ['evangelists\u0000Иоанн', 'evangelists_john'],
     ['apostles\u0000Иаков', 'apostles_james'],
     ['patriarchs\u0000Иаков', 'patriarchs_jacob'],
+    ['apostles\u0000Иаков Зеведеев', 'apostles_james'],
+    ['patriarchs\u0000Иаков (Израиль)', 'patriarchs_jacob'],
   ]);
 
   let repairRaf = 0;
