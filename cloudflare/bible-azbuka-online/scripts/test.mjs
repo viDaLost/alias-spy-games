@@ -323,5 +323,11 @@ try {
   assert.deepEqual(JSON.parse(await swept.text()),{ok:true,closed:1,active:1,missing:0,failed:0,skipped:0});
   assert.equal(await inactiveStorage.get('room'),undefined);
   assert(stillActive.room);
+  const malformedStorage=makeStorage();
+  await malformedStorage.put('room',{code:'OLDABC',created:now-60_000});
+  const malformed=makeRoom(malformedStorage);
+  const legacySweep=await malformed.fetch(new Request('https://room/sweep',{method:'POST',headers:{'X-Azbuka-Account':ADMIN}}));
+  assert.equal((await legacySweep.json()).status,'closed');
+  assert.equal(await malformedStorage.get('room'),undefined);
   console.log('PASS: immediate offline closure, multiple sessions, delayed polls, sweep, directory, hard lifetime and timed rounds');
 }finally{Date.now=realNow;}

@@ -45,6 +45,7 @@ do {
 const token=await adminSession();
 const counts={closed:0,active:0,missing:0,skipped:0};
 const objects=[...ids];
+let remaining=0;
 for(let i=0;i<objects.length;i+=20){
   let objectIds=objects.slice(i,i+20);
   for(let attempt=1;objectIds.length&&attempt<=3;attempt++){
@@ -56,8 +57,12 @@ for(let i=0;i<objects.length;i+=20){
     if(!response.ok&&!Array.isArray(data.failedObjectIds))throw Error(`Room cleanup batch failed: HTTP ${response.status}`);
     for(const key of Object.keys(counts))counts[key]+=Number(data[key]||0);
     objectIds=data.failedObjectIds||[];
-    if(objectIds.length&&attempt<3)await new Promise(resolve=>setTimeout(resolve,2000));
+    if(objectIds.length){
+      console.log(`Room cleanup retry ${attempt}: ${objectIds.length} objects; ${data.failureReasons?.join('; ')||'room request failed'}`);
+      if(attempt<3)await new Promise(resolve=>setTimeout(resolve,2000));
+    }
   }
-  if(objectIds.length)throw Error(`Room cleanup incomplete: ${objectIds.length} objects could not be checked`);
+  remaining+=objectIds.length;
 }
 console.log(`Azbuka room cleanup: ${objects.length} stored objects checked, ${counts.closed} closed, ${counts.active} active, ${counts.missing} missing, ${counts.skipped} directory/duplicates skipped.`);
+if(remaining)throw Error(`Room cleanup incomplete: ${remaining} objects could not be checked`);

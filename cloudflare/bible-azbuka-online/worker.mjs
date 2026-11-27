@@ -67,11 +67,22 @@ export class AzbukaRoom {
     this.state=state;this.env=env;this.room=null;this.queue=Promise.resolve();
     this.lastOnlineUntil=0;this.connections={};this.registered=false;this.registerRetryAt=0;
     this.ready=state.blockConcurrencyWhile(async()=>{
-      this.room=await state.storage.get('room')||null;
-      if(!this.room)return;
+      const stored=await state.storage.get('room');
+      if(stored==null)return;
+      // Old room formats may remain in storage even though their clients are
+      // gone. Read them without preventing the expiration check from running.
+      let record=stored;
+      if(typeof record==='string'){
+        try{record=JSON.parse(record);}catch{record={};}
+      }
+      if(!record||typeof record!=='object'||Array.isArray(record))record={};
+      const players=Array.isArray(record.players)?record.players:
+        record.players&&typeof record.players==='object'?Object.values(record.players):[];
+      this.room={...record,created:Number(record.created)||0,players:players.filter(player=>player&&typeof player==='object')};
       const presence=await state.storage.get('presence');
       for(const player of this.room.players){
-        player.lastSeen=presence?.players?.[player.id]??player.lastSeen??0;
+        const lastSeen=Number(presence?.players?.[player.id]??player.lastSeen??0);
+        player.lastSeen=Number.isFinite(lastSeen)?lastSeen:0;
         this.connections[player.id]=presence?.connections?.[player.id]||{
           legacy:{at:player.lastSeen,sequence:0,updatedAt:player.lastSeen},
         };
@@ -370,16 +381,16 @@ export default {
       const results=await Promise.allSettled(ids.map(async id=>{
         const stub=env.ROOMS.get(env.ROOMS.idFromString(id));
         const response=await stub.fetch('https://room/sweep',{method:'POST',headers});
-        const data=await response.json();
-        if(!response.ok||!['closed','active','missing'].includes(data.status))throw Error('Room check failed');
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok||!['closed','active','missing'].includes(data.status))throw Error(`Room check failed: HTTP ${response.status}`);
         return data.status;
       }));
-      const failedObjectIds=[];
+      const failedObjectIds=[],failureReasons=[];
       for(const [index,result] of results.entries()){
         if(result.status==='fulfilled')counts[result.value]++;
-        else {counts.failed++;failedObjectIds.push(ids[index]);}
+        else {counts.failed++;failedObjectIds.push(ids[index]);failureReasons.push(String(result.reason?.message||'Room check failed').slice(0,180));}
       }
-      return json({ok:counts.failed===0,...counts,...(counts.failed?{failedObjectIds}:{})},counts.failed===0?200:503);
+      return json({ok:counts.failed===0,...counts,...(counts.failed?{failedObjectIds,failureReasons:[...new Set(failureReasons)]}:{})},counts.failed===0?200:503);
     }
     if (url.pathname === '/create') {
       let data;
