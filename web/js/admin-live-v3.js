@@ -19,13 +19,14 @@
     ['kids-ark-pairs', 'Найди пару'], ['biblical-match-three', 'Библейские сокровища'],
     ['moses-nile', 'Моисей: Путь по Нилу'],
     ['twelve-tribes', 'Двенадцать колен'], ['promised-land', 'Земля обетованная'],
+    ['bible-azbuka', 'Библейская азбука'], ['bible-world', 'Где я в Библии?'],
   ];
   /*
     Игры, которые бывают только по сети. Без комнаты человек в них может быть
     лишь в лобби — выбирает, создать комнату или войти по коду. Остальные
     сетевые игры умеют и партию на одном устройстве.
   */
-  const ONLINE_ONLY = new Set(['quartet', 'bible-sketch']);
+  const ONLINE_ONLY = new Set(['quartet', 'bible-sketch', 'bible-azbuka']);
   const GAME_NAMES = Object.fromEntries(GAMES);
   const BALANCES = [
     { type: 'stars_wow', field: 'wowStars', label: 'Слова', icon: '✦' },
@@ -44,6 +45,9 @@
   let observerRoom = null;
   let observerEtag = '';
   let liveRequest = null;
+  let azbukaRooms = null;
+  let azbukaRoomsAt = 0;
+  let azbukaRoomsRequest = null;
   let profileRequest = null;
   let adminSessionToken = '';
   let adminSessionExpiresAt = 0;
@@ -123,6 +127,7 @@
   async function refreshLive(forceProfiles = false) {
     const panel = document.getElementById('admin-live-v3');
     if (!panel) return;
+    void refreshAzbukaRooms(forceProfiles);
     if (liveRequest) return liveRequest;
     liveRequest = (async () => {
       const controller = new AbortController();
@@ -139,6 +144,23 @@
       } finally { clearTimeout(timeout); }
     })().finally(() => { liveRequest = null; });
     return liveRequest;
+  }
+
+  async function refreshAzbukaRooms(force = false) {
+    if (document.hidden || azbukaRoomsRequest || (!force && Date.now()-azbukaRoomsAt<15_000)) return;
+    azbukaRoomsAt=Date.now();
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),4500);
+    azbukaRoomsRequest=(async()=>{
+      try {
+        const response=await adminFetch(`${coreBackend}/azbuka/admin/rooms`,{signal:controller.signal});
+        const data=await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        azbukaRooms=Array.isArray(data.rooms)?data.rooms:[];
+      } catch { azbukaRooms=null; }
+      finally { clearTimeout(timeout); azbukaRoomsRequest=null; render(); }
+    })();
+    return azbukaRoomsRequest;
   }
 
   async function refreshHistorical() {
@@ -179,6 +201,7 @@
     const active = document.activeElement;
     return {
       gamesOpen: Boolean(panel.querySelector('.admin-live-v3__games')?.open),
+      azbukaRoomsOpen: Boolean(panel.querySelector('#admin-azbuka-rooms')?.open),
       focus: active && panel.contains(active) ? focusSignature(active) : '',
     };
   }
@@ -204,11 +227,26 @@
       <div class="admin-live-v3__head"><div><span class="admin-live-v3__eyebrow">Живой мониторинг</span><h3>Онлайн и управление</h3></div><button type="button" data-live-refresh aria-label="Обновить данные">↻</button></div>
       <div class="admin-live-v3__summary"><div><b>${Number(live.onlineNow || 0)}</b><span>онлайн</span></div><div><b>${Number(live.menuNow || 0)}</b><span>в меню</span></div><div><b>${Number(live.activeRoomsNow || 0)}</b><span>комнат</span></div><div><b>${Number(historical.peakOnlineToday || live.onlineNow || 0)}</b><span>пик сегодня</span></div></div>
       <details class="admin-live-v3__games" ${preserved.gamesOpen ? 'open' : ''}><summary>Игры сейчас</summary><div>${gameCards}</div></details>
+      ${renderAzbukaRooms(preserved.azbukaRoomsOpen)}
       <div class="admin-live-v3__section-head"><b>Кто сейчас онлайн</b><span>${users.length}</span></div>
       <div class="admin-live-v3__people">${people}</div>
       <div class="admin-live-v3__foot">Live ${generated} · ${Math.round(Number(live.strictPresenceWindowMs || 0) / 1000)} сек${historical.errorsToday !== undefined ? ` · ошибок сегодня ${Number(historical.errorsToday || 0)}` : ''}</div>`;
     bindPanelActions(panel);
     if (preserved.focus) requestAnimationFrame(() => panel.querySelector(preserved.focus)?.focus({ preventScroll: true }));
+  }
+
+  function renderAzbukaRooms(open) {
+    const rooms=(azbukaRooms||[]).filter(room=>/^[A-HJ-NP-Z2-9]{6}$/.test(room.code));
+    const list=rooms.map(room=>`<div class="admin-live-v3__game"><span><b>${escapeText(room.code)}</b>Создана ${escapeText(new Date(room.created).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}))}</span><button type="button" class="admin-live-v3__observe" data-observe-game="bible-azbuka" data-observe-room="${escapeText(room.code)}">Наблюдать</button></div>`).join('');
+    const empty=azbukaRooms===null?'Список комнат загружается или временно недоступен.':'Нет открытых комнат.';
+    return `<details id="admin-azbuka-rooms" class="admin-live-v3__games" ${open?'open':''}><summary>Комнаты Библейской азбуки${azbukaRooms===null?'':` · ${rooms.length}`}</summary><div>${list||`<span class="admin-live-v3__empty">${empty}</span>`}</div></details>`;
+  }
+
+  function renderWorldPresence(state) {
+    if (!state) return '<div class="admin-live-v3__observe-none">Данные о прохождении пока не получены</div>';
+    if (state.phase==='menu') return '<div class="admin-live-v3__observe-none">Выбирает уровень или локацию</div>';
+    const level=({easy:'Лёгкий',medium:'Средний',hard:'Сложный'})[state.level]||'—';
+    return `<div class="admin-live-v3__observe-none">${escapeText(phaseLabel(state.phase))} · ${level} · Локация ${Number(state.round)}/${Number(state.rounds)}${state.single?' (отдельная)':''} · ${Number(state.score)}/${Number(state.maxScore)} очков · Подсказки ${Number(state.hints)}/3</div>`;
   }
 
   function renderOnlineUser(user) {
@@ -233,7 +271,7 @@
     const soloText = ONLINE_ONLY.has(user.game)
       ? 'В лобби игры — комнату ещё не создал и не вошёл'
       : 'Комнаты нет — играет на одном устройстве или выбирает комнату';
-    const soloNote = !canObserve && backend && user.game
+    const soloNote = user.game==='bible-world' ? renderWorldPresence(user.gameState) : !canObserve && backend && user.game
       ? `<div class="admin-live-v3__observe-none">${soloText}</div>` : '';
     const balances = profile ? BALANCES.filter((item) => !profile.unifiedWallet || ['stars_sw', 'stars_bmt'].includes(item.type))
       .map((item) => renderBalance(id, profile, item)).join('') : '<div class="admin-live-v3__profile-loading">Баланс загружается…</div>';
@@ -347,10 +385,12 @@
       spy: spyBackend,
       'twelve-tribes': tribesBackend,
       'promised-land': promisedBackend,
+      'bible-azbuka': coreBackend,
     })[game] || '';
   }
 
   function observerPath(game, roomId) {
+    if (game==='bible-azbuka') return `/azbuka/admin/rooms/${encodeURIComponent(roomId)}/state`;
     const prefix = game === 'promised-land' ? '/api' : '';
     return `${prefix}/admin/rooms/${encodeURIComponent(roomId)}/state`;
   }
@@ -361,7 +401,18 @@
     if (game === 'twelve-tribes') return renderTribesObserver(data);
     if (game === 'promised-land') return renderPromisedObserver(data);
     if (game === 'spy') return renderSpyObserver(data);
+    if (game === 'bible-azbuka') return renderAzbukaObserver(data);
     return '<div class="admin-live-v3__empty">Для этой игры монитора нет.</div>';
+  }
+
+  function renderAzbukaObserver(data) {
+    const players=(data.players||[]).map(p=>`<div class="admin-live-v3__observer-player"><b>${escapeText(p.name)}${p.host?' ♛':''}</b><span>${Number(p.score||0)} очков · ${p.online?'онлайн':'не в сети'}${p.ready?' · готов':''}</span></div>`).join('');
+    const countdown=deadline=>{
+      if (!deadline) return '—';
+      const seconds=Math.max(0,Math.ceil((Number(deadline)-Date.now())/1000));
+      return `${Math.floor(seconds/3600)}:${String(Math.floor(seconds/60)%60).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
+    };
+    return `<div class="admin-live-v3__observer-stats"><div><span>Статус</span><b>${escapeText(phaseLabel(data.status))}</b></div><div><span>Режим</span><b>${data.mode==='stop'?'Стоп':'На время'}</b></div><div><span>Раунд</span><b>${Number(data.round)}/${Number(data.rounds)}</b></div><div><span>Буква</span><b>${escapeText(data.letter||'—')}</b></div><div><span>До конца раунда</span><b>${countdown(data.deadline)}</b></div><div><span>До удаления</span><b>${countdown(data.expiresAt)}</b></div><div><span>Лимит 5 часов</span><b>${countdown(data.hardExpiresAt)}</b></div><div><span>Онлайн</span><b>${(data.players||[]).filter(p=>p.online).length}/${(data.players||[]).length}</b></div></div><div class="admin-live-v3__observer-players">${players}</div>${renderLog(data.log,'Общий чат')}`;
   }
 
   /*

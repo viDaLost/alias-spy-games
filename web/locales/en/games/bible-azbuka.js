@@ -123,6 +123,7 @@
     }
 
     function welcome() {
+      window.AppPresenceContext?.clearRoom?.(GAME);
       room = null;
       view = '';
       round = -1;
@@ -138,6 +139,7 @@
       pollAfter = 0;
       errors = 0;
       remember(result.code);
+      window.AppPresenceContext?.setRoom?.(GAME,result.code);
       paint(result);
     }
 
@@ -564,6 +566,7 @@
     window.addEventListener('roominvitechange', acceptRoomInvite);
     return () => {
       disposed = true;
+      window.AppPresenceContext?.clearRoom?.(GAME);
       closeScan();
       window.RoomQrScanner?.close();
       window.RoomInvite?.closeQr();

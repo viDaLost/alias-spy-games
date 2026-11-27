@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { accessIdentity } from '../../app-core-worker/src/app-access-auth.js';
-import { forwardAzbuka } from '../../app-core-worker/src/bible-azbuka.js';
+import { forwardAzbuka, forwardAzbukaObserver } from '../../app-core-worker/src/bible-azbuka.js';
 import worker, { AzbukaRoom } from '../worker.mjs';
 import dictionary from '../synodal-dictionary.json' with { type: 'json' };
 
@@ -12,15 +12,23 @@ const origin = 'https://vidalost.github.io';
 const cors = { 'Access-Control-Allow-Origin': origin };
 const appHeaders = { 'Content-Type': 'application/json', Origin: origin, 'X-Azbuka-Account': ADMIN };
 
-function makeRoom() {
+function makeStorage() {
   const map = new Map();
-  const storage = {
-    get: async key => map.get(key),
-    put: async (key, value) => map.set(key, structuredClone(value)),
-    delete: async key => map.delete(key),
-    setAlarm: async () => {},
+  let alarm=null;
+  return {
+    get: async key => structuredClone(map.get(key)),
+    put: async (key,value) => {
+      for(const [name,data] of typeof key==='string'?[[key,value]]:Object.entries(key))map.set(name,structuredClone(data));
+    },
+    delete: async keys => {for(const key of Array.isArray(keys)?keys:[keys])map.delete(key);},
+    list: async ({prefix}) => new Map([...map].filter(([key])=>key.startsWith(prefix))),
+    getAlarm: async () => alarm,
+    setAlarm: async time => {alarm=time;},
+    deleteAlarm: async () => {alarm=null;},
   };
-  return new AzbukaRoom({ storage, blockConcurrencyWhile: async fn => fn() });
+}
+function makeRoom(storage=makeStorage(),env) {
+  return new AzbukaRoom({ storage, blockConcurrencyWhile: async fn => fn() },env);
 }
 
 const rooms = new Map();
@@ -28,7 +36,7 @@ const service = {
   ROOMS: {
     idFromName: code => code,
     get(code) {
-      if (!rooms.has(code)) rooms.set(code, makeRoom());
+      if (!rooms.has(code)) rooms.set(code, makeRoom(makeStorage(),service));
       return { fetch: (url, init) => rooms.get(code).fetch(new Request(url, init)) };
     },
   },
@@ -182,3 +190,89 @@ await legacy.ready;
 legacy.room = { code: 'OLD234', phase: 'lobby', players: [{ token: 'preview-token' }] };
 assert.equal((await invoke(legacy, 'join', ADMIN, { name: 'Мария' })).status, 404);
 console.log('PASS: verified player access, room rejoin, lobby and chat, private drafts, Synodal scoring, rounds and timers');
+
+const observerRequest=new Request('https://core.example/azbuka/admin/rooms',{headers:{Authorization:'Bearer test'}});
+const verifier=scope=>async()=>Response.json({ok:true,userId:ADMIN,scope});
+const observer=(path,scope='admin')=>forwardAzbukaObserver('/azbuka/admin/rooms'+path,observerRequest,env,cors,verifier(scope));
+assert.equal((await observer('', 'presence')).status,403);
+assert.equal((await worker.fetch(new Request('https://azbuka.internal/admin/rooms',{method:'POST',headers:appHeaders,body:'{}'}),service)).status,404);
+const directory=await (await observer('')).json();
+assert(directory.rooms.some(entry=>entry.code===initial.code));
+const oldPresence=await room.state.storage.get('presence');
+const view=await (await observer('/'+initial.code+'/state')).json();
+assert.equal(view.code,initial.code);
+assert.equal(view.players.length,2);
+assert.equal(view.players.some(p=>p.host),true);
+assert(!JSON.stringify(view).includes('accountId'));
+assert(!JSON.stringify(view).includes('answers'));
+assert.deepEqual(await room.state.storage.get('presence'),oldPresence);
+
+const onlineTimeout=20_000,idleTimeout=30*60_000,lifetime=5*60*60_000;
+const realNow=Date.now;let now=realNow();Date.now=()=>now;
+async function fireAlarm(target){
+  const alarm=await target.state.storage.getAlarm();
+  assert(alarm!==null&&alarm<=now);
+  await target.state.storage.deleteAlarm();await target.alarm();
+}
+try {
+  const empty=makeRoom(makeStorage(),service);
+  await invoke(empty,'init',ADMIN,{code:'IDLE23',name:'Мария'});
+  const idleDeadline=now+onlineTimeout+idleTimeout;
+  assert.equal(await empty.state.storage.getAlarm(),idleDeadline);
+  now=idleDeadline-1;
+  assert.equal((await invoke(empty,'state',GUEST)).status,401);
+  assert(empty.room);
+  now++;await fireAlarm(empty);
+  assert.equal(await empty.state.storage.get('room'),undefined);
+  assert.equal(await empty.state.storage.get('presence'),undefined);
+  assert.equal(await empty.state.storage.getAlarm(),null);
+  assert(!(await (await observer('')).json()).rooms.some(entry=>entry.code==='IDLE23'));
+  assert.equal((await invoke(empty,'join',ADMIN,{name:'Мария'})).status,404);
+
+  let active=makeRoom();
+  await invoke(active,'init',ADMIN,{code:'LIVE23',name:'Мария'});
+  await invoke(active,'join',GUEST,{name:'Лия'});
+  const firstAlarm=await active.state.storage.getAlarm();
+  now+=10*60_000;
+  const ping=await invoke(active,'state',GUEST);
+  assert.equal(ping.players[0].online,false);assert.equal(ping.players[1].online,true);
+  const lastPing=now;
+  active=makeRoom(active.state.storage);await active.ready;
+  assert.equal(active.room.players[1].lastSeen,lastPing);
+  now=firstAlarm;await fireAlarm(active);
+  assert(active.room);
+  assert.equal(await active.state.storage.getAlarm(),lastPing+onlineTimeout+idleTimeout);
+  now=lastPing+onlineTimeout+idleTimeout;
+  assert.equal((await invoke(active,'join',GUEST,{name:'Лия'})).status,404);
+
+  const hardLimit=makeRoom();const createdAt=now;
+  await invoke(hardLimit,'init',ADMIN,{code:'LIFE23',name:'Мария',mode:'timed',duration:90});
+  await invoke(hardLimit,'join',GUEST,{name:'Лия'});
+  for(let elapsed=10*60_000;elapsed<lifetime;elapsed+=10*60_000){
+    now=createdAt+elapsed;
+    if((await hardLimit.state.storage.getAlarm())<=now)await fireAlarm(hardLimit);
+    assert.equal((await invoke(hardLimit,'state',ADMIN)).status,200);
+  }
+  now=createdAt+lifetime-10_000;
+  assert.equal((await invoke(hardLimit,'start',ADMIN)).phase,'playing');
+  assert.equal(await hardLimit.state.storage.getAlarm(),createdAt+lifetime);
+  now=createdAt+lifetime;await fireAlarm(hardLimit);
+  assert.equal((await invoke(hardLimit,'state',ADMIN)).status,404);
+
+  const timedAlarm=makeRoom();
+  await invoke(timedAlarm,'init',ADMIN,{code:'TIME23',name:'Мария',mode:'timed',duration:30});
+  await invoke(timedAlarm,'join',GUEST,{name:'Лия'});
+  await invoke(timedAlarm,'start',ADMIN);
+  assert.equal(await timedAlarm.state.storage.getAlarm(),now+30_000);
+  const timedIdleDeadline=now+onlineTimeout+idleTimeout;
+  now+=30_000;await fireAlarm(timedAlarm);
+  assert.equal(timedAlarm.room.phase,'results');
+  assert.equal(await timedAlarm.state.storage.getAlarm(),timedIdleDeadline);
+  now=timedIdleDeadline;await fireAlarm(timedAlarm);
+  assert.equal(await timedAlarm.state.storage.get('room'),undefined);
+
+  const oldStorage=makeStorage();
+  await oldStorage.put('room',{code:'PAST23',created:now-lifetime,phase:'lobby',players:[{id:'host',accountId:ADMIN,lastSeen:now-1000}]});
+  assert.equal((await invoke(makeRoom(oldStorage),'join',ADMIN,{name:'Мария'})).status,404);
+  console.log('PASS: administrator observation, directory, idle expiry, durable presence, late reconnect, five-hour limit, round alarms and legacy rooms');
+}finally{Date.now=realNow;}

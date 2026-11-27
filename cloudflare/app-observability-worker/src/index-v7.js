@@ -1,5 +1,6 @@
 import baseV6, { AppStats as BaseAppStats } from './index-v6.js';
 import { ROOM_GAMES } from './room-games.js';
+import { worldPresence } from './game-presence.js';
 
 // Navigation changes are pushed immediately. This wider stale window only
 // protects the low-frequency safety heartbeat from normal mobile timer jitter.
@@ -50,6 +51,7 @@ export class AppStats extends BaseAppStats {
           platform: sanitizePlatform(session.platform),
           game,
           roomId,
+          gameState: session.gameState,
           updatedAt: Number(session.updatedAt || 0),
         };
       })
@@ -83,6 +85,7 @@ function normalizeAttachment(value = {}) {
     platform: sanitizePlatform(value.platform),
     game: sanitizeGame(value.game),
     roomId: sanitizeRoomId(value.roomId),
+    gameState: worldPresence(sanitizeGame(value.game),value.gameState),
     visible: value.visible !== false,
     updatedAt: Number(value.updatedAt || 0),
   };

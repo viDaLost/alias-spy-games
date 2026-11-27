@@ -7,6 +7,9 @@
     return {
       request: window.AppAccess.bibleWorldRequest,
       exit: () => window.goToMainMenu(),
+      report: (state) => {
+        if (activeFrame?.isConnected && activeFrame.contentWindow === source) window.AppPresenceContext?.setGameState?.('bible-world',state);
+      },
     };
   };
 

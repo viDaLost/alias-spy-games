@@ -11,6 +11,7 @@ registerHooks({
   },
 });
 const { default: core } = await import('../cloudflare/app-core-worker/src/index-v18.js');
+const { issueWebSession } = await import('../cloudflare/app-core-worker/src/index-v9.js');
 const owner = '1288379477';
 const player = '666666666';
 let identity = player;
@@ -18,15 +19,21 @@ let restricted = false;
 let banned = false;
 let assetRequests = 0;
 let roomRequests = 0;
+let observerRequests = 0;
 const scene = 'babel-360-v6-seams2-4k.webp';
 const env = {
   ADMIN_TELEGRAM_ID: owner,
+  TELEGRAM_BOT_TOKEN: 'test-session-secret',
   ALLOWED_ORIGINS: 'https://appassets.androidplatform.net,https://vidalost.github.io',
   USERS: {
     idFromName: () => 'global',
     get: () => ({
       fetch: (url, init) => {
         if (url.endsWith('/android-auth/session')) return Response.json({ userId: identity });
+        if (url.endsWith('/admin-role/check')) {
+          const {userId}=JSON.parse(init.body);
+          return Response.json({ok:true,isAdmin:userId===owner,isRoot:userId===owner});
+        }
         assert.match(url, /\/app-access\/check$/);
         const { userId } = JSON.parse(init.body);
         const allowed = userId === owner || (!restricted && !(userId && banned));
@@ -36,6 +43,11 @@ const env = {
   },
   AZBUKA: {
     fetch: (url, init) => {
+      if (url.includes('/admin/rooms')) {
+        observerRequests++;
+        assert.equal(init.headers['X-Azbuka-Account'],owner);
+        return Response.json({ok:true,rooms:[]});
+      }
       roomRequests++;
       assert.equal(url, 'https://azbuka.internal/create');
       assert.equal(init.headers['X-Azbuka-Account'], player);
@@ -89,4 +101,19 @@ assert.equal(panorama.headers.get('Access-Control-Allow-Origin'), origin);
 assert.equal(await panorama.text(), 'panorama');
 assert.equal((await request('bible-world/panorama', { scene: 'missing-4k.webp' }, true)).status, 404);
 assert.equal(assetRequests, 2);
+const androidPresence = await request('web/session', {scope:'presence'}, true);
+assert.equal(androidPresence.status,200);
+const {token:presenceToken}=await androidPresence.json();
+const adminSession=await issueWebSession({id:owner},'admin',env);
+const formerAdminSession=await issueWebSession({id:player},'admin',env);
+function roomObserver(token=''){
+  return core.fetch(new Request('https://core.example/azbuka/admin/rooms',{
+    headers:{Origin:origin,...(token?{Authorization:`Bearer ${token}`}:{})},
+  }),env);
+}
+assert.equal((await roomObserver()).status,401);
+assert.equal((await roomObserver(presenceToken)).status,403);
+assert.equal((await roomObserver(formerAdminSession.token)).status,403);
+assert.equal((await roomObserver(adminSession.token)).status,200);
+assert.equal(observerRequests,1);
 console.log('Both games are open to regular players. Bible World accepts guests, Azbuka rooms use verified accounts, and general restrictions are enforced.');

@@ -4,7 +4,9 @@
   const backend = String(document.querySelector('meta[name="app-observability"]')?.content || '').replace(/\/+$/, '');
   const coreBackend = String(document.querySelector('meta[name="app-core-backend"]')?.content || '').replace(/\/+$/, '');
   const initData = String(window.Telegram?.WebApp?.initData || '');
-  if (!backend || !coreBackend || !initData) return;
+  const platform = window.__ANDROID_APK__ ? 'android' : 'telegram';
+  const accountToken = () => platform === 'android' ? window.AndroidApp?.getSessionToken?.() : window.WebSession?.token?.();
+  if (!backend || !coreBackend || (!initData && !accountToken())) return;
 
   const HEARTBEAT_MS = 30_000;
   const CONTEXT_CHECK_MS = 2_000;
@@ -21,6 +23,7 @@
   let explicitRoom = '';
   let explicitRoomGame = '';
   let explicitGame = '';
+  let worldState = null;
   let reconnectAttempt = 0;
   let connecting = false;
 
@@ -126,6 +129,11 @@
         sendPresence(true);
       }
     },
+    setGameState(game, state) {
+      if (game !== 'bible-world' || currentGame() !== game) return;
+      worldState = state;
+      sendPresence();
+    },
     snapshot() {
       return { game: currentGame(), roomId: currentRoomId() };
     },
@@ -136,9 +144,11 @@
     if (sessionToken && sessionExpiresAt - now > 60_000) return sessionToken;
     if (sessionPromise) return sessionPromise;
     sessionPromise = (async () => {
+      const headers = { 'Content-Type': 'application/json' };
+      if (!initData) headers.Authorization = `Bearer ${accountToken() || ''}`;
       const response = await fetch(`${coreBackend}/web/session`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ telegramInitData: initData, scope: 'presence' }),
         cache: 'no-store',
       });
@@ -228,14 +238,16 @@
     if (document.hidden || pageLeaving) return;
     const game = currentGame();
     const roomId = currentRoomId();
-    const signature = `${game}|${roomId}`;
+    if (game !== 'bible-world') worldState = null;
+    const gameState = worldState;
+    const signature = `${game}|${roomId}|${JSON.stringify(gameState)}`;
     if (!force && signature === lastPresence) return;
     if (socket?.readyState !== WebSocket.OPEN) {
       scheduleReconnect();
       return;
     }
     lastPresence = signature;
-    try { socket.send(JSON.stringify({ type: 'presence', platform: 'telegram', visible: true, game, roomId })); } catch {}
+    try { socket.send(JSON.stringify({ type: 'presence', platform, visible: true, game, roomId, gameState })); } catch {}
   }
 
   function sendOfflineAndClose(reason = 'hidden') {

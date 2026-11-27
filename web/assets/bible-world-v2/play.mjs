@@ -49,6 +49,11 @@ function best(id,limit){
 }
 let sceneRequest;
 const levelIcons = ['◔', '◑', '◕'];
+function reportState(phase) {
+ if (phase === 'menu') { host.report?.({phase}); return; }
+ host.report?.({phase,level:journey.levelId,round:journey.index+1,rounds:journey.roundCount,
+  single:journey.single,score:journey.total,maxScore:journey.maxScore,hints:state.hints});
+}
 
 function renderLevels() {
  $('totalLocations').textContent = `${scenes.length} локаций`;
@@ -159,7 +164,7 @@ for(const [i,name] of steps.entries()){$('tab-'+name).onclick=()=>showStep(i);$(
 $('backAnswer').onclick=()=>showStep(Math.max(0,state.step-1));$('nextAnswer').onclick=()=>{if(values()[state.step])showStep(state.step+1);};
 function choices(name,list){$(name).replaceChildren();for(const item of list){const l=document.createElement('label'),input=document.createElement('input'),text=document.createElement('span'),title=document.createElement('b');l.className='choice';input.type='radio';input.name=name;input.value=item.id;title.textContent=item.label;text.append(title);if(item.detail){const d=document.createElement('small');d.textContent=item.detail;text.append(d);}l.append(input,text);$(name).append(l);input.addEventListener('change',()=>{if(!input.checked||!state.active||state.submitted)return;if(name==='regions')state.guess={region:item.id};else state[name==='events'?'event':'epoch']=item.id;showStep(name==='regions'?1:name==='events'?2:3);});}}
 $('openAnswers').onclick=()=>{if(!state.active||!state.loaded)return;if(state.submitted){$('resultDialog').showModal();inert();return;}showStep(values().every(Boolean)?3:Math.max(0,values().findIndex(v=>!v)));$('hintToast').hidden=true;$('answerDialog').showModal();inert();};
-$('hintButton').onclick=()=>{if(!state.active||!state.loaded||state.submitted||state.hints===3)return;$('hintText').textContent=journey.scene.hints[state.hints++];$('hintCounter').textContent=`Подсказка ${state.hints} / 3 · −150 очков`;$('hintToast').hidden=false;$('lookCue').hidden=true;$('hintButton').disabled=state.hints===3;};$('closeHint').onclick=()=>$('hintToast').hidden=true;
+$('hintButton').onclick=()=>{if(!state.active||!state.loaded||state.submitted||state.hints===3)return;$('hintText').textContent=journey.scene.hints[state.hints++];$('hintCounter').textContent=`Подсказка ${state.hints} / 3 · −150 очков`;$('hintToast').hidden=false;$('lookCue').hidden=true;$('hintButton').disabled=state.hints===3;reportState('playing');};$('closeHint').onclick=()=>$('hintToast').hidden=true;
 setInterval(()=>{if(document.hidden||!state.active||state.submitted||!state.loaded||$('helpDialog').open)return;state.seconds++;$('timer').textContent=`${String(Math.floor(state.seconds/60)).padStart(2,'0')}:${String(state.seconds%60).padStart(2,'0')}`;},1000);
 function card(label,score,detail){const div=document.createElement('div'),t=document.createElement('span'),b=document.createElement('b'),p=document.createElement('p');div.className='score-card';t.textContent=label;b.textContent=score;p.textContent=detail;div.append(t,b,p);return div;}
 function result(r){const s=journey.scene,finishedJourney=journey.complete&&!journey.single;$('resultEyebrow').textContent=finishedJourney?'Уровень пройден':`Локация ${journey.index+1} из ${journey.roundCount} открыта`;$('resultTitle').textContent=finishedJourney?'Все истории открыты!':r.story===2000?'Вы узнали историю!':'История раскрыта';$('resultLocation').textContent=s.subtitle;$('resultMessage').textContent=finishedJourney?'Ваш итог за весь уровень. Ниже — детали последней истории.':'Сравните ответ с деталями, которые были вокруг вас.';$('totalScore').textContent=fmt(finishedJourney?journey.total:r.total);$('scoreLimit').textContent=`/ ${fmt(finishedJourney?journey.maxScore:maxRoundScore)} очков`;
@@ -171,7 +176,7 @@ function result(r){const s=journey.scene,finishedJourney=journey.complete&&!jour
  $('roundResults').replaceChildren();for(const [i,scene] of journey.scenes.entries()){const row=document.createElement('div'),name=document.createElement('span'),score=document.createElement('b');row.className='round-result';name.textContent=`${i+1}. ${scene.title}`;score.textContent=journey.results[i]?fmt(journey.results[i].total):'—';row.append(name,score);$('roundResults').append(row);}
  $('playAgain').textContent=journey.complete?'Сыграть ещё раз ↺':'Следующая локация →';$('resultScroll').scrollTop=0;$('resultDialog').showModal();inert();
 }
-$('submitGuess').onclick=()=>{if(state.submitted||!state.loaded||!values().every(Boolean))return;const r=journey.submit(state);state.submitted=true;closeAnswers();$('hintToast').hidden=true;$('lookCue').hidden=true;$('hintButton').disabled=true;if(journey.complete&&!journey.single){try{localStorage.setItem(key(journey.levelId, journey.roundCount),String(Math.max(best(journey.levelId,journey.maxScore),journey.total)));}catch{}}$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;completion();result(r);};
+$('submitGuess').onclick=()=>{if(state.submitted||!state.loaded||!values().every(Boolean))return;const r=journey.submit(state);state.submitted=true;closeAnswers();$('hintToast').hidden=true;$('lookCue').hidden=true;$('hintButton').disabled=true;if(journey.complete&&!journey.single){try{localStorage.setItem(key(journey.levelId, journey.roundCount),String(Math.max(best(journey.levelId,journey.maxScore),journey.total)));}catch{}}$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;completion();result(r);reportState(journey.complete?'finished':'results');};
 async function loadScene() {
  sceneRequest?.abort();
  const request = new AbortController();
@@ -205,7 +210,7 @@ async function loadScene() {
   if (!request.signal.aborted) panoramaError();
  }
 }
-function startRound(){clearTimeout(cueTimer);for(const id of ['answerDialog','resultDialog'])if($(id).open)$(id).close();Object.assign(state,{active:true,guess:null,event:null,epoch:null,hints:0,submitted:false,loaded:false,seconds:0,step:0});$('hintToast').hidden=true;$('hintButton').disabled=false;$('timer').textContent='00:00';$('roundNumber').textContent=journey.index+1;$('roundTotal').textContent=` / ${journey.roundCount}`;$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;choices('regions',regions);choices('events',eventChoices(journey.levelId,journey.scene.id));choices('epochs',epochs);showStep(0);inert();loadScene();}
+function startRound(){clearTimeout(cueTimer);for(const id of ['answerDialog','resultDialog'])if($(id).open)$(id).close();Object.assign(state,{active:true,guess:null,event:null,epoch:null,hints:0,submitted:false,loaded:false,seconds:0,step:0});$('hintToast').hidden=true;$('hintButton').disabled=false;$('timer').textContent='00:00';$('roundNumber').textContent=journey.index+1;$('roundTotal').textContent=` / ${journey.roundCount}`;$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;choices('regions',regions);choices('events',eventChoices(journey.levelId,journey.scene.id));choices('epochs',epochs);showStep(0);inert();reportState('playing');loadScene();}
 function startLevel(id,index){
  journey=createJourney(id,index);
  $('locationDialog').close();
@@ -230,11 +235,12 @@ function menu(){
  $('levelMenu').hidden=false;
  document.body.classList.remove('playing');
  renderLevels();
+ reportState('menu');
  inert();
  const levelIndex=levels.findIndex(level=>level.id===journey.levelId);
  $('levelCards').children[levelIndex].focus({preventScroll:true});
  if(journey.single)openLocations(levels[levelIndex]);
 }
 $('chooseLevel').onclick=menu;$('resultLevels').onclick=menu;$('playAgain').onclick=()=>{if(journey.complete)journey.restart();else if(!journey.next())return;startRound();};
-$('helpButton').onclick=()=>{$('helpDialog').showModal();inert();};$('closeHelp').onclick=()=>{$('helpDialog').close();inert();};$('startPlaying').onclick=()=>$('closeHelp').click();renderLevels();
+$('helpButton').onclick=()=>{$('helpDialog').showModal();inert();};$('closeHelp').onclick=()=>{$('helpDialog').close();inert();};$('startPlaying').onclick=()=>$('closeHelp').click();renderLevels();reportState('menu');
 }

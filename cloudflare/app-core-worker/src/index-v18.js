@@ -5,7 +5,8 @@ import { accessIdentity, accessStore, cleanAccessId, accessError } from './app-a
 import { readTelegramWebhookUpdate, restrictedBotReply, RESTRICTED_BOT_TEXT } from './restricted-bot.js';
 import { handleFavoritesWidget } from './telegram-favorites-widget.js';
 import { SabbathUserStore } from './sabbath-user-store.js';
-import { forwardAzbuka } from './bible-azbuka.js';
+import { forwardAzbuka, forwardAzbukaObserver } from './bible-azbuka.js';
+import { issueWebSession } from './index-v9.js';
 import { serveBibleWorld } from './bible-world.js';
 
 const MESSAGE = 'Библейские игры временно заблокированы. Не волнуйтесь: ваши данные и достижения на месте.';
@@ -197,6 +198,19 @@ export default {
     }
     const cors = corsHeaders(request, env);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (request.method === 'GET' && /^\/azbuka\/admin\/rooms(?:\/[A-HJ-NP-Z2-9]{6}\/state)?$/.test(url.pathname)) {
+      try {
+        const origin=request.headers.get('Origin');
+        if(origin&&!String(env.ALLOWED_ORIGINS||'').split(',').includes(origin))throw accessError(403,'Origin not allowed');
+        return await forwardAzbukaObserver(url.pathname,request,env,cors,async proof=>{
+          const response=await coreV17.fetch(proof,env,ctx);
+          if(!response.ok)return response;
+          const session=await response.clone().json();
+          const access=await accessStore(env,'/app-access/check',{userId:session.userId});
+          return access.allowed?response:json({ok:false,error:MESSAGE},403,cors);
+        });
+      } catch(error) { return json({ok:false,error:error.message},error.status||503,cors); }
+    }
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
       try {
         const update = await readTelegramWebhookUpdate(request, env);
@@ -238,6 +252,10 @@ export default {
       });
       if (check || legacyAccess || (compat && ACCESS_ACTIONS.has(action) && !access.allowed)) return json(access, 200, cors);
       if (!access.allowed) return json({ ...access, ok: false, success: false, error: MESSAGE }, 403, cors);
+      if (url.pathname === '/web/session' && body.scope === 'presence' && !body.telegramInitData && userId) {
+        const session=await issueWebSession({id:userId,first_name:`ID ${userId}`},'presence',env);
+        return json({ok:true,success:true,...session},200,cors);
+      }
       if (bibleWorld) return await serveBibleWorld(url.pathname, body?.scene, env, cors);
       if (azbuka) return await forwardAzbuka(url.pathname, body?.payload, userId, env, cors);
       if (sabbath) {

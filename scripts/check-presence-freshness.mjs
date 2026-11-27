@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { registerHooks } from 'node:module';
 import { isBundled } from './web-sources.mjs';
 import { coreWorkerHasLayer } from './core-worker-chain.mjs';
 const require = (condition, message) => { if (!condition) throw new Error(message); };
@@ -29,7 +31,7 @@ requireText(worker, 'verifyAndroidIdentity', 'verified Android presence path is 
 // два, и оба знали только «Квартет» и «Художника»: код комнаты «Колен» и
 // «Земли» приходил с телефона и выбрасывался, кнопки наблюдения не было.
 const roomGames = read('cloudflare/app-observability-worker/src/room-games.js');
-for (const game of ['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land']) {
+for (const game of ['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land', 'bible-azbuka']) {
   requireText(roomGames, `'${game}'`, `${game} rooms are not tracked by presence`);
 }
 requireText(worker, "import { ROOM_GAMES } from './room-games.js';", 'presence intake must use the shared room-game list');
@@ -103,3 +105,30 @@ require(isBundled('web/styles/admin-shell-v3.css'), 'admin shell v3 styles are n
 require(isBundled('web/js/cloudflare-request-budget.js'), 'Cloudflare request-budget client is not mounted');
 
 console.log('Verified presence, current-game tracking, scoped sessions and lower-frequency request budget checks passed');
+
+registerHooks({resolve(specifier,context,next){
+  if(specifier==='cloudflare:workers')return {url:'data:text/javascript,export class DurableObject {}',shortCircuit:true};
+  return next(specifier,context);
+}});
+const {AppStats}=await import('../cloudflare/app-observability-worker/src/index-v7.js');
+const makeSocket=id=>{
+  let attachment={userId:id,visible:true,updatedAt:Date.now()};
+  return {deserializeAttachment:()=>attachment,serializeAttachment:value=>{attachment=value;}};
+};
+const azbuka=makeSocket('11111'),world=makeSocket('22222');
+const stats=Object.create(AppStats.prototype);
+stats.ctx={getWebSockets:()=>[azbuka,world]};
+await stats.webSocketMessage(azbuka,JSON.stringify({type:'presence',game:'bible-azbuka',roomId:'ABC234',visible:true}));
+await stats.webSocketMessage(world,JSON.stringify({type:'presence',game:'bible-world',visible:true,gameState:{
+  phase:'playing',level:'medium',round:9,rounds:20,score:3000,maxScore:100000,hints:1,answer:'private',
+}}));
+let live=stats.liveSnapshot();
+assert.equal(live.activeRoomsByGame['bible-azbuka'],1);
+assert.equal(live.currentGames['bible-world'],1);
+assert.deepEqual(live.onlineUsers.find(user=>user.id==='22222').gameState,{
+  phase:'playing',level:'medium',round:9,rounds:20,single:false,score:3000,maxScore:100000,hints:1,
+});
+await stats.webSocketMessage(world,JSON.stringify({type:'presence',game:'',visible:true}));
+live=stats.liveSnapshot();
+assert.equal(live.onlineUsers.find(user=>user.id==='22222').gameState,null);
+console.log('Azbuka room counts and bounded World progress are present in verified live snapshots.');

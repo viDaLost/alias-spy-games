@@ -323,7 +323,7 @@ async function requireAdmin(initData, env) {
   return verified;
 }
 
-async function issueWebSession(user, scope, env) {
+export async function issueWebSession(user, scope, env) {
   const now = Date.now();
   const ttl = scope === 'admin' ? ADMIN_SESSION_TTL_MS : PRESENCE_SESSION_TTL_MS;
   const payload = {

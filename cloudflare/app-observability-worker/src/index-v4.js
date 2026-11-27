@@ -1,5 +1,6 @@
 import legacy, { AppStats as LegacyAppStats } from './index-v3.js';
 import { ROOM_GAMES } from './room-games.js';
+import { worldPresence } from './game-presence.js';
 
 const encoder = new TextEncoder();
 const PRESENCE_STALE_MS = 35_000;
@@ -116,6 +117,7 @@ export class AppStats extends LegacyAppStats {
 
     attachment.game = sanitizeGame(payload.game);
     attachment.roomId = ROOM_GAMES.has(attachment.game) ? sanitizeRoomId(payload.roomId) : '';
+    attachment.gameState = worldPresence(attachment.game,payload.gameState);
     attachment.visible = payload.visible !== false;
     attachment.platform = sanitizePlatform(payload.platform || attachment.platform);
     attachment.updatedAt = attachment.visible ? Date.now() : 0;
@@ -237,6 +239,7 @@ function normalizeAttachment(value = {}) {
     platform: sanitizePlatform(value.platform),
     game: sanitizeGame(value.game),
     roomId: sanitizeRoomId(value.roomId),
+    gameState: worldPresence(sanitizeGame(value.game),value.gameState),
     visible: value.visible !== false,
     updatedAt: Number(value.updatedAt || 0),
   };

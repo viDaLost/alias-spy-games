@@ -90,7 +90,7 @@ includes('cloudflare/spy-worker/wrangler.jsonc', '"binding": "APP_CORE"', 'Spy o
   человек был в лобби, а панель уверяла, что он играет один. У игр только по
   сети отсутствие комнаты значит лобби, и строка обязана это сказать.
 */
-includes('web/js/admin-live-v3.js', "const ONLINE_ONLY = new Set(['quartet', 'bible-sketch'])", 'Online-only games without a room are in the lobby');
+includes('web/js/admin-live-v3.js', "const ONLINE_ONLY = new Set(['quartet', 'bible-sketch', 'bible-azbuka'])", 'Online-only games without a room are in the lobby');
 excludes('web/js/admin-live-v3.js', 'Партия за одним столом — комнаты нет', 'An online-only game must not be described as a one-device game');
 includes('web/js/admin-live-v3.js', 'const canObserve = Boolean(user.roomId && backend)', 'Room observer must require a room, not just a game');
 includes('web/js/admin-live-v3.js', 'admin-live-v3__observe-none', 'A player without a room must be told why there is no observer');

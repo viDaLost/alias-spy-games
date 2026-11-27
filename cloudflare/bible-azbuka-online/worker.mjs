@@ -3,6 +3,11 @@ const CATEGORIES = ['Имя', 'Город или местность', 'Раст�
 const LETTERS = [...'АБВГДЕИКЛМНОПРСТ'];
 const MAX_PLAYERS = 16;
 const ROUND_COUNT = 5;
+const ONLINE_TIMEOUT = 20_000;
+const ROOM_IDLE_TIMEOUT = 30 * 60_000;
+const ROOM_LIFETIME = 5 * 60 * 60_000;
+const ROOM_CODE = /^[A-HJ-NP-Z2-9]{6}$/;
+const directoryStub = env => env.ROOMS.get(env.ROOMS.idFromName('azbuka-room-directory'));
 const normalize = value => String(value ?? '').normalize('NFC').toLocaleLowerCase('ru')
   .replace(/ё/g, 'е').replace(/\u0301/g, '').replace(/[‐‑–—]/g, '-').trim().replace(/\s+/g, ' ');
 const clean = (value, limit = 80) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, limit);
@@ -17,7 +22,7 @@ const candidates = data => Array.from({length:5},(_,i)=>{
   const words = Array.isArray(data?.[i]) ? data[i] : [];
   return [...new Set(words.slice(0,3).map(x=>clean(x)).filter(Boolean).map(x=>x.slice(0,80)))];
 });
-const userView = p => ({id:p.id,name:p.name,score:p.score,ready:!!p.ready,online:Date.now()-p.lastSeen<20000});
+const userView = p => ({id:p.id,name:p.name,score:p.score,ready:!!p.ready,online:Date.now()-p.lastSeen<ONLINE_TIMEOUT});
 function validate(dictionary, words, letter) {
   return words.map(word=>{
     const key=normalize(word);
@@ -57,21 +62,119 @@ function publicRoom(r, player) {
     finished:r.phase==='finished'};
 }
 export class AzbukaRoom {
-  constructor(state) {
-    this.state=state;this.room=null;this.queue=Promise.resolve();
-    this.ready=state.blockConcurrencyWhile(async()=>{this.room=await state.storage.get('room')||null;});
+  constructor(state,env) {
+    this.state=state;this.env=env;this.room=null;this.queue=Promise.resolve();
+    this.lastOnlineUntil=0;this.registered=false;this.registerRetryAt=0;
+    this.ready=state.blockConcurrencyWhile(async()=>{
+      this.room=await state.storage.get('room')||null;
+      if(!this.room)return;
+      const presence=await state.storage.get('presence');
+      for(const player of this.room.players){
+        player.lastSeen=Math.max(player.lastSeen||0,presence?.players?.[player.id]||0);
+      }
+      this.lastOnlineUntil=Math.max(this.room.created||0,presence?.until||0,
+        ...this.room.players.map(player=>player.lastSeen+ONLINE_TIMEOUT));
+    });
   }
   async fetch(request) {
-    const work=()=>this.perform(request);
+    const work=async()=>{
+      const response=await this.perform(request);
+      await this.scheduleAlarm();
+      await this.registerRoom();
+      return response;
+    };
     const running=this.queue.then(work,work);
     this.queue=running.catch(()=>{});
     return running;
   }
   async alarm() {
-    const work=async()=>{await this.ready; if(this.room?.phase==='playing' && this.room.deadline && Date.now()>=this.room.deadline)await this.finish('time');};
+    const work=async()=>{
+      await this.ready;
+      await this.expireRoom();
+      if(this.room?.phase==='playing' && this.room.deadline && Date.now()>=this.room.deadline)await this.finish('time');
+      await this.scheduleAlarm();
+      await this.registerRoom();
+    };
     const running=this.queue.then(work,work);this.queue=running.catch(()=>{});return running;
   }
   async store() {await this.state.storage.put('room',this.room);}
+  presence() {
+    return {until:this.lastOnlineUntil,players:Object.fromEntries(this.room.players.map(player=>[player.id,player.lastSeen]))};
+  }
+  async touch(player) {
+    player.lastSeen=Date.now();
+    this.lastOnlineUntil=player.lastSeen+ONLINE_TIMEOUT;
+    await this.state.storage.put('presence',this.presence());
+  }
+  async storeMembership() {
+    await this.state.storage.put({room:this.room,presence:this.presence()});
+  }
+  async removeRoom() {
+    const {code,created}=this.room;
+    await this.state.storage.delete(['room','presence']);
+    this.room=null;
+    this.lastOnlineUntil=0;
+    this.registered=false;
+    this.registerRetryAt=0;
+    await this.state.storage.deleteAlarm();
+    if(this.env?.ROOMS&&ROOM_CODE.test(code)){
+      await directoryStub(this.env).fetch('https://room/directory/remove',{
+        method:'POST',body:JSON.stringify({code,created}),
+      }).catch(()=>{});
+    }
+  }
+  expiresAt() {
+    return Math.min((this.room.created||0)+ROOM_LIFETIME,this.lastOnlineUntil+ROOM_IDLE_TIMEOUT);
+  }
+  async expireRoom() {
+    if(this.room&&Date.now()>=this.expiresAt())await this.removeRoom();
+  }
+  async scheduleAlarm() {
+    if(!this.room)return;
+    const next=Math.min(this.expiresAt(),this.room.phase==='playing'&&this.room.deadline?this.room.deadline:Infinity);
+    const scheduled=await this.state.storage.getAlarm();
+    if(scheduled===null||next<scheduled)await this.state.storage.setAlarm(next);
+  }
+  async registerRoom() {
+    if(!this.room||!this.env?.ROOMS||this.registered||Date.now()<this.registerRetryAt)return;
+    this.registerRetryAt=Date.now()+60_000;
+    const {code,created}=this.room;
+    try{
+      const response=await directoryStub(this.env).fetch('https://room/directory/register',{
+        method:'POST',body:JSON.stringify({code,created}),
+      });
+      this.registered=response.ok;
+    }catch{/* Room play must continue even if the admin directory is unavailable. */}
+  }
+  async directory(request,action) {
+    const storage=this.state.storage;
+    if(action==='directory/list'&&request.method==='GET'){
+      const entries=await storage.list({prefix:'room:'});
+      const rooms=[],expired=[];
+      for(const [key,item] of entries){
+        if(item.created+ROOM_LIFETIME<=Date.now())expired.push(key);
+        else rooms.push(item);
+      }
+      if(expired.length)await storage.delete(expired);
+      return json({ok:true,rooms:rooms.sort((a,b)=>b.created-a.created)});
+    }
+    if(request.method!=='POST'||!['directory/register','directory/remove'].includes(action))return error('Не найдено',404);
+    const {code,created}=await request.json();
+    if(!ROOM_CODE.test(code)||!Number.isFinite(created))return error('Некорректная комната');
+    const key='room:'+code;
+    if(action==='directory/register'){
+      if(created+ROOM_LIFETIME>Date.now())await storage.put(key,{code,created});
+    }else if((await storage.get(key))?.created===created)await storage.delete(key);
+    return json({ok:true});
+  }
+  observe() {
+    const r=this.room;
+    if(!r||!r.players.some(player=>player.accountId))return error('Комната не найдена или уже закрыта',404);
+    return json({ok:true,code:r.code,status:r.phase,mode:r.mode,letter:r.letter,round:r.phase==='lobby'?0:r.round+1,
+      rounds:ROUND_COUNT,duration:r.duration,deadline:r.deadline,created:r.created,expiresAt:this.expiresAt(),
+      hardExpiresAt:r.created+ROOM_LIFETIME,players:r.players.map(p=>({...userView(p),host:p.id===r.hostId})),
+      log:r.messages.slice(-12).map(m=>m.system?m.text:`${m.name}: ${m.text}`)});
+  }
   async finish(reason, stopper=null) {
     const r=this.room;
     if(!r||r.phase!=='playing')return;
@@ -104,8 +207,11 @@ export class AzbukaRoom {
     await this.ready;
     const url=new URL(request.url);
     const action=url.pathname.slice(1);
+    if(action.startsWith('directory/'))return this.directory(request,action);
+    await this.expireRoom();
     const accountId=request.headers.get('X-Azbuka-Account') || '';
     if (!/^[1-9]\d{4,19}$/.test(accountId)) return error('Требуется подтверждённый вход',401);
+    if(action==='observe'&&request.method==='GET')return this.observe();
     let input={};
     if(request.method==='POST') {
       try{input=await request.json();}catch{return error('Некорректный JSON');}
@@ -121,26 +227,29 @@ export class AzbukaRoom {
         letter:null,deadline:null,used:[],results:null,
         players:[{id,accountId,name:nick,score:0,answers:candidates([]),lastSeen:Date.now(),ready:false}],
         messages:[{id:randomToken().slice(0,12),system:true,text:'Комната создана. Приглашайте друзей!',at:Date.now()}]};
-      await this.store();return json(publicRoom(this.room,this.room.players[0]));
+      this.lastOnlineUntil=this.room.players[0].lastSeen+ONLINE_TIMEOUT;
+      await this.storeMembership();return json(publicRoom(this.room,this.room.players[0]));
     }
     const r=this.room;
     if(!r||!r.players.some(player=>player.accountId))return error('Комната не найдена',404);
     const member=r.players.find(p=>p.accountId===accountId);
     if(member&&r.phase==='playing'&&r.deadline&&Date.now()>=r.deadline)await this.finish('time');
     if(action==='join'){
-      if(member){member.lastSeen=Date.now();return json(publicRoom(r,member));}
+      if(member){await this.touch(member);return json(publicRoom(r,member));}
       if(r.phase!=='lobby')return error('Игра уже началась — присоединиться нельзя',409);
       if(r.players.length>=MAX_PLAYERS)return error('Комната заполнена',409);
       const name=clean(input.name,28);
       if(name.length<2)return error('Укажи имя от 2 символов');
       if(r.players.some(p=>normalize(p.name)===normalize(name)))return error('Это имя уже занято');
       const player={id:randomToken().slice(0,16),accountId,name,score:0,answers:candidates([]),lastSeen:Date.now(),ready:false};
-      r.players.push(player);await this.store();
+      r.players.push(player);
+      this.lastOnlineUntil=player.lastSeen+ONLINE_TIMEOUT;
+      await this.storeMembership();
       return json(publicRoom(r,player));
     }
     const player=member;
     if(!player)return error('Требуется вход в комнату',401);
-    player.lastSeen=Date.now();
+    await this.touch(player);
     if(action==='state'){return json(publicRoom(r,player));}
     if(request.method!=='POST')return error('Метод не поддерживается',405);
     if(action==='leave'){
@@ -148,9 +257,11 @@ export class AzbukaRoom {
       r.players=r.players.filter(p=>p!==player);
       if(r.hostId===player.id)r.hostId=r.players[0]?.id || null;
       if(!r.hostId){
-        await this.state.storage.delete('room');
-        this.room=null;
-      }else await this.store();
+        await this.removeRoom();
+      }else{
+        this.lastOnlineUntil=Math.max(Date.now(),...r.players.map(p=>p.lastSeen+ONLINE_TIMEOUT));
+        await this.storeMembership();
+      }
       return json({ok:true});
     }
     if(action==='settings'){
@@ -181,7 +292,6 @@ export class AzbukaRoom {
       r.deadline=r.mode==='timed'?Date.now()+r.duration*1000:null;
       r.players.forEach(p=>{p.answers=candidates([]);p.ready=false;});
       await this.store();
-      if(r.deadline)await this.state.storage.setAlarm(r.deadline);
       return json(publicRoom(r,player));
     }
     if(action==='draft'||action==='check'||action==='stop'){
@@ -210,10 +320,18 @@ export class AzbukaRoom {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.hostname !== 'azbuka.internal' || request.method !== 'POST') return error('Не найдено', 404);
+    if (url.hostname !== 'azbuka.internal') return error('Не найдено', 404);
     const account = request.headers.get('X-Azbuka-Account');
     if (!/^[1-9]\d{4,19}$/.test(account || '')) return error('Требуется подтверждённый вход', 401);
     const headers = { 'X-Azbuka-Account': account, 'Content-Type': 'application/json' };
+    // Only the core Worker can call this private service with a verified administrator.
+    if(request.method==='GET'){
+      if(url.pathname==='/admin/rooms')return directoryStub(env).fetch('https://room/directory/list');
+      const match=/^\/admin\/rooms\/([A-HJ-NP-Z2-9]{6})\/state$/.exec(url.pathname);
+      if(!match)return error('Не найдено',404);
+      return env.ROOMS.get(env.ROOMS.idFromName(match[1])).fetch('https://room/observe',{headers});
+    }
+    if(request.method!=='POST')return error('Не найдено',404);
     if (url.pathname === '/create') {
       let data;
       try { data = await request.json(); } catch { return error('Некорректный запрос'); }

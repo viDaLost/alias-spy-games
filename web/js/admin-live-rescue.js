@@ -15,6 +15,7 @@
     'kids-ark-pairs': 'Найди пару', 'biblical-match-three': 'Библейские сокровища',
     'moses-nile': 'Моисей: Путь по Нилу',
     'twelve-tribes': 'Двенадцать колен', 'promised-land': 'Земля обетованная',
+    'bible-azbuka': 'Библейская азбука', 'bible-world': 'Где я в Библии?',
 
   };
 

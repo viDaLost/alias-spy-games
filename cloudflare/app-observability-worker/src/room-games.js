@@ -14,4 +14,5 @@ export const ROOM_GAMES = new Set([
   'spy',
   'twelve-tribes',
   'promised-land',
+  'bible-azbuka',
 ]);

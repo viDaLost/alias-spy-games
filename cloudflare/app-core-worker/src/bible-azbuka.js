@@ -9,3 +9,19 @@ export async function forwardAzbuka(path, payload, userId, env, cors) {
   for (const [name, value] of Object.entries(cors)) headers.set(name, value);
   return new Response(result.body, { status: result.status, headers });
 }
+
+export async function forwardAzbukaObserver(path, request, env, cors, verifySession) {
+  const reply = (error, status) => Response.json({ok:false,error}, {status,headers:cors});
+  const verification = await verifySession(new Request('https://core.internal/web/session/verify', {
+    headers: {Authorization: request.headers.get('Authorization') || ''},
+  }));
+  const session = await verification.json();
+  if (!verification.ok || session.ok !== true) return reply('Требуется сессия администратора', verification.status >= 400 ? verification.status : 401);
+  if (session.scope !== 'admin' || !/^[1-9]\d{4,19}$/.test(session.userId || '')) return reply('Только администратор',403);
+  const target = new URL('https://azbuka.internal');
+  target.pathname = path.slice('/azbuka'.length);
+  const result = await env.AZBUKA.fetch(target.href,{headers:{'X-Azbuka-Account':session.userId}});
+  const headers = new Headers(result.headers);
+  for (const [name,value] of Object.entries(cors)) headers.set(name,value);
+  return new Response(result.body,{status:result.status,headers});
+}
