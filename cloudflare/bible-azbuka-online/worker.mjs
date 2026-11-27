@@ -381,8 +381,13 @@ export default {
       const results=await Promise.allSettled(ids.map(async id=>{
         const stub=env.ROOMS.get(env.ROOMS.idFromString(id));
         const response=await stub.fetch('https://room/sweep',{method:'POST',headers});
-        const data=await response.json().catch(()=>({}));
-        if(!response.ok||!['closed','active','missing'].includes(data.status))throw Error(`Room check failed: HTTP ${response.status}`);
+        const body=await response.text();
+        let data={};
+        try{data=JSON.parse(body);}catch{}
+        if(!response.ok||!['closed','active','missing'].includes(data.status)){
+          const detail=String(data.error||body).replace(/\b[a-f0-9]{32,}\b/gi,'[identifier]').replace(/\s+/g,' ').slice(0,110);
+          throw Error(`Room check failed: HTTP ${response.status} ${detail}`);
+        }
         return data.status;
       }));
       const failedObjectIds=[],failureReasons=[];

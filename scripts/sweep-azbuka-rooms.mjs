@@ -1,4 +1,4 @@
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 
 const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken,
   TELEGRAM_BOT_TOKEN: botToken, ADMIN_TELEGRAM_ID: adminId, CORE_WORKER_URL: coreUrl } = process.env;
@@ -59,6 +59,7 @@ for(let i=0;i<objects.length;i+=20){
     objectIds=data.failedObjectIds||[];
     if(objectIds.length){
       console.log(`Room cleanup retry ${attempt}: ${objectIds.length} objects; ${data.failureReasons?.join('; ')||'room request failed'}`);
+      if(attempt===3)console.log(`Unreachable room references: ${objectIds.map(id=>createHash('sha256').update(id).digest('hex').slice(0,12)).join(', ')}`);
       if(attempt<3)await new Promise(resolve=>setTimeout(resolve,2000));
     }
   }
