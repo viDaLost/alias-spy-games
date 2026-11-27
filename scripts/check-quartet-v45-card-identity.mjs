@@ -17,7 +17,8 @@ for (const quartet of catalog.quartets || []) {
 }
 
 assert.deepEqual(byTitle.get('Иоанн')?.map((item) => item.cardId).sort(), ['apostles_john', 'evangelists_john']);
-assert.deepEqual(byTitle.get('Иаков')?.map((item) => item.cardId).sort(), ['apostles_james', 'patriarchs_jacob']);
+assert.equal(byTitle.get('Иаков Зеведеев')?.[0].cardId, 'apostles_james');
+assert.equal(byTitle.get('Иаков (Израиль)')?.[0].cardId, 'patriarchs_jacob');
 assert.ok(isBundled('web/js/quartet-v45-card-id-fix.js'), 'card identity fix must ship in the bundle');
 assert.match(source, /qv2-group-/);
 assert.match(source, /document\.addEventListener\('click', repairBeforeSelection, true\)/);
@@ -74,4 +75,6 @@ clickCapture({ target: { closest: () => apostleJames } });
 assert.equal(apostleJames.dataset.cardId, 'apostles_james');
 
 assert.equal(context.QuartetV45CardIdentity.resolveCardId('patriarchs', 'Иаков'), 'patriarchs_jacob');
+assert.equal(context.QuartetV45CardIdentity.resolveCardId('apostles', 'Иаков Зеведеев'), 'apostles_james');
+assert.equal(context.QuartetV45CardIdentity.resolveCardId('patriarchs', 'Иаков (Израиль)'), 'patriarchs_jacob');
 console.log('Quartet V45 card identity checks passed: duplicate titles resolve by quartet + title.');

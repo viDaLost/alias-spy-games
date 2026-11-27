@@ -2500,3 +2500,10 @@
 Выберите время	Choose a duration	Dauer wählen	Elige una duración
 Проходите кроссворды и собирайте звёзды.	Solve crosswords and collect stars.	Löse Kreuzworträtsel und sammle Sterne.	Resuelve crucigramas y consigue estrellas.
 Бесконечные кроссворды и личные рекорды.	Endless crosswords and personal bests.	Endlose Kreuzworträtsel und persönliche Rekorde.	Crucigramas infinitos y récords personales.
+
+Количество раундов	Number of rounds	Anzahl der Runden	Número de rondas
+Количество раундов выбирает ведущий.	The host chooses the number of rounds.	Der Gastgeber wählt die Anzahl der Runden.	El anfitrión elige el número de rondas.
+В партии 5, 10 или 15 раундов.	A game has 5, 10 or 15 rounds.	Eine Partie hat 5, 10 oder 15 Runden.	Una partida tiene 5, 10 o 15 rondas.
+
+В каждой категории укажи до трёх вариантов. Можно вводить через запятую или добавлять отдельные строки. Система выберет правильный вариант с наибольшим числом очков.	Enter up to three answers per category. Separate them with commas or add separate lines. The game selects the correct answer worth the most points.	Gib bis zu drei Antworten pro Kategorie ein. Trenne sie durch Kommas oder füge eigene Zeilen hinzu. Das Spiel wählt die richtige Antwort mit den meisten Punkten.	Escribe hasta tres respuestas por categoría. Sepáralas con comas o añade líneas independientes. El juego elige la respuesta correcta que vale más puntos.
+Добавь хотя бы один правильный ответ для каждой категории	Enter at least one correct answer for each category	Gib mindestens eine richtige Antwort in jeder Kategorie ein	Añade al menos una respuesta correcta en cada categoría

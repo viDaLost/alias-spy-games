@@ -4,6 +4,7 @@ import { accessIdentity } from '../../app-core-worker/src/app-access-auth.js';
 import { forwardAzbuka, forwardAzbukaObserver } from '../../app-core-worker/src/bible-azbuka.js';
 import worker, { AzbukaRoom } from '../worker.mjs';
 import dictionary from '../synodal-dictionary.json' with { type: 'json' };
+import evidence from './dictionary-evidence.json' with { type: 'json' };
 
 const ADMIN = '1288379477';
 const GUEST = '987654321';
@@ -137,6 +138,32 @@ assert.equal((await invoke(room, 'join', '123456789', { name: 'Третий' }))
 const letter = start.letter.toLocaleLowerCase('ru');
 const normalize = value => value.normalize('NFC').toLocaleLowerCase('ru')
   .replaceAll('ё', 'е').replace(/\u0301/g, '').replace(/[‐‑–—]/g, '-').trim().replace(/\s+/g, ' ');
+// All additional entries carry their exact source verse and attested word form.
+assert.equal(dictionary.additionalSources[0].sha256,evidence.sha256);
+assert.deepEqual(dictionary.categoryCounts,dictionary.categories.map(c=>c.options.length));
+let verifiedEntries=0;
+for(const category of dictionary.categories){
+  for(const word of category.options)assert(Object.hasOwn(category.answers,normalize(word)),word);
+  for(const [key,record] of Object.entries(category.answers)){
+    if(record[5]!==evidence.source)continue;
+    const text=normalize(evidence.verses[record[2]]||'');
+    const witness=normalize(record[3]).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    assert(new RegExp(`(?<![а-я])${witness}(?![а-я])`,'u').test(text),`${key}: ${record[2]} ${record[3]}`);
+    verifiedEntries++;
+  }
+}
+assert(verifiedEntries>=1000);
+assert.equal(dictionary.categories[4].answers['дромадер'][2],'ISA 60:6');
+assert.equal(dictionary.categories[4].answers['дромадерах'][2],'EST 8:10');
+assert.equal(dictionary.categories[2].answers['фисташков'][0],'фисташка');
+assert.equal(dictionary.categories[2].answers['фисташки'][0],'фисташка');
+assert(dictionary.categories[3].answers['дом']);
+assert(!dictionary.categories[3].answers['бочка']);
+assert(!dictionary.categories[4].answers['утка']);
+assert(!dictionary.categories[4].answers['уж']);
+assert(!dictionary.categories[2].answers['ель']);
+console.log(`PASS: ${verifiedEntries} additional dictionary forms have exact Synodal verse witnesses`);
+
 const choices = dictionary.categories.map(category => {
   const distinct = new Map();
   for (const word of category.options) {
@@ -169,6 +196,76 @@ assert.equal(anna.added, 25);
 const next = await invoke(room, 'start', ADMIN);
 assert.equal(next.round, 1);
 assert.notEqual(next.letter, start.letter);
+
+// A delayed draft from the preceding round cannot populate the current answer form.
+assert.notEqual(next.roundId,start.roundId);
+assert.equal((await invoke(room,'draft',ADMIN,{roundId:start.roundId,answers:choices})).status,409);
+assert((await invoke(room,'state',ADMIN)).ownDraft.every(words=>!words.length));
+const presenceId='a'.repeat(32);
+assert.equal((await invoke(room,'draft',ADMIN,{roundId:next.roundId,answers:[['новый']],presenceId,presenceSequence:2})).status,200);
+await invoke(room,'draft',ADMIN,{roundId:next.roundId,answers:[['старый']],presenceId,presenceSequence:1});
+assert.deepEqual((await invoke(room,'state',ADMIN)).ownDraft[0],['новый']);
+const leaving=makeRoom();
+await invoke(leaving,'init',ADMIN,{code:'LEAV23',name:'Мария',mode:'stop'});
+await invoke(leaving,'join',GUEST,{name:'Анна'});
+await invoke(leaving,'start',ADMIN);
+assert.equal((await invoke(leaving,'leave',ADMIN)).status,200);
+const remaining=await invoke(leaving,'state',GUEST);
+assert.equal(remaining.hostId,remaining.selfId);
+assert.equal(remaining.phase,'lobby');
+assert.equal((await invoke(leaving,'state',ADMIN)).status,401);
+assert.equal((await invoke(leaving,'leave',GUEST)).closed,true);
+assert.equal((await invoke(leaving,'state',GUEST)).status,404);
+
+const longer=makeRoom();
+const longerLobby=await invoke(longer,'init',ADMIN,{code:'RUND23',name:'Ведущий',rounds:10});
+assert.equal(longerLobby.rounds,10);
+assert.equal((await invoke(longer,'settings',ADMIN,{mode:'stop',rounds:15})).rounds,15);
+await invoke(longer,'join',GUEST,{name:'Анна'});
+assert.equal((await invoke(longer,'start',ADMIN)).rounds,15);
+
+// The reported examples are checked with the actual room API. Separate words
+// and multiword biblical names are both supported, with a three-answer cap.
+const feedback=makeRoom();
+await invoke(feedback,'init',ADMIN,{code:'FEED23',name:'Мария',mode:'stop'});
+await invoke(feedback,'join',GUEST,{name:'Анна'});
+await invoke(feedback,'start',ADMIN);
+feedback.room.letter='Д';
+const feedbackReview=await invoke(feedback,'check',ADMIN,{answers:[['Давид Даниил'],['Дамаск'],['дуб'],['дом'],['дромадер']]});
+assert.equal(feedbackReview.complete,true);
+assert.deepEqual(feedbackReview.rows[0].map(x=>x.word),['Давид','Даниил']);
+assert.equal(feedbackReview.rows[3][0].reference,'Быт 19:2');
+assert.equal(feedbackReview.rows[4][0].reference,'Ис 60:6');
+const comma=await invoke(feedback,'check',ADMIN,{answers:[['Давид, Даниил; Дан, Далида'],['Дамаск'],['дуб'],['дом'],['дромадерах']]});
+assert.deepEqual(comma.rows[0].map(x=>x.word),['Давид','Даниил','Дан']);
+assert.equal(comma.rows[4][0].canonical,'дромадер');
+const typo=await invoke(feedback,'check',ADMIN,{answers:[[],[],[],[],['дромодер']]});
+assert.equal(typo.rows[4][0].valid,false);
+assert(typo.rows[4][0].suggestions.includes('дромадер'));
+feedback.room.letter='Б';
+const notBible=await invoke(feedback,'check',ADMIN,{answers:[[],[],[],['бочка'],[]]});
+assert.equal(notBible.rows[3][0].valid,false);
+feedback.room.letter='И';
+const phrase=await invoke(feedback,'check',ADMIN,{answers:[['Иисус Христос'],[],[],[],[]]});
+assert.equal(phrase.rows[0].length,1);
+assert(phrase.rows[0][0].valid);
+
+const usedLetters=new Set();
+for(let index=0;index<15;index++){
+  const current=await invoke(longer,'state',ADMIN);
+  assert.equal(current.round,index);
+  assert(!usedLetters.has(current.letter));
+  usedLetters.add(current.letter);
+  const answers=dictionary.categories.map(category=>{
+    const words=category.options.filter(w=>normalize(w)[0]===normalize(current.letter));
+    assert(new Set(words.map(w=>normalize(category.answers[normalize(w)][0]))).size>=2);
+    return words.slice(0,1);
+  });
+  const finished=await invoke(longer,'stop',ADMIN,{answers});
+  assert.equal(finished.phase,index===14?'finished':'results');
+  if(index<14)assert.equal((await invoke(longer,'start',ADMIN)).status,200);
+}
+assert.equal(usedLetters.size,15);
 
 const timed = makeRoom();
 await invoke(timed, 'init', ADMIN, { code: 'TMED32', name: 'Руфь', mode: 'timed', duration: 30 });

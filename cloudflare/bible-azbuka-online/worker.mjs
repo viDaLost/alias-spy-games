@@ -1,8 +1,10 @@
 import dictionary from './synodal-dictionary.json' with { type: 'json' };
+const synodalCategories = dictionary.categories;
 const CATEGORIES = ['Имя', 'Город или местность', 'Растение', 'Предмет', 'Животное'];
-const LETTERS = [...'АБВГДЕИКЛМНОПРСТ'];
+const LETTERS = [...'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ'];
 const MAX_PLAYERS = 16;
 const ROUND_COUNT = 5;
+const validRoundCount = value => [5,10,15].includes(value) ? value : ROUND_COUNT;
 const ONLINE_TIMEOUT = 20_000;
 const ROOM_LIFETIME = 5 * 60 * 60_000;
 const ROOM_CODE = /^[A-HJ-NP-Z2-9]{6}$/;
@@ -19,10 +21,32 @@ const json = (value, status = 200) => new Response(JSON.stringify(value), {
 const error = (message, status = 400, extra = {}) => json({error:message,...extra},status);
 const randomToken = () => [...crypto.getRandomValues(new Uint8Array(24))].map(x=>x.toString(16).padStart(2,'0')).join('');
 const code = () => [...crypto.getRandomValues(new Uint8Array(6))].map(n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n % 32]).join('');
+// Preserve a confirmed multiword name or place before interpreting spaces as separators.
+function splitAnswers(value, category) {
+  return String(value ?? '').slice(0,240).split(/[,;\n\r/]+/).flatMap(part=>{
+    const word=clean(part);
+    if(!word)return [];
+    if(Object.hasOwn(category.answers,normalize(word)))return [word];
+    const parts=word.split(/\s+/);
+    if(parts.length>1&&parts.length<=3&&parts.every(p=>Object.hasOwn(category.answers,normalize(p))))return parts;
+    return [word];
+  });
+}
 const candidates = data => Array.from({length:5},(_,i)=>{
   const words = Array.isArray(data?.[i]) ? data[i] : [];
-  return [...new Set(words.slice(0,3).map(x=>clean(x)).filter(Boolean).map(x=>x.slice(0,80)))];
+  return [...new Set(words.slice(0,3).flatMap(value=>splitAnswers(value,synodalCategories[i])))].slice(0,3);
 });
+// Require at least two distinct biblical answers per category so a letter does
+// not force every player to select the same animal or plant.
+const playableLetters=LETTERS.filter(letter=>synodalCategories.every(category=>{
+  const keys=category.options.filter(word=>normalize(word)[0]===normalize(letter))
+    .map(word=>normalize(category.answers[normalize(word)]?.[0]||word));
+  return new Set(keys).size>=2;
+}));
+function formatReference(reference) {
+  const [book,verse]=String(reference||'').split(' ');
+  return dictionary.books[book]&&verse?`${dictionary.books[book][1]} ${verse}`:reference;
+}
 const userView = p => ({id:p.id,name:p.name,score:p.score,ready:!!p.ready,online:Date.now()-p.lastSeen<ONLINE_TIMEOUT});
 function validate(dictionary, words, letter) {
   return words.map(word=>{
@@ -30,8 +54,11 @@ function validate(dictionary, words, letter) {
     if (!key) return {word,valid:false,reason:'Пустой ответ'};
     if (!/^[а-яё]/i.test(key) || key[0]!==normalize(letter)) return {word,valid:false,reason:'Другая начальная буква'};
     const record=Object.hasOwn(dictionary.answers,key)?dictionary.answers[key]:null;
-    if (!record) return {word,valid:false,reason:'Не подтверждено словарём'};
-    return {word,valid:true,key:normalize(record[0]),canonical:record[0],reference:record[2]};
+    if (!record) {
+      const other = CATEGORIES.filter((_,index)=>Object.hasOwn(synodalCategories[index].answers,key));
+      return {word,valid:false,reason:other.length?'В словаре это другая категория: '+other.join(', '):'Нет в словаре этой категории'};
+    }
+    return {word,valid:true,key:normalize(record[0]),canonical:record[0],reference:formatReference(record[2])};
   });
 }
 function suggest(category, word, letter) {
@@ -55,7 +82,7 @@ function suggest(category, word, letter) {
 }
 function publicRoom(r, player) {
   return {code:r.code,hostId:r.hostId,selfId:player.id,mode:r.mode,duration:r.duration,
-    phase:r.phase,round:r.round,rounds:ROUND_COUNT,letter:r.letter,
+    phase:r.phase,round:r.round,rounds:validRoundCount(r.rounds),roundId:r.roundId||null,letter:r.letter,
     deadline:r.deadline,
     remaining:r.deadline?Math.max(0,Math.ceil((r.deadline-Date.now())/1000)):null,
     players:r.players.map(userView),messages:r.messages.slice(-50),
@@ -202,7 +229,7 @@ export class AzbukaRoom {
     const r=this.room;
     if(!r||!r.players.some(player=>player.accountId))return error('Комната не найдена или уже закрыта',404);
     return json({ok:true,code:r.code,status:r.phase,mode:r.mode,letter:r.letter,round:r.phase==='lobby'?0:r.round+1,
-      rounds:ROUND_COUNT,duration:r.duration,deadline:r.deadline,created:r.created,expiresAt:this.expiresAt(),
+      rounds:validRoundCount(r.rounds),duration:r.duration,deadline:r.deadline,created:r.created,expiresAt:this.expiresAt(),
       hardExpiresAt:r.created+ROOM_LIFETIME,players:r.players.map(p=>({...userView(p),host:p.id===r.hostId})),
       log:r.messages.slice(-12).map(m=>m.system?m.text:`${m.name}: ${m.text}`)});
   }
@@ -223,7 +250,7 @@ export class AzbukaRoom {
         const pick=valid[0]||null;
         const points=pick?(frequencies[cat].get(pick.key)===1?10:5):0;
         added+=points;
-        return {category:CATEGORIES[cat],points,word:pick?.canonical||'—',reference:pick?.reference||null,
+        return {category:CATEGORIES[cat],points,word:pick?.word||'—',canonical:pick?.canonical||null,reference:pick?.reference||null,
           all:list.map(x=>({word:x.word,valid:x.valid,reason:x.reason||null}))};
       });
       player.score+=added;
@@ -231,7 +258,7 @@ export class AzbukaRoom {
     }).sort((a,b)=>b.total-a.total);
     r.results={reason,stopper:stopper? r.players.find(p=>p.id===stopper)?.name:null,players:results};
     r.deadline=null;
-    r.phase=r.round+1>=ROUND_COUNT?'finished':'results';
+    r.phase=r.round+1>=validRoundCount(r.rounds)?'finished':'results';
     await this.store();
   }
   async perform(request) {
@@ -256,7 +283,7 @@ export class AzbukaRoom {
       const duration=[30,60,90].includes(input.duration)?input.duration:60;
       const mode=input.mode==='stop'?'stop':'timed';
       const id=randomToken().slice(0,16);
-      this.room={code:input.code,created:Date.now(),hostId:id,mode,duration,phase:'lobby',round:0,
+      this.room={code:input.code,created:Date.now(),hostId:id,mode,duration,rounds:validRoundCount(input.rounds),phase:'lobby',round:0,
         letter:null,deadline:null,used:[],results:null,
         players:[{id,accountId,name:nick,score:0,answers:candidates([]),lastSeen:Date.now(),ready:false}],
         messages:[{id:randomToken().slice(0,12),system:true,text:'Комната создана. Приглашайте друзей!',at:Date.now()}]};
@@ -291,14 +318,17 @@ export class AzbukaRoom {
     if(action==='state'){return json(publicRoom(r,player));}
     if(request.method!=='POST')return error('Метод не поддерживается',405);
     if(action==='leave'){
-      if(r.phase!=='lobby')return error('Партия уже началась',409);
       r.players=r.players.filter(p=>p!==player);
       delete this.connections[player.id];
-      if(r.hostId===player.id)r.hostId=r.players[0]?.id || null;
+      if(r.hostId===player.id)r.hostId=(r.players.find(p=>onlineUntil(p)>Date.now())||r.players[0])?.id||null;
       this.refreshOnlineDeadline();
       if(!r.hostId||this.lastOnlineUntil<=Date.now()){
         await this.removeRoom();
       }else{
+        if(r.players.length<2&&r.phase!=='lobby'){
+          Object.assign(r,{phase:'lobby',round:0,roundId:null,letter:null,deadline:null,used:[],results:null});
+          r.players.forEach(p=>{p.score=0;p.answers=candidates([]);p.ready=false;});
+        }
         await this.storeMembership();
       }
       return json({ok:true,closed:!this.room});
@@ -307,6 +337,7 @@ export class AzbukaRoom {
       if(player.id!==r.hostId||r.phase!=='lobby')return error('Настройки меняет только ведущий в лобби',403);
       r.mode=input.mode==='stop'?'stop':'timed';
       r.duration=[30,60,90].includes(input.duration)?input.duration:60;
+      if(input.rounds!==undefined)r.rounds=validRoundCount(input.rounds);
       await this.store();return json(publicRoom(r,player));
     }
     if(action==='chat'){
@@ -323,19 +354,27 @@ export class AzbukaRoom {
       if(r.players.length<2)return error('Для онлайн-игры нужны минимум два игрока');
       if(r.phase==='finished'){r.round=0;r.used=[];r.players.forEach(p=>p.score=0);}
       else if(r.phase==='results')r.round+=1;
-      const usable=LETTERS.filter(letter=>dictionary.categories.every(c=>(c.options||[]).some(w=>normalize(w)[0]===normalize(letter))));
-      const pool=usable.filter(letter=>!r.used.includes(letter));
+      const pool=playableLetters.filter(letter=>!r.used.includes(letter));
       if(!pool.length)return error('Нет подходящих букв в словаре');
       r.letter=pool[crypto.getRandomValues(new Uint32Array(1))[0]%pool.length];
-      r.used.push(r.letter);r.results=null;r.phase='playing';
+      r.used.push(r.letter);r.results=null;r.phase='playing';r.roundId=randomToken();
       r.deadline=r.mode==='timed'?Date.now()+r.duration*1000:null;
-      r.players.forEach(p=>{p.answers=candidates([]);p.ready=false;});
+      r.players.forEach(p=>{p.answers=candidates([]);p.ready=false;p.draftVersions={};});
       await this.store();
       return json(publicRoom(r,player));
     }
     if(action==='draft'||action==='check'||action==='stop'){
       if(r.phase!=='playing')return error('Сейчас ответы не принимаются',409);
+      if(input.roundId!==undefined&&input.roundId!==(r.roundId||null))return error('Раунд уже изменился',409);
       if(action==='draft'||action==='stop') {
+        if(/^[a-f0-9]{32}$/.test(input.presenceId||'')&&Number.isSafeInteger(input.presenceSequence)){
+          const versions=player.draftVersions||={};
+          if(input.presenceSequence<=(versions[input.presenceId]??-1)){
+            if(action==='draft')return json({ok:true,at:Date.now()});
+            return error('Ответы изменились — проверь ещё раз',409);
+          }
+          versions[input.presenceId]=input.presenceSequence;
+        }
         player.answers=candidates(input.answers);
         player.ready=player.answers.every(x=>x.some(Boolean));
         await this.store();

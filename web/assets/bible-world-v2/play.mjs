@@ -174,7 +174,7 @@ function result(r){const s=journey.scene,finishedJourney=journey.complete&&!jour
  for(const [id,text] of [['resultDescription',s.description],['resultEpoch','Эпоха: '+s.epochText],['locationNote',s.locationNote],['verseQuote',s.quote],['verseSource',s.quoteSource]])$(id).textContent=text;
  $('verseReference').textContent=`Открыть ${s.reference} ↗`;$('verseReference').href=s.sourceUrl;$('campaignSummary').hidden=!finishedJourney;$('campaignScore').textContent=fmt(journey.total);$('campaignBest').textContent=`Рекорд уровня: ${fmt(best(journey.levelId,journey.maxScore))}`;
  $('roundResults').replaceChildren();for(const [i,scene] of journey.scenes.entries()){const row=document.createElement('div'),name=document.createElement('span'),score=document.createElement('b');row.className='round-result';name.textContent=`${i+1}. ${scene.title}`;score.textContent=journey.results[i]?fmt(journey.results[i].total):'—';row.append(name,score);$('roundResults').append(row);}
- $('playAgain').textContent=journey.complete?'Сыграть ещё раз ↺':'Следующая локация →';$('resultScroll').scrollTop=0;$('resultDialog').showModal();inert();
+ $('playAgain').textContent=journey.single&&journey.index+1<journey.roundCount||!journey.complete?'Следующая локация →':'Сыграть ещё раз ↺';$('resultScroll').scrollTop=0;$('resultDialog').showModal();inert();
 }
 $('submitGuess').onclick=()=>{if(state.submitted||!state.loaded||!values().every(Boolean))return;const r=journey.submit(state);state.submitted=true;closeAnswers();$('hintToast').hidden=true;$('lookCue').hidden=true;$('hintButton').disabled=true;if(journey.complete&&!journey.single){try{localStorage.setItem(key(journey.levelId, journey.roundCount),String(Math.max(best(journey.levelId,journey.maxScore),journey.total)));}catch{}}$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;completion();result(r);reportState(journey.complete?'finished':'results');};
 async function loadScene() {
@@ -241,6 +241,13 @@ function menu(){
  $('levelCards').children[levelIndex].focus({preventScroll:true});
  if(journey.single)openLocations(levels[levelIndex]);
 }
-$('chooseLevel').onclick=menu;$('resultLevels').onclick=menu;$('playAgain').onclick=()=>{if(journey.complete)journey.restart();else if(!journey.next())return;startRound();};
+$('chooseLevel').onclick=menu;$('resultLevels').onclick=menu;$('playAgain').onclick=()=>{
+ if(journey.single&&journey.index+1<journey.roundCount){
+  startLevel(journey.levelId,journey.index+1);
+  return;
+ }
+ if(journey.complete)journey.restart();else if(!journey.next())return;
+ startRound();
+};
 $('helpButton').onclick=()=>{$('helpDialog').showModal();inert();};$('closeHelp').onclick=()=>{$('helpDialog').close();inert();};$('startPlaying').onclick=()=>$('closeHelp').click();renderLevels();reportState('menu');
 }

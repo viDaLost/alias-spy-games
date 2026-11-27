@@ -259,7 +259,15 @@ try {
   await world.locator('#locationDialog[open]').waitFor();
   assert.equal(await world.locator('.location-number').count(), 20);
   assert.equal(await world.locator('#startJourney').textContent(), 'Пройти все 20 локаций');
-  await world.getByRole('button', { name: 'Локация 20', exact: true }).click();
+  await world.getByRole('button', { name: 'Локация 19', exact: true }).click();
+  await world.locator('#openAnswers:enabled').waitFor();
+  await world.locator('#openAnswers').click();
+  for (const category of ['regions','events','epochs']) {
+    await world.locator(`#${category} .choice`).first().click();
+  }
+  await world.locator('#submitGuess').click();
+  assert.match(await world.locator('#playAgain').textContent(), /Следующая локация/);
+  await world.locator('#playAgain').click();
   await world.locator('#openAnswers:enabled').waitFor();
   assert.equal(await world.locator('#roundNumber').textContent(), '20');
   await world.locator('#chooseLevel').click();

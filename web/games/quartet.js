@@ -915,7 +915,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     const canSelect = myTurn && !!selectedTargetId;
     return `
       <button type="button" class="qv2-playing-card is-missing ${canSelect ? 'is-selectable' : ''} ${selected ? 'is-selected' : ''}"
-        ${canSelect ? `data-action="select-card" data-card-id="${escapeHtml(card.id)}" aria-pressed="${selected}"` : 'disabled'}
+        data-card-id="${escapeHtml(card.id)}" ${canSelect ? `data-action="select-card" aria-pressed="${selected}"` : 'disabled'}
         aria-label="${escapeHtml(card.title)}, недостающая карта${selected ? ', выбрана' : ''}">
         <div class="qv2-card-corner"><span>${escapeHtml(quartet?.icon || '🃏')}</span><b>${number}</b></div>
         <div class="qv3-card-art qv3-card-back"><span>${selected ? '✓' : '?'}</span></div>
