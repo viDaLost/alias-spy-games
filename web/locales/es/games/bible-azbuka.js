@@ -83,6 +83,8 @@
     let room = null, view = '', round = -1, verified = false, timeoutAt = 0;
     let pollBusy = false, actionBusy = false, pollPaused = false, errors = 0, pollAfter = 0;
     let saveTimer = 0, toastTimer = 0, lastMsg = '', lastPlayers = '';
+    const presenceId = Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
+    let presenceSequence = 0, offlineCode = '';
 
     function toast(message) {
       if (disposed) return;
@@ -112,11 +114,39 @@
 
     function setBusy(id, busy) { $(id).disabled = busy; }
 
+    function presencePayload(data = {}) {
+      return {...data,presenceId,presenceSequence:++presenceSequence};
+    }
+
+    function closedRoom(code) {
+      if (saved().code === code) remember('');
+      if (disposed) return;
+      room = null;
+      pollPaused = true;
+      window.AppPresenceContext?.clearRoom?.(GAME);
+      window.goToMainMenu();
+      window.showToast?.('Комната закрыта. Создайте новую, чтобы продолжить.');
+    }
+
+    function notifyOffline(code=room?.code) {
+      if (!code || offlineCode===code) return;
+      offlineCode=code;
+      void window.AppAccess.azbukaRequest(`${code}/offline`,presencePayload(),{keepalive:true}).then(async response=>{
+        const result=await response.json().catch(()=>({}));
+        if (response.status===404||result.closed===true) {
+          if (saved().code===code) remember('');
+          if (!disposed&&room?.code===code) closedRoom(code);
+        }
+      }).catch(()=>{if(offlineCode===code)offlineCode='';});
+    }
+
     async function api(action, data, code = room?.code) {
+      if(disposed||document.hidden)throw new Error('Игра приостановлена');
       const path = action === 'create' ? 'create' : `${code}/${action}`;
-      const response = await window.AppAccess.azbukaRequest(path, data || {});
+      const response = await window.AppAccess.azbukaRequest(path, presencePayload(data || {}));
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status===404&&code&&!disposed&&(room?.code===code||saved().code===code)) closedRoom(code);
         throw Object.assign(new Error(result.error || 'Сервер не ответил. Проверьте соединение.'), { status: response.status });
       }
       return result;
@@ -134,13 +164,15 @@
     }
 
     function enter(result) {
-      if (disposed) return;
+      if (disposed) {notifyOffline(result.code);return;}
+      offlineCode='';
       pollPaused = false;
       pollAfter = 0;
       errors = 0;
       remember(result.code);
       window.AppPresenceContext?.setRoom?.(GAME,result.code);
       paint(result);
+      if (document.hidden) notifyOffline(result.code);
     }
 
     async function enterRoom(action, target) {
@@ -184,6 +216,7 @@
         const result = await api(action, data);
         if (disposed) return;
         if (action === 'leave') {
+          if (result.closed) {closedRoom(room.code);return;}
           remember('');
           $('join-code').value = '';
           welcome();
@@ -301,7 +334,7 @@
      $('save-label').textContent='Сохраняем…';clearTimeout(saveTimer);
      const current=room;
      saveTimer=setTimeout(async()=>{
-      if(disposed||!sameRound(current))return;
+      if(disposed||document.hidden||!sameRound(current))return;
       try{
        await api('draft',{answers:readAnswers()});
        if(!disposed&&sameRound(current))$('save-label').textContent='Черновик сохранён';
@@ -529,9 +562,18 @@
     });
 
     function visibilityChanged() {
-      if (document.hidden) closeScan();
-      else void poll();
+      if (document.hidden) {
+        closeScan();
+        clearTimeout(saveTimer);
+        notifyOffline();
+      } else {
+        offlineCode='';
+        pollAfter=0;
+        void poll();
+      }
     }
+
+    function pageHidden() {closeScan();notifyOffline();}
 
     function acceptRoomInvite(event) {
       if (event.detail?.game !== GAME) return;
@@ -562,10 +604,11 @@
     const pollTimer = setInterval(poll, 2400);
     const clockTimer = setInterval(clock, 250);
     document.addEventListener('visibilitychange', visibilityChanged);
-    window.addEventListener('pagehide', closeScan);
+    window.addEventListener('pagehide', pageHidden);
     window.addEventListener('roominvitechange', acceptRoomInvite);
     return () => {
       disposed = true;
+      notifyOffline();
       window.AppPresenceContext?.clearRoom?.(GAME);
       closeScan();
       window.RoomQrScanner?.close();
@@ -575,7 +618,7 @@
       clearTimeout(saveTimer);
       clearTimeout(toastTimer);
       document.removeEventListener('visibilitychange', visibilityChanged);
-      window.removeEventListener('pagehide', closeScan);
+      window.removeEventListener('pagehide', pageHidden);
       window.removeEventListener('roominvitechange', acceptRoomInvite);
     };
   }

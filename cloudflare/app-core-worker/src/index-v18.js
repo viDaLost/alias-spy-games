@@ -198,7 +198,8 @@ export default {
     }
     const cors = corsHeaders(request, env);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
-    if (request.method === 'GET' && /^\/azbuka\/admin\/rooms(?:\/[A-HJ-NP-Z2-9]{6}\/state)?$/.test(url.pathname)) {
+    if ((request.method === 'GET' && /^\/azbuka\/admin\/rooms(?:\/[A-HJ-NP-Z2-9]{6}\/state)?$/.test(url.pathname)) ||
+        (request.method === 'POST' && url.pathname === '/azbuka/admin/rooms/sweep')) {
       try {
         const origin=request.headers.get('Origin');
         if(origin&&!String(env.ALLOWED_ORIGINS||'').split(',').includes(origin))throw accessError(403,'Origin not allowed');

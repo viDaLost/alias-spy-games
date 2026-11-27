@@ -18,9 +18,14 @@ export async function forwardAzbukaObserver(path, request, env, cors, verifySess
   const session = await verification.json();
   if (!verification.ok || session.ok !== true) return reply('Требуется сессия администратора', verification.status >= 400 ? verification.status : 401);
   if (session.scope !== 'admin' || !/^[1-9]\d{4,19}$/.test(session.userId || '')) return reply('Только администратор',403);
+  const sweep=path==='/azbuka/admin/rooms/sweep'&&request.method==='POST';
+  if(sweep&&session.userId!==String(env.ADMIN_TELEGRAM_ID||''))return reply('Только главный администратор',403);
   const target = new URL('https://azbuka.internal');
   target.pathname = path.slice('/azbuka'.length);
-  const result = await env.AZBUKA.fetch(target.href,{headers:{'X-Azbuka-Account':session.userId}});
+  const result = await env.AZBUKA.fetch(target.href,{
+    method:sweep?'POST':'GET',headers:{'X-Azbuka-Account':session.userId,'Content-Type':'application/json',...(sweep?{'X-Azbuka-Sweep':'1'}:{})},
+    ...(sweep?{body:await request.text()}:{}),
+  });
   const headers = new Headers(result.headers);
   for (const [name,value] of Object.entries(cors)) headers.set(name,value);
   return new Response(result.body,{status:result.status,headers});

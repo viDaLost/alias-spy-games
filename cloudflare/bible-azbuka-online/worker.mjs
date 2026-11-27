@@ -4,10 +4,11 @@ const LETTERS = [...'АБВГДЕИКЛМНОПРСТ'];
 const MAX_PLAYERS = 16;
 const ROUND_COUNT = 5;
 const ONLINE_TIMEOUT = 20_000;
-const ROOM_IDLE_TIMEOUT = 30 * 60_000;
 const ROOM_LIFETIME = 5 * 60 * 60_000;
 const ROOM_CODE = /^[A-HJ-NP-Z2-9]{6}$/;
-const directoryStub = env => env.ROOMS.get(env.ROOMS.idFromName('azbuka-room-directory'));
+const DIRECTORY_NAME = 'azbuka-room-directory';
+const directoryStub = env => env.ROOMS.get(env.ROOMS.idFromName(DIRECTORY_NAME));
+const onlineUntil = player => player.lastSeen > 0 ? player.lastSeen + ONLINE_TIMEOUT : 0;
 const normalize = value => String(value ?? '').normalize('NFC').toLocaleLowerCase('ru')
   .replace(/ё/g, 'е').replace(/\u0301/g, '').replace(/[‐‑–—]/g, '-').trim().replace(/\s+/g, ' ');
 const clean = (value, limit = 80) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, limit);
@@ -64,16 +65,18 @@ function publicRoom(r, player) {
 export class AzbukaRoom {
   constructor(state,env) {
     this.state=state;this.env=env;this.room=null;this.queue=Promise.resolve();
-    this.lastOnlineUntil=0;this.registered=false;this.registerRetryAt=0;
+    this.lastOnlineUntil=0;this.connections={};this.registered=false;this.registerRetryAt=0;
     this.ready=state.blockConcurrencyWhile(async()=>{
       this.room=await state.storage.get('room')||null;
       if(!this.room)return;
       const presence=await state.storage.get('presence');
       for(const player of this.room.players){
-        player.lastSeen=Math.max(player.lastSeen||0,presence?.players?.[player.id]||0);
+        player.lastSeen=presence?.players?.[player.id]??player.lastSeen??0;
+        this.connections[player.id]=presence?.connections?.[player.id]||{
+          legacy:{at:player.lastSeen,sequence:0,updatedAt:player.lastSeen},
+        };
       }
-      this.lastOnlineUntil=Math.max(this.room.created||0,presence?.until||0,
-        ...this.room.players.map(player=>player.lastSeen+ONLINE_TIMEOUT));
+      this.refreshOnlineDeadline();
     });
   }
   async fetch(request) {
@@ -99,11 +102,27 @@ export class AzbukaRoom {
   }
   async store() {await this.state.storage.put('room',this.room);}
   presence() {
-    return {until:this.lastOnlineUntil,players:Object.fromEntries(this.room.players.map(player=>[player.id,player.lastSeen]))};
+    return {until:this.lastOnlineUntil,players:Object.fromEntries(this.room.players.map(player=>[player.id,player.lastSeen])),connections:this.connections};
   }
-  async touch(player) {
-    player.lastSeen=Date.now();
-    this.lastOnlineUntil=player.lastSeen+ONLINE_TIMEOUT;
+  refreshOnlineDeadline() {
+    this.lastOnlineUntil=Math.max(0,...this.room.players.map(onlineUntil));
+  }
+  markPresence(player,input,online=true) {
+    const now=Date.now();
+    const id=/^[a-f0-9]{32}$/.test(input?.presenceId||'')&&Number.isSafeInteger(input.presenceSequence)&&input.presenceSequence>=0?input.presenceId:'legacy';
+    const sequence=id==='legacy'?0:input.presenceSequence;
+    const connections=this.connections[player.id]||={};
+    // A delayed poll from an already closed tab must not bring it back online.
+    if(id!=='legacy'&&connections[id]&&sequence<=connections[id].sequence)return;
+    connections[id]={at:online?now:0,sequence,updatedAt:now};
+    for(const [key,entry] of Object.entries(connections)){
+      if(entry.updatedAt<now-60_000)delete connections[key];
+    }
+    player.lastSeen=Math.max(0,...Object.values(connections).map(entry=>entry.at));
+    this.refreshOnlineDeadline();
+  }
+  async touch(player,input,online=true) {
+    this.markPresence(player,input,online);
     await this.state.storage.put('presence',this.presence());
   }
   async storeMembership() {
@@ -113,6 +132,7 @@ export class AzbukaRoom {
     const {code,created}=this.room;
     await this.state.storage.delete(['room','presence']);
     this.room=null;
+    this.connections={};
     this.lastOnlineUntil=0;
     this.registered=false;
     this.registerRetryAt=0;
@@ -124,7 +144,7 @@ export class AzbukaRoom {
     }
   }
   expiresAt() {
-    return Math.min((this.room.created||0)+ROOM_LIFETIME,this.lastOnlineUntil+ROOM_IDLE_TIMEOUT);
+    return Math.min((this.room.created||0)+ROOM_LIFETIME,this.lastOnlineUntil);
   }
   async expireRoom() {
     if(this.room&&Date.now()>=this.expiresAt())await this.removeRoom();
@@ -208,10 +228,12 @@ export class AzbukaRoom {
     const url=new URL(request.url);
     const action=url.pathname.slice(1);
     if(action.startsWith('directory/'))return this.directory(request,action);
+    const existed=Boolean(this.room);
     await this.expireRoom();
     const accountId=request.headers.get('X-Azbuka-Account') || '';
     if (!/^[1-9]\d{4,19}$/.test(accountId)) return error('Требуется подтверждённый вход',401);
     if(action==='observe'&&request.method==='GET')return this.observe();
+    if(action==='sweep'&&request.method==='POST')return json({ok:true,status:this.room?'active':existed?'closed':'missing'});
     let input={};
     if(request.method==='POST') {
       try{input=await request.json();}catch{return error('Некорректный JSON');}
@@ -227,7 +249,7 @@ export class AzbukaRoom {
         letter:null,deadline:null,used:[],results:null,
         players:[{id,accountId,name:nick,score:0,answers:candidates([]),lastSeen:Date.now(),ready:false}],
         messages:[{id:randomToken().slice(0,12),system:true,text:'Комната создана. Приглашайте друзей!',at:Date.now()}]};
-      this.lastOnlineUntil=this.room.players[0].lastSeen+ONLINE_TIMEOUT;
+      this.markPresence(this.room.players[0],input);
       await this.storeMembership();return json(publicRoom(this.room,this.room.players[0]));
     }
     const r=this.room;
@@ -235,7 +257,7 @@ export class AzbukaRoom {
     const member=r.players.find(p=>p.accountId===accountId);
     if(member&&r.phase==='playing'&&r.deadline&&Date.now()>=r.deadline)await this.finish('time');
     if(action==='join'){
-      if(member){await this.touch(member);return json(publicRoom(r,member));}
+      if(member){await this.touch(member,input);return json(publicRoom(r,member));}
       if(r.phase!=='lobby')return error('Игра уже началась — присоединиться нельзя',409);
       if(r.players.length>=MAX_PLAYERS)return error('Комната заполнена',409);
       const name=clean(input.name,28);
@@ -243,26 +265,32 @@ export class AzbukaRoom {
       if(r.players.some(p=>normalize(p.name)===normalize(name)))return error('Это имя уже занято');
       const player={id:randomToken().slice(0,16),accountId,name,score:0,answers:candidates([]),lastSeen:Date.now(),ready:false};
       r.players.push(player);
-      this.lastOnlineUntil=player.lastSeen+ONLINE_TIMEOUT;
+      this.markPresence(player,input);
       await this.storeMembership();
       return json(publicRoom(r,player));
     }
     const player=member;
     if(!player)return error('Требуется вход в комнату',401);
-    await this.touch(player);
+    if(action==='offline'&&request.method==='POST'){
+      await this.touch(player,input,false);
+      await this.expireRoom();
+      return json({ok:true,closed:!this.room});
+    }
+    await this.touch(player,input);
     if(action==='state'){return json(publicRoom(r,player));}
     if(request.method!=='POST')return error('Метод не поддерживается',405);
     if(action==='leave'){
       if(r.phase!=='lobby')return error('Партия уже началась',409);
       r.players=r.players.filter(p=>p!==player);
+      delete this.connections[player.id];
       if(r.hostId===player.id)r.hostId=r.players[0]?.id || null;
-      if(!r.hostId){
+      this.refreshOnlineDeadline();
+      if(!r.hostId||this.lastOnlineUntil<=Date.now()){
         await this.removeRoom();
       }else{
-        this.lastOnlineUntil=Math.max(Date.now(),...r.players.map(p=>p.lastSeen+ONLINE_TIMEOUT));
         await this.storeMembership();
       }
-      return json({ok:true});
+      return json({ok:true,closed:!this.room});
     }
     if(action==='settings'){
       if(player.id!==r.hostId||r.phase!=='lobby')return error('Настройки меняет только ведущий в лобби',403);
@@ -332,6 +360,27 @@ export default {
       return env.ROOMS.get(env.ROOMS.idFromName(match[1])).fetch('https://room/observe',{headers});
     }
     if(request.method!=='POST')return error('Не найдено',404);
+    if(url.pathname==='/admin/rooms/sweep'){
+      if(request.headers.get('X-Azbuka-Sweep')!=='1')return error('Только главный администратор',403);
+      const {objectIds}=await request.json().catch(()=>({}));
+      if(!Array.isArray(objectIds)||!objectIds.length||objectIds.length>20||objectIds.some(id=>!(/^[a-f0-9]{64}$/).test(id)))return error('Некорректный список комнат');
+      const directoryId=env.ROOMS.idFromName(DIRECTORY_NAME).toString();
+      const ids=[...new Set(objectIds)].filter(id=>id!==directoryId);
+      const counts={closed:0,active:0,missing:0,failed:0,skipped:objectIds.length-ids.length};
+      const results=await Promise.allSettled(ids.map(async id=>{
+        const stub=env.ROOMS.get(env.ROOMS.idFromString(id));
+        const response=await stub.fetch('https://room/sweep',{method:'POST',headers});
+        const data=await response.json();
+        if(!response.ok||!['closed','active','missing'].includes(data.status))throw Error('Room check failed');
+        return data.status;
+      }));
+      const failedObjectIds=[];
+      for(const [index,result] of results.entries()){
+        if(result.status==='fulfilled')counts[result.value]++;
+        else {counts.failed++;failedObjectIds.push(ids[index]);}
+      }
+      return json({ok:counts.failed===0,...counts,...(counts.failed?{failedObjectIds}:{})},counts.failed===0?200:503);
+    }
     if (url.pathname === '/create') {
       let data;
       try { data = await request.json(); } catch { return error('Некорректный запрос'); }
@@ -346,7 +395,7 @@ export default {
       return error('Не удалось создать комнату', 503);
     }
 
-    const match = /^\/([A-HJ-NP-Z2-9]{6})\/(join|state|settings|chat|start|draft|check|stop|leave)$/.exec(url.pathname);
+    const match = /^\/([A-HJ-NP-Z2-9]{6})\/(join|state|settings|chat|start|draft|check|stop|leave|offline)$/.exec(url.pathname);
     if (!match) return error('Не найдено', 404);
     const [, roomCode, action] = match;
     const stub = env.ROOMS.get(env.ROOMS.idFromName(roomCode));

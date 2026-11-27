@@ -39,12 +39,13 @@
     return { body: {}, headers: token ? { Authorization: `Bearer ${token}` } : {} };
   }
 
-  async function post(path, payload, auth = credentials(), { timeout = 8000, signal } = {}) {
+  async function post(path, payload, auth = credentials(), { timeout = 8000, signal, keepalive = false } = {}) {
     if (!core) throw new Error('Сервер проверки доступа недоступен.');
     const deadline = AbortSignal.timeout(timeout);
     return fetch(`${core}${path}`, {
       method:'POST', headers:{'Content-Type':'application/json', ...auth.headers},
-      body:JSON.stringify({...auth.body,...payload}), cache:'no-store', signal: signal ? (AbortSignal.any?.([deadline, signal]) || deadline) : deadline,
+      body:JSON.stringify({...auth.body,...payload}), cache:'no-store',
+      ...(keepalive ? {keepalive:true} : {signal:signal ? (AbortSignal.any?.([deadline,signal]) || deadline) : deadline}),
     });
   }
 
@@ -83,7 +84,7 @@
 
   window.AppAccess = {
     verify, allowed: () => state.allowed, state: () => ({ ...state, checking: Boolean(state.checking) }),
-    azbukaRequest: (path, payload) => post(`/azbuka/${path}`, { payload }),
+    azbukaRequest: (path, payload, options) => post(`/azbuka/${path}`, { payload }, credentials(), options),
     bibleWorldRequest: (scene, signal) => post(scene ? '/bible-world/panorama' : '/bible-world/access', { scene }, credentials(), { timeout: scene ? 60_000 : 8000, signal }),
     sabbathProfile: () => sabbathProfile,
     sabbathSignedIn: () => {

@@ -108,8 +108,8 @@ reject(presence, 'androidUserId=$userId', 'presence identity is still selected b
 need(observability, '/android/auth/me', 'presence worker does not resolve bearer identity through core');
 need(observability, "headers.set('X-App-User-Id', androidUserId)", 'verified presence identity is not propagated internally');
 
-need(gradle, "versionName '3.0.20-standalone'", 'secure auth release version is not current');
-need(gradle, 'versionCode 47', 'secure auth versionCode is not current');
+need(gradle, "versionName '3.0.21-standalone'", 'secure auth release version is not current');
+need(gradle, 'versionCode 48', 'secure auth versionCode is not current');
 need(gradle, "implementation 'androidx.webkit:webkit:1.14.0'", 'Kotlin-compatible local WebView asset dependency is missing');
 
-console.log('Android 3.0.20 ownership, encrypted bearer session, authenticated social API and standalone appassets security checks passed without GitHub Pages runtime dependency.');
+console.log('Android 3.0.21 ownership, encrypted bearer session, authenticated social API and standalone appassets security checks passed without GitHub Pages runtime dependency.');

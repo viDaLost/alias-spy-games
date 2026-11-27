@@ -35,6 +35,7 @@ const rooms = new Map();
 const service = {
   ROOMS: {
     idFromName: code => code,
+    idFromString: id => id,
     get(code) {
       if (!rooms.has(code)) rooms.set(code, makeRoom(makeStorage(),service));
       return { fetch: (url, init) => rooms.get(code).fetch(new Request(url, init)) };
@@ -207,7 +208,7 @@ assert(!JSON.stringify(view).includes('accountId'));
 assert(!JSON.stringify(view).includes('answers'));
 assert.deepEqual(await room.state.storage.get('presence'),oldPresence);
 
-const onlineTimeout=20_000,idleTimeout=30*60_000,lifetime=5*60*60_000;
+const onlineTimeout=20_000,lifetime=5*60*60_000;
 const realNow=Date.now;let now=realNow();Date.now=()=>now;
 async function fireAlarm(target){
   const alarm=await target.state.storage.getAlarm();
@@ -217,7 +218,7 @@ async function fireAlarm(target){
 try {
   const empty=makeRoom(makeStorage(),service);
   await invoke(empty,'init',ADMIN,{code:'IDLE23',name:'Мария'});
-  const idleDeadline=now+onlineTimeout+idleTimeout;
+  const idleDeadline=now+onlineTimeout;
   assert.equal(await empty.state.storage.getAlarm(),idleDeadline);
   now=idleDeadline-1;
   assert.equal((await invoke(empty,'state',GUEST)).status,401);
@@ -233,22 +234,22 @@ try {
   await invoke(active,'init',ADMIN,{code:'LIVE23',name:'Мария'});
   await invoke(active,'join',GUEST,{name:'Лия'});
   const firstAlarm=await active.state.storage.getAlarm();
-  now+=10*60_000;
+  now+=15_000;
   const ping=await invoke(active,'state',GUEST);
-  assert.equal(ping.players[0].online,false);assert.equal(ping.players[1].online,true);
+  assert.equal(ping.players[1].online,true);
   const lastPing=now;
   active=makeRoom(active.state.storage);await active.ready;
   assert.equal(active.room.players[1].lastSeen,lastPing);
   now=firstAlarm;await fireAlarm(active);
   assert(active.room);
-  assert.equal(await active.state.storage.getAlarm(),lastPing+onlineTimeout+idleTimeout);
-  now=lastPing+onlineTimeout+idleTimeout;
+  assert.equal(await active.state.storage.getAlarm(),lastPing+onlineTimeout);
+  now=lastPing+onlineTimeout;
   assert.equal((await invoke(active,'join',GUEST,{name:'Лия'})).status,404);
 
   const hardLimit=makeRoom();const createdAt=now;
   await invoke(hardLimit,'init',ADMIN,{code:'LIFE23',name:'Мария',mode:'timed',duration:90});
   await invoke(hardLimit,'join',GUEST,{name:'Лия'});
-  for(let elapsed=10*60_000;elapsed<lifetime;elapsed+=10*60_000){
+  for(let elapsed=10_000;elapsed<lifetime;elapsed+=10_000){
     now=createdAt+elapsed;
     if((await hardLimit.state.storage.getAlarm())<=now)await fireAlarm(hardLimit);
     assert.equal((await invoke(hardLimit,'state',ADMIN)).status,200);
@@ -263,9 +264,13 @@ try {
   await invoke(timedAlarm,'init',ADMIN,{code:'TIME23',name:'Мария',mode:'timed',duration:30});
   await invoke(timedAlarm,'join',GUEST,{name:'Лия'});
   await invoke(timedAlarm,'start',ADMIN);
-  assert.equal(await timedAlarm.state.storage.getAlarm(),now+30_000);
-  const timedIdleDeadline=now+onlineTimeout+idleTimeout;
-  now+=30_000;await fireAlarm(timedAlarm);
+  assert.equal(await timedAlarm.state.storage.getAlarm(),now+20_000);
+  const timedStartAt=now;
+  now+=15_000;await invoke(timedAlarm,'state',ADMIN);
+  const timedIdleDeadline=now+onlineTimeout;
+  now=timedStartAt+20_000;await fireAlarm(timedAlarm);
+  assert.equal(await timedAlarm.state.storage.getAlarm(),timedStartAt+30_000);
+  now=timedStartAt+30_000;await fireAlarm(timedAlarm);
   assert.equal(timedAlarm.room.phase,'results');
   assert.equal(await timedAlarm.state.storage.getAlarm(),timedIdleDeadline);
   now=timedIdleDeadline;await fireAlarm(timedAlarm);
@@ -274,5 +279,49 @@ try {
   const oldStorage=makeStorage();
   await oldStorage.put('room',{code:'PAST23',created:now-lifetime,phase:'lobby',players:[{id:'host',accountId:ADMIN,lastSeen:now-1000}]});
   assert.equal((await invoke(makeRoom(oldStorage),'join',ADMIN,{name:'Мария'})).status,404);
-  console.log('PASS: administrator observation, directory, idle expiry, durable presence, late reconnect, five-hour limit, round alarms and legacy rooms');
+
+  const hostPresence={presenceId:'a'.repeat(32),presenceSequence:1};
+  const guestPresence={presenceId:'b'.repeat(32),presenceSequence:1};
+  let immediate=makeRoom();
+  await invoke(immediate,'init',ADMIN,{code:'EXIT23',name:'Мария',...hostPresence});
+  await invoke(immediate,'join',GUEST,{name:'Лия',...guestPresence});
+  await invoke(immediate,'start',ADMIN,{...hostPresence,presenceSequence:2});
+  assert.equal((await invoke(immediate,'offline',ADMIN,{...hostPresence,presenceSequence:4})).closed,false);
+  immediate=makeRoom(immediate.state.storage);await immediate.ready;
+  assert.equal(immediate.room.players[0].lastSeen,0);
+  const delayed=await invoke(immediate,'state',ADMIN,{...hostPresence,presenceSequence:3});
+  assert.equal(delayed.players[0].online,false);
+  assert.equal((await invoke(immediate,'offline',GUEST,{...guestPresence,presenceSequence:2})).closed,true);
+  assert.equal(await immediate.state.storage.get('room'),undefined);
+  assert.equal((await invoke(immediate,'state',ADMIN)).status,404);
+
+  const tabs=makeRoom();
+  await invoke(tabs,'init',ADMIN,{code:'TABS23',name:'Мария',...hostPresence});
+  await invoke(tabs,'join',ADMIN,{...guestPresence,name:'Мария'});
+  assert.equal((await invoke(tabs,'offline',ADMIN,{...hostPresence,presenceSequence:2})).closed,false);
+  assert.equal((await invoke(tabs,'offline',ADMIN,{...guestPresence,presenceSequence:2})).closed,true);
+
+  const leaveOffline=makeRoom();
+  await invoke(leaveOffline,'init',ADMIN,{code:'LEAV23',name:'Мария'});
+  await invoke(leaveOffline,'join',GUEST,{name:'Лия'});
+  await invoke(leaveOffline,'offline',GUEST);
+  assert.equal((await invoke(leaveOffline,'leave',ADMIN)).closed,true);
+
+  const sweepId='f'.repeat(64),activeId='e'.repeat(64);
+  const inactiveStorage=makeStorage();
+  await inactiveStorage.put('room',{code:'PAST24',created:now-60_000,phase:'lobby',players:[{id:'host',accountId:ADMIN,lastSeen:now-onlineTimeout}]});
+  rooms.set(sweepId,makeRoom(inactiveStorage,service));
+  const stillActive=makeRoom();
+  await invoke(stillActive,'init',ADMIN,{code:'ACTV23',name:'Мария'});
+  rooms.set(activeId,stillActive);
+  const sweepPath='/azbuka/admin/rooms/sweep';
+  const sweepRequest=()=>new Request('https://core.example'+sweepPath,{method:'POST',body:JSON.stringify({objectIds:[sweepId,activeId]})});
+  const forbidden=await forwardAzbukaObserver(sweepPath,sweepRequest(),env,cors,async()=>Response.json({ok:true,userId:GUEST,scope:'admin'}));
+  assert.equal(forbidden.status,403);
+  const swept=await forwardAzbukaObserver(sweepPath,sweepRequest(),env,cors,verifier('admin'));
+  assert.equal(swept.status,200);
+  assert.deepEqual(JSON.parse(await swept.text()),{ok:true,closed:1,active:1,missing:0,failed:0,skipped:0});
+  assert.equal(await inactiveStorage.get('room'),undefined);
+  assert(stillActive.room);
+  console.log('PASS: immediate offline closure, multiple sessions, delayed polls, sweep, directory, hard lifetime and timed rounds');
 }finally{Date.now=realNow;}

@@ -67,6 +67,8 @@ jobs:
         run: node --test cloudflare/bible-sketch-worker/test/*.test.mjs
       - name: Check presence freshness logic
         run: node scripts/check-presence-freshness.mjs
+      - name: Check Azbuka room closure and menu return
+        run: node scripts/check-azbuka-client.mjs
       - name: Check support center integration
         run: node scripts/check-support-center.mjs
       - name: Check referral survey and inactive cleanup
