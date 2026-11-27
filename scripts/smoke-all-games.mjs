@@ -97,6 +97,13 @@ async function makePage() {
   for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
     await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: gasReply }));
   }
+  // The local smoke test uses a temporary loopback origin, never the production
+  // origin. Exercise the World entry screen against its normal successful API response.
+  await page.route('**/bible-world/access', (route) => route.fulfill({status:204,headers:{
+    'Access-Control-Allow-Origin':baseURL,
+    'Access-Control-Allow-Methods':'POST,OPTIONS',
+    'Access-Control-Allow-Headers':'Content-Type,Authorization',
+  }}));
 
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
@@ -146,6 +153,9 @@ for (const gameKey of gameKeys) {
       await frame.locator('[data-mode="solo"]').waitFor({ state: 'visible', timeout: 15_000 });
       assert.ok((await page.locator('iframe.game-frame').getAttribute('src')).startsWith(baseURL + '/cloudflare/'), 'standalone code comes from this checkout');
       assert.equal(await frame.locator('body').evaluate(() => typeof window.SabbathAccess?.waitForAccess), 'function', 'standalone city policy loaded');
+    }
+    if (gameKey === 'bible-world') {
+      await page.frameLocator('iframe.game-frame').locator('#levelMenu').waitFor({state:'visible',timeout:10_000});
     }
     for (const frame of page.frames()) {
       assert.equal(await frame.evaluate(() => window.__smokeLocationAccesses), 0, 'game entry never touches browser or Telegram location APIs');

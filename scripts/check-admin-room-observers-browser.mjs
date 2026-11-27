@@ -82,6 +82,8 @@ const ONLINE = [
   { id: '1000005', username: 'spy_room', game: 'spy', roomId: 'SPYRM' },
   { id: '1000006', username: 'land_room', game: 'promised-land', roomId: 'LANDS' },
   { id: '1000007', username: 'sketch_room', game: 'bible-sketch', roomId: 'DRAWS' },
+  { id: '1000008', username: 'azbuka_room', game: 'bible-azbuka', roomId: 'ABC234' },
+  { id: '1000009', username: 'world_player', game: 'bible-world', roomId: '', gameState:{phase:'playing',level:'medium',round:7,rounds:20,score:3000,maxScore:100000,hints:1} },
 ].map((one) => ({ ...one, displayName: one.username, platform: 'telegram', updatedAt: Date.now() }));
 
 function testPage() {
@@ -150,6 +152,16 @@ try {
 
   await page.route(`${BACKENDS['app-core-backend']}/**`, (route) => {
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+    const request=route.request(),path=new URL(request.url()).pathname;
+    if(path.startsWith('/azbuka/admin/rooms')){
+      observerAsks.push({name:'azbuka',path,auth:request.headers().authorization||''});
+      const data=path==='/azbuka/admin/rooms'?{ok:true,rooms:[{code:'ABC234',created:Date.now()}]}:{
+        ok:true,code:'ABC234',status:'playing',mode:'stop',round:2,rounds:5,letter:'А',created:Date.now(),
+        expiresAt:Date.now()+30*60_000,hardExpiresAt:Date.now()+5*60*60_000,
+        players:[{name:'Мария',score:40,host:true,online:true}],log:['Всем привет'],
+      };
+      return route.fulfill({status:200,contentType:'application/json',headers:CORS,body:JSON.stringify(data)});
+    }
     return route.fulfill({
       status: 200, contentType: 'application/json', headers: CORS,
       body: JSON.stringify({ ok: true, token: TOKEN, scope: 'admin', expiresAt: Date.now() + 15 * 60_000 }),
@@ -206,9 +218,12 @@ try {
 
   // 2. Кнопка наблюдения у каждого, кто в комнате.
   for (const [id, game] of [['1000003', 'twelve-tribes'], ['1000005', 'spy'],
-    ['1000006', 'promised-land'], ['1000007', 'bible-sketch']]) {
+    ['1000006', 'promised-land'], ['1000007', 'bible-sketch'], ['1000008','bible-azbuka']]) {
     need(cards[id]?.observe === game, `у игрока в комнате «${game}» нет кнопки наблюдения`);
   }
+  need(cards['1000009']?.text.includes('Локация 7/20')&&cards['1000009']?.text.includes('3000/100000'), 'В мониторе «Где я в Библии?» отсутствует прогресс');
+  await page.locator('#admin-azbuka-rooms summary').click();
+  await page.locator('#admin-azbuka-rooms [data-observe-room="ABC234"]').waitFor({state:'visible'});
 
   // 3. Монитор открывается и читается.
   const observe = async (id, expect) => {
@@ -234,6 +249,9 @@ try {
   const tribesText = await observe('1000003', 'Гость');
   need(/Двенадцать колен · TRIBE/.test(tribesText) && /Лобби/.test(tribesText),
     `монитор «Двенадцати колен» не открылся: «${tribesText.slice(0, 160)}»`);
+
+  const azbukaText=await observe('1000008','Мария');
+  need(azbukaText.includes('До удаления')&&azbukaText.includes('40 очков')&&azbukaText.includes('Всем привет'), 'Монитор Азбуки не показывает раунд, участников и срок удаления');
 
   need(observerAsks.length > 0 && observerAsks.every((ask) => ask.auth === `Bearer ${TOKEN}`),
     'монитор спрашивал комнату без токена администратора');
