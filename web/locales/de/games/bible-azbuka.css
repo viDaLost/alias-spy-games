@@ -58,3 +58,9 @@ dialog{border:1px solid #d8dcf7;border-radius:20px;max-width:min(92%,510px);padd
   .room-id{gap:7px}
   .invite-actions button{font-size:12px;padding:7px 8px}
 }
+
+.skip-answer{margin-left:auto;flex:none;min-width:92px;padding:5px 8px;font-size:12px;border:1px solid #d8ddf6;background:transparent;color:var(--mute);border-radius:10px;box-shadow:none}
+.skip-answer[aria-pressed="true"]{color:#4c43b0;background:#edeaff}
+.cat.skipped .answers-input{opacity:.45}
+.review.stale{visibility:hidden}
+#save-label{min-width:148px;text-align:center}
