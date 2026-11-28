@@ -240,8 +240,36 @@ const comma=await invoke(feedback,'check',ADMIN,{answers:[['Давид, Дани
 assert.deepEqual(comma.rows[0].map(x=>x.word),['Давид','Даниил','Дан']);
 assert.equal(comma.rows[4][0].canonical,'дромадер');
 const typo=await invoke(feedback,'check',ADMIN,{answers:[[],[],[],[],['дромодер']]});
-assert.equal(typo.rows[4][0].valid,false);
-assert(typo.rows[4][0].suggestions.includes('дромадер'));
+assert.equal(typo.rows[4][0].valid,true);
+assert.equal(typo.rows[4][0].word,'дромадер');
+assert.equal(typo.rows[4][0].original,'дромодер');
+const transposed=await invoke(feedback,'check',ADMIN,{answers:[[],[],[],[],['дромдаер']]});
+assert.equal(transposed.rows[4][0].canonical,'дромадер');
+const saveTypo=await invoke(feedback,'draft',ADMIN,{answers:[[],[],[],[],['дромодер']]});
+assert.deepEqual(saveTypo.corrections[4],[{original:'дромодер',word:'дромадер'}]);
+assert.deepEqual((await invoke(feedback,'state',ADMIN)).ownDraft[4],['дромадер']);
+feedback.room.letter='А';
+const aliasTypo=await invoke(feedback,'check',ADMIN,{answers:[[],['Аккаронн'],[],[],[]]});
+assert.equal(aliasTypo.rows[1][0].valid,true);
+assert.equal(aliasTypo.rows[1][0].key,'екрон');
+assert.match(aliasTypo.rows[1][0].word,/^а/i);
+feedback.room.letter='С';
+const sip=await invoke(feedback,'check',ADMIN,{answers:[[],[],[],[],['сипа','сиппа','сип']]});
+assert(sip.rows[4].every(x=>x.valid&&x.key==='сип'&&x.reference==='Лев 11:18'));
+feedback.room.letter='А';
+const wrongCategory=await invoke(feedback,'check',ADMIN,{answers:[[],[],[],['анис'],[]]});
+assert.equal(wrongCategory.rows[3][0].valid,false);
+feedback.room.letter='Л';
+const skipped=[true,true,true,true,false];
+const skipPayload={answers:[[],[],[],[],['лебедь']],skipped};
+const skippedCheck=await invoke(feedback,'check',ADMIN,skipPayload);
+assert.equal(skippedCheck.complete,true);
+assert.deepEqual(skippedCheck.rows.slice(0,4),[[],[],[],[]]);
+await invoke(feedback,'draft',ADMIN,skipPayload);
+assert.deepEqual((await invoke(feedback,'state',ADMIN)).ownSkipped,skipped);
+const emptyCheck=await invoke(feedback,'check',ADMIN,{answers:[],skipped:[true,true,true,true,true]});
+assert.equal(emptyCheck.complete,false);
+assert.equal((await invoke(feedback,'stop',ADMIN,{answers:[],skipped:[true,true,true,true,true]})).status,422);
 feedback.room.letter='Б';
 const notBible=await invoke(feedback,'check',ADMIN,{answers:[[],[],[],['бочка'],[]]});
 assert.equal(notBible.rows[3][0].valid,false);
@@ -249,6 +277,15 @@ feedback.room.letter='И';
 const phrase=await invoke(feedback,'check',ADMIN,{answers:[['Иисус Христос'],[],[],[],[]]});
 assert.equal(phrase.rows[0].length,1);
 assert(phrase.rows[0][0].valid);
+feedback.room.letter='С';
+const sameSkips=[true,true,true,true,false];
+await invoke(feedback,'draft',GUEST,{answers:[[],[],[],[],['сипа']],skipped:sameSkips});
+const skipResults=await invoke(feedback,'stop',ADMIN,{answers:[[],[],[],[],['сиппа']],skipped:sameSkips});
+assert.equal(skipResults.phase,'results');
+for(const player of skipResults.results.players){
+  assert.equal(player.added,5);
+  assert(player.answers.slice(0,4).every(answer=>answer.points===0&&answer.word==='Пропущено'));
+}
 
 const usedLetters=new Set();
 for(let index=0;index<15;index++){

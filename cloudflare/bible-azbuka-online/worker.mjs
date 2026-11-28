@@ -22,19 +22,23 @@ const error = (message, status = 400, extra = {}) => json({error:message,...extr
 const randomToken = () => [...crypto.getRandomValues(new Uint8Array(24))].map(x=>x.toString(16).padStart(2,'0')).join('');
 const code = () => [...crypto.getRandomValues(new Uint8Array(6))].map(n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n % 32]).join('');
 // Preserve a confirmed multiword name or place before interpreting spaces as separators.
-function splitAnswers(value, category) {
+function splitAnswers(value, category,letter) {
   return String(value ?? '').slice(0,240).split(/[,;\n\r/]+/).flatMap(part=>{
     const word=clean(part);
     if(!word)return [];
-    if(Object.hasOwn(category.answers,normalize(word)))return [word];
     const parts=word.split(/\s+/);
-    if(parts.length>1&&parts.length<=3&&parts.every(p=>Object.hasOwn(category.answers,normalize(p))))return parts;
+    if(parts.length===1||Object.hasOwn(category.answers,normalize(word)))return [word];
+    const initial=normalize(letter);
+    if(parts.length<=3&&parts.every(p=>Object.hasOwn(category.answers,normalize(p))))return parts;
+    if(initial&&correction(category,normalize(word),initial))return [word];
+    if(parts.length<=3&&parts.every(p=>Object.hasOwn(category.answers,normalize(p))||
+      (initial&&correction(category,normalize(p),initial))))return parts;
     return [word];
   });
 }
-const candidates = data => Array.from({length:5},(_,i)=>{
+const candidates = (data,letter) => Array.from({length:5},(_,i)=>{
   const words = Array.isArray(data?.[i]) ? data[i] : [];
-  return [...new Set(words.slice(0,3).flatMap(value=>splitAnswers(value,synodalCategories[i])))].slice(0,3);
+  return [...new Set(words.slice(0,3).flatMap(value=>splitAnswers(value,synodalCategories[i],letter)))].slice(0,3);
 });
 // Require at least two distinct biblical answers per category so a letter does
 // not force every player to select the same animal or plant.
@@ -48,45 +52,90 @@ function formatReference(reference) {
   return dictionary.books[book]&&verse?`${dictionary.books[book][1]} ${verse}`:reference;
 }
 const userView = p => ({id:p.id,name:p.name,score:p.score,ready:!!p.ready,online:Date.now()-p.lastSeen<ONLINE_TIMEOUT});
-function validate(dictionary, words, letter) {
+// Compare by the canonical word so different inflections and typo spellings
+// never become separate answers for scoring.
+const exactAnswer = (category,key) => Object.hasOwn(category.answers,key)?category.answers[key]:null;
+const entriesByLetter = synodalCategories.map(category => {
+  const groups=new Map();
+  for(const [key,record] of Object.entries(category.answers)){
+    const group=groups.get(key[0])||[];
+    group.push({key,record});
+    groups.set(key[0],group);
+  }
+  return groups;
+});
+function spellingDistance(a,b,limit) {
+  if(Math.abs(a.length-b.length)>limit)return limit+1;
+  let before=null,previous=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){
+    const row=[i];
+    for(let j=1;j<=b.length;j++){
+      row[j]=Math.min(row[j-1]+1,previous[j]+1,previous[j-1]+Number(a[i-1]!==b[j-1]));
+      if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1]){
+        row[j]=Math.min(row[j],before[j-2]+1);
+      }
+    }
+    before=previous;previous=row;
+  }
+  return previous[b.length];
+}
+function correction(category,key,letter) {
+  if(key.length<4||key.length>80||!/^([а-я]+[ -])*[а-я]+$/u.test(key)||key[0]!==letter)return null;
+  // A known word belonging to another category must not silently become a
+  // different biblical concept.
+  if(synodalCategories.some(c=>exactAnswer(c,key)))return null;
+  const limit=key.length>=8?2:1;
+  const groups=entriesByLetter[synodalCategories.indexOf(category)];
+  let best=limit+1,records=new Map();
+  for(const {key:option,record} of groups.get(letter)||[]){
+    if(option.length<3||Math.abs(option.length-key.length)>limit)continue;
+    const distance=spellingDistance(key,option,limit);
+    if(distance>limit||distance>best)continue;
+    if(distance<best){best=distance;records=new Map();}
+    records.set(normalize(record[0]),{record,option});
+  }
+  return records.size===1?records.values().next().value:null;
+}
+function validate(category, words, letter) {
+  const initial=normalize(letter);
   return words.map(word=>{
     const key=normalize(word);
-    if (!key) return {word,valid:false,reason:'Пустой ответ'};
-    if (!/^[а-яё]/i.test(key) || key[0]!==normalize(letter)) return {word,valid:false,reason:'Другая начальная буква'};
-    const record=Object.hasOwn(dictionary.answers,key)?dictionary.answers[key]:null;
-    if (!record) {
-      const other = CATEGORIES.filter((_,index)=>Object.hasOwn(synodalCategories[index].answers,key));
+    if(!key)return {word,valid:false,reason:'Пустой ответ'};
+    if(!/^[а-яё]/i.test(key)||key[0]!==initial)return {word,valid:false,reason:'Другая начальная буква'};
+    const exact=exactAnswer(category,key);
+    const corrected=exact?null:correction(category,key,initial);
+    const record=exact||corrected?.record;
+    if(!record){
+      const other=CATEGORIES.filter((_,index)=>exactAnswer(synodalCategories[index],key));
       return {word,valid:false,reason:other.length?'В словаре это другая категория: '+other.join(', '):'Нет в словаре этой категории'};
     }
-    return {word,valid:true,key:normalize(record[0]),canonical:record[0],reference:formatReference(record[2])};
+    // Some spelling variants begin with a different letter than the
+    // canonical scoring key. Keep the matched spelling in that round.
+    const display=normalize(record[0])[0]===initial?record[0]:(normalize(record[1])===corrected?.option?record[1]:corrected?.option);
+    return {word:exact?word:display,valid:true,key:normalize(record[0]),canonical:record[0],reference:formatReference(record[2]),
+      ...(!exact?{original:word}: {})};
   });
 }
-function suggest(category, word, letter) {
+function suggest(category,word,letter) {
   const key=normalize(word);
-  if(!key || key[0]!==normalize(letter))return [];
-  const option=category.options||[];
-  // Small edit-distance check for typo suggestions; never scores them without user confirmation.
-  function distance(a,b) {
-    if(Math.abs(a.length-b.length)>2) return 4;
-    let p=Array.from({length:b.length+1},(_,i)=>i);
-    for(let i=1;i<=a.length;i++){
-      const n=[i];
-      for(let j=1;j<=b.length;j++)n[j]=Math.min(n[j-1]+1,p[j]+1,p[j-1]+Number(a[i-1]!==b[j-1]));
-      p=n;
-    }
-    return p[b.length];
-  }
-  return option.filter(v=>normalize(v)[0]===normalize(letter)).map(v=>({v,d:distance(key,normalize(v))}))
+  if(!key||key[0]!==normalize(letter)||key.length>80)return [];
+  return category.options.filter(v=>normalize(v)[0]===normalize(letter))
+    .map(v=>({v,d:spellingDistance(key,normalize(v),2)}))
     .filter(x=>x.d>0&&x.d<=2).sort((a,b)=>a.d-b.d||a.v.localeCompare(b.v,'ru'))
     .slice(0,3).map(x=>x.v);
 }
+const skippedCategories = data => CATEGORIES.map((_,i)=>data?.[i]===true);
+const checkAnswers = (answers,skipped,letter) => synodalCategories.map((category,i)=>
+  skipped[i]?[]:validate(category,answers[i]||[],letter));
+const hasValid = rows => rows.some(list=>list.some(answer=>answer.valid));
+const isComplete = (rows,skipped,requireAnswer=true) => (!requireAnswer||hasValid(rows))&&rows.every((list,i)=>skipped[i]||list.some(answer=>answer.valid));
 function publicRoom(r, player) {
   return {code:r.code,hostId:r.hostId,selfId:player.id,mode:r.mode,duration:r.duration,
     phase:r.phase,round:r.round,rounds:validRoundCount(r.rounds),roundId:r.roundId||null,letter:r.letter,
     deadline:r.deadline,
     remaining:r.deadline?Math.max(0,Math.ceil((r.deadline-Date.now())/1000)):null,
     players:r.players.map(userView),messages:r.messages.slice(-50),
-    ownDraft:player.answers,results:r.phase==='results'||r.phase==='finished'?r.results:null,
+    ownDraft:player.answers,ownSkipped:skippedCategories(player.skipped),results:r.phase==='results'||r.phase==='finished'?r.results:null,
     finished:r.phase==='finished'};
 }
 export class AzbukaRoom {
@@ -236,7 +285,7 @@ export class AzbukaRoom {
   async finish(reason, stopper=null) {
     const r=this.room;
     if(!r||r.phase!=='playing')return;
-    const checks=r.players.map(p=>p.answers.map((words,i)=>validate(dictionary.categories[i],words,r.letter)));
+    const checks=r.players.map(p=>checkAnswers(p.answers,skippedCategories(p.skipped),r.letter));
     const frequencies=Array.from({length:5},()=>new Map());
     checks.forEach(rows=>rows.forEach((list,cat)=>{
       const unique=new Set(list.filter(x=>x.valid).map(x=>x.key));
@@ -250,7 +299,7 @@ export class AzbukaRoom {
         const pick=valid[0]||null;
         const points=pick?(frequencies[cat].get(pick.key)===1?10:5):0;
         added+=points;
-        return {category:CATEGORIES[cat],points,word:pick?.word||'—',canonical:pick?.canonical||null,reference:pick?.reference||null,
+        return {category:CATEGORIES[cat],points,word:pick?.word||(player.skipped?.[cat]?'Пропущено':'—'),canonical:pick?.canonical||null,reference:pick?.reference||null,
           all:list.map(x=>({word:x.word,valid:x.valid,reason:x.reason||null}))};
       });
       player.score+=added;
@@ -327,7 +376,7 @@ export class AzbukaRoom {
       }else{
         if(r.players.length<2&&r.phase!=='lobby'){
           Object.assign(r,{phase:'lobby',round:0,roundId:null,letter:null,deadline:null,used:[],results:null});
-          r.players.forEach(p=>{p.score=0;p.answers=candidates([]);p.ready=false;});
+          r.players.forEach(p=>{p.score=0;p.answers=candidates([]);p.skipped=skippedCategories([]);p.ready=false;});
         }
         await this.storeMembership();
       }
@@ -359,7 +408,7 @@ export class AzbukaRoom {
       r.letter=pool[crypto.getRandomValues(new Uint32Array(1))[0]%pool.length];
       r.used.push(r.letter);r.results=null;r.phase='playing';r.roundId=randomToken();
       r.deadline=r.mode==='timed'?Date.now()+r.duration*1000:null;
-      r.players.forEach(p=>{p.answers=candidates([]);p.ready=false;p.draftVersions={};});
+      r.players.forEach(p=>{p.answers=candidates([]);p.skipped=skippedCategories([]);p.ready=false;p.draftVersions={};});
       await this.store();
       return json(publicRoom(r,player));
     }
@@ -375,21 +424,29 @@ export class AzbukaRoom {
           }
           versions[input.presenceId]=input.presenceSequence;
         }
-        player.answers=candidates(input.answers);
-        player.ready=player.answers.every(x=>x.some(Boolean));
+        player.answers=candidates(input.answers,r.letter);
+        player.skipped=skippedCategories(input.skipped);
+        player.ready=player.answers.every((x,i)=>player.skipped[i]||x.some(Boolean));
+        if(action==='draft'){
+          const rows=checkAnswers(player.answers,player.skipped,r.letter);
+          const corrections=rows.map(list=>list.filter(x=>x.original!==undefined).map(x=>({original:x.original,word:x.word})));
+          player.answers=player.answers.map((words,i)=>player.skipped[i]?words:rows[i].map(answer=>answer.word));
+          await this.store();
+          return json({ok:true,at:Date.now(),corrections});
+        }
         await this.store();
       }
-      if(action==='draft')return json({ok:true,at:Date.now()});
-      const all=player.answers.map((words,i)=>validate(dictionary.categories[i],words,r.letter));
       if(action==='check') {
         // Validate submitted form without changing saved draft.
-        const rows=candidates(input.answers).map((words,i)=>validate(dictionary.categories[i],words,r.letter));
+        const skipped=skippedCategories(input.skipped);
+        const rows=checkAnswers(candidates(input.answers,r.letter),skipped,r.letter);
         return json({rows:rows.map((list,i)=>list.map(x=>x.valid?x:{...x,suggestions:suggest(dictionary.categories[i],x.word,r.letter)})),
-          complete:rows.every(list=>list.some(x=>x.valid))});
+          complete:isComplete(rows,skipped,r.mode==='stop')});
       }
       if(r.mode!=='stop')return error('В режиме на время остановка отключена',409);
-      const invalid=all.map((list,i)=>list.some(x=>x.valid)?-1:i).filter(i=>i>=0);
-      if(invalid.length)return error('Для СТОП нужен подтверждённый ответ в каждой категории',422,{invalid});
+      const all=checkAnswers(player.answers,player.skipped,r.letter);
+      const invalid=all.map((list,i)=>player.skipped[i]||list.some(x=>x.valid)?-1:i).filter(i=>i>=0);
+      if(!isComplete(all,player.skipped))return error('Для СТОП нужен хотя бы один правильный ответ. Остальные категории можно пропустить',422,{invalid});
       await this.finish('stop',player.id);return json(publicRoom(r,player));
     }
     return error('Неизвестная команда',404);

@@ -24,8 +24,8 @@
 
   function loadAssets() {
     assets ||= Promise.all([
-      loadText('web/games/bible-azbuka.html?v=3'),
-      loadText('web/games/bible-azbuka.css?v=1'),
+      loadText('web/games/bible-azbuka.html?v=4'),
+      loadText('web/games/bible-azbuka.css?v=2'),
     ]).catch(error => {
       assets = null;
       throw error;
@@ -83,6 +83,8 @@
     let room = null, view = '', round = -1, roundId = null, verified = false, timeoutAt = 0;
     let pollBusy = false, actionBusy = false, pollPaused = false, errors = 0, pollAfter = 0;
     let saveTimer = 0, toastTimer = 0, lastMsg = '', lastPlayers = '';
+    let formVersion = 0;
+    const pendingCorrections = new WeakMap();
     const presenceId = Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
     let presenceSequence = 0, offlineCode = '';
 
@@ -304,26 +306,62 @@
      if(atBottom||lastMsg==='')log.scrollTop=log.scrollHeight;lastMsg=last;}
      $('chat-counter').textContent='('+messages.length+')';
     }
-    function readAnswers(){return cats.map((_,i)=>[...root.querySelectorAll('[data-cat="'+i+'"] input')].map(el=>el.value.trim()).filter(Boolean).slice(0,3))}
+    function readAnswers(){return cats.map((_,i)=>[...$('entry-'+i).querySelectorAll('input')].map(el=>el.value.trim()).filter(Boolean).slice(0,3))}
+    function readSkipped(){return cats.map((_,i)=>$('skip-'+i).getAttribute('aria-pressed')==='true')}
+    function readForm(){return {answers:readAnswers(),skipped:readSkipped()}}
+    function setSkipped(i,skipped){
+     const button=$('skip-'+i),entry=$('entry-'+i);
+     button.setAttribute('aria-pressed',String(skipped));
+     button.textContent=skipped?'Вернуть':'Пропустить';
+     entry.closest('.cat').classList.toggle('skipped',skipped);
+     entry.querySelectorAll('input').forEach(input=>{input.disabled=skipped;pendingCorrections.delete(input)});
+     $('add-'+i).disabled=skipped;
+    }
+    function applyCorrection(input,correction){
+     if(!correction||input.disabled||input.value.trim()!==correction.original)return;
+     if(root.activeElement===input){pendingCorrections.set(input,correction);return;}
+     input.value=correction.word;
+     pendingCorrections.delete(input);
+    }
+    function applyDraftCorrections(result){
+     result.corrections?.forEach((list,i)=>{
+      if(readSkipped()[i])return;
+      $('entry-'+i).querySelectorAll('input').forEach(input=>{
+       const correction=list.find(item=>item.original===input.value.trim());
+       applyCorrection(input,correction);
+      });
+     });
+    }
     function ensureInputs(i,count){
      const node=$('entry-'+i);
      for(let j=node.children.length;j<count;j++){
       const line=document.createElement('div');line.className='answer-line';
       const index=document.createElement('small');index.textContent=String(j+1);
       const input=document.createElement('input');input.maxLength=80;input.placeholder=j?'Запасной вариант':'Слово на букву '+room.letter;
-      input.autocomplete='off';input.spellcheck=false;input.setAttribute('aria-label',cats[i]+' — вариант '+(j+1));
-      input.addEventListener('input',changed);line.append(index,input);node.append(line);
+      input.autocomplete='off';input.spellcheck=false;input.setAttribute('autocorrect','off');input.setAttribute('aria-label',cats[i]+' — вариант '+(j+1));
+      input.addEventListener('input',()=>{pendingCorrections.delete(input);changed(i)});
+      input.addEventListener('blur',()=>{
+       // Applying a late response while typing moves the caret and can scroll
+       // a mobile WebView. Apply only after the field has lost focus.
+       const correction=pendingCorrections.get(input);
+       if(correction&&!input.disabled&&input.value.trim()===correction.original)input.value=correction.word;
+       pendingCorrections.delete(input);
+      });
+      line.append(index,input);node.append(line);
      }
      $('add-'+i).hidden=node.children.length>=3;
     }
     function buildForm(r){
+     formVersion++;
      $('categories').replaceChildren();
      cats.forEach((cat,i)=>{
       const item=document.createElement('div');item.className='cat';item.dataset.cat=i;
-      item.innerHTML='<div class="cat-head"><span class="cat-emoji">'+emoji[i]+'</span><b>'+cat+'</b><small>до 3 слов</small></div><div class="answers-input" id="entry-'+i+'"></div><button type="button" class="add-answer" id="add-'+i+'">＋ Ещё вариант</button><div class="review" id="review-'+i+'" aria-live="polite"></div>';
+      item.innerHTML='<div class="cat-head"><span class="cat-emoji">'+emoji[i]+'</span><b>'+cat+'</b><button type="button" class="skip-answer" id="skip-'+i+'" aria-pressed="false"></button></div><div class="answers-input" id="entry-'+i+'"></div><button type="button" class="add-answer" id="add-'+i+'">＋ Ещё вариант</button><div class="review" id="review-'+i+'" aria-live="polite"></div>';
       $('categories').append(item);
-      const words=r.ownDraft[i]||[];ensureInputs(i,Math.max(1,words.length));
+      const words=r.ownDraft?.[i]||[];ensureInputs(i,Math.max(1,words.length));
       [...$('entry-'+i).querySelectorAll('input')].forEach((input,j)=>input.value=words[j]||'');
+      setSkipped(i,r.ownSkipped?.[i]===true);
+      $('skip-'+i).onclick=()=>{setSkipped(i,!readSkipped()[i]);changed(i)};
       $('add-'+i).onclick=()=>{ensureInputs(i,$('entry-'+i).children.length+1);$('entry-'+i).lastElementChild.querySelector('input').focus()};
      });
      verified=false;$('stop').disabled=true;$('check').disabled=false;$('save-label').textContent='Черновик сохранён';$('game-notice').textContent='Ответы сохраняются автоматически. Соперники увидят их только по окончании раунда.';
@@ -331,40 +369,59 @@
     function sameRound(previous){
      return room?.code===previous.code&&room.phase==='playing'&&room.round===previous.round&&room.roundId===previous.roundId;
     }
-    function changed(){verified=false;$('stop').disabled=true;cats.forEach((_,i)=>{$('review-'+i).replaceChildren()});
+    function changed(i){
+     formVersion++;
+     verified=false;$('stop').disabled=true;
+     // Keep the review's height until the next explicit check so the
+     // keyboard and surrounding fields do not jump as a player edits.
+     $('review-'+i).classList.add('stale');
      $('save-label').textContent='Сохраняем…';clearTimeout(saveTimer);
      const current=room;
+     const version=formVersion;
      saveTimer=setTimeout(async()=>{
       if(disposed||document.hidden||!sameRound(current))return;
       try{
-       await api('draft',{answers:readAnswers()});
-       if(!disposed&&sameRound(current))$('save-label').textContent='Черновик сохранён';
-      }catch(e){if(!disposed&&sameRound(current)){$('save-label').textContent='Нет связи';toast(e.message)}}
-     },550);
+       const result=await api('draft',readForm());
+       if(!disposed&&sameRound(current)&&formVersion===version){
+        applyDraftCorrections(result);
+        $('save-label').textContent='Черновик сохранён';
+       }
+      }catch(e){if(!disposed&&sameRound(current)&&formVersion===version){$('save-label').textContent='Нет связи';toast(e.message)}}
+     },current.mode==='timed'?Math.min(550,Math.max(0,current.deadline-Date.now()-500)):550);
     }
     async function check(){
      if(disposed||!room||room.phase!=='playing')return;
      clearTimeout(saveTimer);$('check').disabled=true;
-     const submitted=readAnswers();
+     const version=++formVersion;
+     const submitted=readForm();
      try{
       const current=room;
-      await api('draft',{answers:submitted});
-      if(!sameRound(current)||disposed)return;
-      const r=await api('check',{answers:submitted});
-      if(!sameRound(current)||disposed)return;
-      if(JSON.stringify(readAnswers())!==JSON.stringify(submitted))return toast('Ответы изменились — проверь ещё раз');
+      await api('draft',submitted);
+      if(!sameRound(current)||disposed||formVersion!==version)return;
+      const r=await api('check',submitted);
+      if(!sameRound(current)||disposed||formVersion!==version)return;
       cats.forEach((_,i)=>{
        const node=$('review-'+i),list=r.rows[i];
-       ensureInputs(i,Math.max(1,list.length));
-       [...$('entry-'+i).querySelectorAll('input')].forEach((input,j)=>input.value=list[j]?.word||'');
+       node.className='review';
        node.replaceChildren();
+       if(submitted.skipped[i])return;
+       ensureInputs(i,Math.max(1,list.length));
+       [...$('entry-'+i).querySelectorAll('input')].forEach((input,j)=>{
+        const value=list[j]?.word||'';
+        pendingCorrections.delete(input);
+        if(input.value.trim()!==value){
+         if(root.activeElement===input){
+          if(list[j]?.original===input.value.trim())pendingCorrections.set(input,{original:list[j].original,word:value});
+         }else input.value=value;
+        }
+       });
        if(!list.length){node.className='review bad';node.textContent='Нет ответа';return;}
        list.forEach((answer,j)=>{
         const p=document.createElement('div');p.className=answer.valid?'review ok':'review bad';
         p.textContent=(answer.valid?'✓ ':'✕ ')+answer.word+' — '+(answer.valid?'подтверждено по Библии'+(answer.reference?' ('+answer.reference+')':''):answer.reason);
         if(!answer.valid&&answer.suggestions?.length)answer.suggestions.forEach(s=>{
          const b=document.createElement('button');b.type='button';b.textContent='Исправить: '+s;b.onclick=()=>{
-          const input=[...$('entry-'+i).querySelectorAll('input')].filter(field=>field.value.trim())[j];if(input){input.value=s;changed();input.focus()}
+          const input=[...$('entry-'+i).querySelectorAll('input')].filter(field=>field.value.trim())[j];if(input){input.value=s;changed(i)}
          };p.append(b);
         });
         node.append(p);
@@ -372,14 +429,15 @@
       });
       verified=r.complete;
       $('stop').disabled=!r.complete;
-      const missing=cats.filter((_,i)=>!r.rows[i].some(answer=>answer.valid));
-      $('game-notice').textContent=r.complete?'Все категории проверены. '+(room.mode==='stop'?'Можешь нажать СТОП!':'Ответы сохраняются до сигнала таймера.'):'Добавь хотя бы один правильный ответ для каждой категории: '+missing.join(', ')+'.';
-      toast(r.complete?'Проверка пройдена!':'Есть ошибки — смотри подсказки');
-     }catch(e){toast(e.message)}finally{$('check').disabled=false}
+      $('save-label').textContent='Черновик сохранён';
+      const missing=cats.filter((_,i)=>!submitted.skipped[i]&&!r.rows[i].some(answer=>answer.valid));
+      $('game-notice').textContent=r.complete?'Все категории проверены. '+(room.mode==='stop'?'Можешь нажать СТОП!':'Ответы сохраняются до сигнала таймера.'):
+       missing.length?'Заполни или пропусти категории: '+missing.join(', ')+'.':'Нужен хотя бы один правильный ответ.';
+     }catch(e){toast(e.message)}finally{if(!disposed&&room?.phase==='playing'&&(room.mode==='stop'||Date.now()<timeoutAt))$('check').disabled=false}
     }
     $('check').onclick=check;
     $('stop').onclick=async()=>{if(!verified||!room||room.mode!=='stop')return;clearTimeout(saveTimer);
-     await updateRoom('stop',{answers:readAnswers()},'stop');
+     await updateRoom('stop',readForm(),'stop');
      if(!disposed)$('stop').disabled=!verified};
     function resultTable(r){
      const res=r.results;if(!res)return;
@@ -458,7 +516,7 @@
       label.classList.toggle('urgent', left <= 10);
       if (!left) {
         $('game-notice').textContent = 'Ждём итогов с сервера…';
-        for (const input of $('categories').querySelectorAll('input')) input.disabled = true;
+        for (const control of $('categories').querySelectorAll('input,button')) control.disabled = true;
         $('check').disabled = true;
       }
     }
